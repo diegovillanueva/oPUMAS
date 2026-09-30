@@ -21,3 +21,7 @@
 ```
 /cluster/work/climate/dvillanueva/work/CESM/PUMAS
 ```
+
+## 🔬📂 Code analysis notes
+
+- 📝 `code_analysis/` holds per-topic notes on where schemes live in the source (e.g. `code_analysis/PUMAS_immersion_freezing.md`).
