@@ -129,6 +129,10 @@ real(r8) :: micro_mg_vtrms_factor      = 1._r8
 real(r8) :: micro_mg_effi_factor       = 1._r8
 real(r8) :: micro_mg_iaccr_factor      = 1._r8
 real(r8) :: micro_mg_max_nicons        = 1.e8_r8
+logical  :: micro_mg_do_graupel        = .false. ! prognostic graupel (adds GRAUQM, NUMGRA)
+logical  :: micro_mg_do_hail           = .false. ! prognostic hail instead of graupel
+logical  :: micro_mg_ngcons            = .false. ! hold graupel/hail number constant
+real(r8) :: micro_mg_ngnst             = 0.0005e6_r8 ! graupel/hail number when ngcons (m-3)
 logical  :: micro_mg_evap_sed_off      = .false.
 logical  :: micro_mg_icenuc_rh_off     = .false.
 logical  :: micro_mg_icenuc_use_meyers = .false.
@@ -160,8 +164,8 @@ real(r8) :: micro_mg_ncnst = 100.e6_r8 ! constant droplet num concentration (m-3
 real(r8) :: micro_mg_ninst = 0.1e6_r8  ! constant ice num concentration (m-3)
 
 character(len=8), parameter :: &      ! Constituent names
-   cnst_names(8) = (/'CLDLIQ', 'CLDICE','NUMLIQ','NUMICE', &
-                     'RAINQM', 'SNOWQM','NUMRAI','NUMSNO'/)
+   cnst_names(10) = (/'CLDLIQ', 'CLDICE','NUMLIQ','NUMICE', &
+                      'RAINQM', 'SNOWQM','NUMRAI','NUMSNO','GRAUQM','NUMGRA'/)
 
 integer :: &
    ixcldliq = -1,      &! cloud liquid amount index
@@ -171,7 +175,9 @@ integer :: &
    ixrain = -1,        &! rain index
    ixsnow = -1,        &! snow index
    ixnumrain = -1,     &! rain number index
-   ixnumsnow = -1       ! snow number index
+   ixnumsnow = -1,     &! snow number index
+   ixgraupel = -1,     &! graupel/hail index (PUMAS, micro_mg_do_graupel/hail)
+   ixnumgraupel = -1    ! graupel/hail number index
 
 ! Physics buffer indices for fields registered by this module
 integer :: &
@@ -306,7 +312,8 @@ subroutine micro_mg_cam_readnl(nlfile)
        micro_mg_accre_enhan_fact, micro_mg_autocon_fact, micro_mg_autocon_nd_exp, &
        micro_mg_autocon_lwp_exp, micro_mg_homog_size, micro_mg_vtrmi_factor, &
        micro_mg_vtrms_factor, micro_mg_effi_factor, micro_mg_iaccr_factor, &
-       micro_mg_max_nicons, micro_mg_evap_sed_off, micro_mg_icenuc_rh_off, &
+       micro_mg_max_nicons, micro_mg_do_graupel, micro_mg_do_hail, &
+       micro_mg_ngcons, micro_mg_ngnst, micro_mg_evap_sed_off, micro_mg_icenuc_rh_off, &
        micro_mg_icenuc_use_meyers, micro_mg_evap_scl_ifs, micro_mg_evap_rhthrsh_ifs, &
        micro_mg_rainfreeze_ifs, micro_mg_ifs_sed, micro_mg_precip_fall_corr, &
        micro_mg_implicit_fall, micro_mg_accre_sees_auto
@@ -368,6 +375,9 @@ subroutine micro_mg_cam_readnl(nlfile)
            case default
               call endrun(sub//": FATAL: micro_pumas_warm_rain must be kk2000, sb2001 or tau")
            end select
+           if (micro_mg_do_graupel .and. micro_mg_do_hail) then
+              call endrun(sub//": FATAL: only one of micro_mg_do_graupel or micro_mg_do_hail may be true")
+           end if
         case default
            call bad_version_endrun()
         end select
@@ -461,6 +471,14 @@ subroutine micro_mg_cam_readnl(nlfile)
 
   call mpi_bcast(micro_mg_max_nicons, 1, mpi_real8, mstrid, mpicom, ierr)
   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: micro_mg_max_nicons")
+  call mpi_bcast(micro_mg_do_graupel, 1, mpi_logical, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: micro_mg_do_graupel")
+  call mpi_bcast(micro_mg_do_hail, 1, mpi_logical, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: micro_mg_do_hail")
+  call mpi_bcast(micro_mg_ngcons, 1, mpi_logical, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: micro_mg_ngcons")
+  call mpi_bcast(micro_mg_ngnst, 1, mpi_real8, mstrid, mpicom, ierr)
+  if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: micro_mg_ngnst")
 
   call mpi_bcast(micro_mg_evap_sed_off, 1, mpi_logical, mstrid, mpicom, ierr)
   if (ierr /= 0) call endrun(sub//": FATAL: mpi_bcast: micro_mg_evap_sed_off")
@@ -524,6 +542,10 @@ subroutine micro_mg_cam_readnl(nlfile)
         write(iulog,*) '  micro_mg_effi_factor        = ', micro_mg_effi_factor
         write(iulog,*) '  micro_mg_iaccr_factor       = ', micro_mg_iaccr_factor
         write(iulog,*) '  micro_mg_max_nicons         = ', micro_mg_max_nicons
+        write(iulog,*) '  micro_mg_do_graupel         = ', micro_mg_do_graupel
+        write(iulog,*) '  micro_mg_do_hail            = ', micro_mg_do_hail
+        write(iulog,*) '  micro_mg_ngcons             = ', micro_mg_ngcons
+        write(iulog,*) '  micro_mg_ngnst              = ', micro_mg_ngnst
         write(iulog,*) '  micro_mg_evap_sed_off       = ', micro_mg_evap_sed_off
         write(iulog,*) '  micro_mg_icenuc_rh_off      = ', micro_mg_icenuc_rh_off
         write(iulog,*) '  micro_mg_icenuc_use_meyers  = ', micro_mg_icenuc_use_meyers
@@ -584,6 +606,13 @@ subroutine micro_mg_cam_register
            longname='Grid box averaged rain number', is_convtran1=.true.)
       call cnst_add(cnst_names(8), mwh2o, cpair, 0._r8, ixnumsnow, &
            longname='Grid box averaged snow number', is_convtran1=.true.)
+   end if
+   ! oPUMAS cesm215 interface: graupel/hail constituents (micro_mg_version = 3 only).
+   if (micro_mg_do_graupel .or. micro_mg_do_hail) then
+      call cnst_add(cnst_names(9), mwh2o, cpair, 0._r8, ixgraupel, &
+           longname='Grid box averaged graupel/hail amount', is_convtran1=.true.)
+      call cnst_add(cnst_names(10), mwh2o, cpair, 0._r8, ixnumgraupel, &
+           longname='Grid box averaged graupel/hail number', is_convtran1=.true.)
    end if
 
    ! Request physics buffer space for fields that persist across timesteps.
@@ -870,8 +899,9 @@ subroutine micro_mg_cam_init(pbuf2d)
               micro_mg_ninst, errstring)
       end select
    case (3)
-      ! oPUMAS cesm215 interface: PUMAS without graupel/hail, 8 constituents like MG2.
+      ! oPUMAS cesm215 interface: PUMAS, 8 constituents like MG2 plus 2 with graupel/hail.
       ncnst = 8
+      if (micro_mg_do_graupel .or. micro_mg_do_hail) ncnst = 10
 
       ! CAM's size-distribution post-processing still uses micro_mg_utils.
       call micro_mg_utils_init(r8, rh2o, cpair, tmelt, latvap, latice, &
@@ -881,7 +911,7 @@ subroutine micro_mg_cam_init(pbuf2d)
       call micro_pumas_init( &
            r8, gravit, rair, rh2o, cpair, &
            tmelt, latvap, latice, rhmini, &
-           micro_mg_dcs, .false., .false., &
+           micro_mg_dcs, micro_mg_do_hail, micro_mg_do_graupel, &
            microp_uniform, do_cldice, use_hetfrz_classnuc, &
            micro_mg_precip_frac_method, micro_mg_berg_eff_factor, &
            micro_mg_accre_enhan_fact, micro_mg_autocon_fact, &
@@ -894,7 +924,7 @@ subroutine micro_mg_cam_init(pbuf2d)
            micro_mg_rainfreeze_ifs, micro_mg_ifs_sed, micro_mg_precip_fall_corr, &
            micro_mg_accre_sees_auto, micro_mg_implicit_fall, &
            micro_mg_nccons, micro_mg_nicons, micro_mg_ncnst, micro_mg_ninst, &
-           .false., 0._r8, .false., 0._r8, .false., 0._r8, &
+           micro_mg_ngcons, micro_mg_ngnst, .false., 0._r8, .false., 0._r8, &
            '', '', '', iulog, errstring)
 
       if (trim(micro_pumas_warm_rain) == 'tau') then
@@ -907,11 +937,11 @@ subroutine micro_mg_cam_init(pbuf2d)
    ! Register history variables
    do m = 1, ncnst
       call cnst_get_ind(cnst_names(m), mm)
-      if ( any(mm == (/ ixcldliq, ixcldice, ixrain, ixsnow /)) ) then
+      if ( any(mm == (/ ixcldliq, ixcldice, ixrain, ixsnow, ixgraupel /)) ) then
          ! mass mixing ratios
          call addfld(cnst_name(mm), (/ 'lev' /), 'A', 'kg/kg', cnst_longname(mm)                   )
          call addfld(sflxnam(mm),    horiz_only, 'A',   'kg/m2/s', trim(cnst_name(mm))//' surface flux')
-      else if ( any(mm == (/ ixnumliq, ixnumice, ixnumrain, ixnumsnow /)) ) then
+      else if ( any(mm == (/ ixnumliq, ixnumice, ixnumrain, ixnumsnow, ixnumgraupel /)) ) then
          ! number concentrations
          call addfld(cnst_name(mm), (/ 'lev' /), 'A', '1/kg', cnst_longname(mm)                   )
          call addfld(sflxnam(mm),    horiz_only, 'A',   '1/m2/s', trim(cnst_name(mm))//' surface flux')
@@ -1083,6 +1113,10 @@ subroutine micro_mg_cam_init(pbuf2d)
    call addfld ('AQSNOW',      (/ 'lev' /),  'A', 'kg/kg',    'Average snow mixing ratio'                                         )
    call addfld ('ANRAIN',      (/ 'lev' /),  'A', 'm-3',      'Average rain number conc'                                          )
    call addfld ('ANSNOW',      (/ 'lev' /),  'A', 'm-3',      'Average snow number conc'                                          )
+   if (micro_mg_do_graupel .or. micro_mg_do_hail) then
+      call addfld ('AQGRAU',      (/ 'lev' /),  'A', 'kg/kg',    'Average graupel/hail mixing ratio'                                 )
+      call addfld ('ANGRAU',      (/ 'lev' /),  'A', 'm-3',      'Average graupel/hail number conc'                                  )
+   end if
    call addfld ('ADRAIN',      (/ 'lev' /),  'A', 'm',        'Average rain Diameter'                                             )
    call addfld ('ADSNOW',      (/ 'lev' /),  'A', 'm',        'Average snow Diameter'                                             )
    call addfld ('FREQR',       (/ 'lev' /),  'A', 'fraction', 'Fractional occurrence of rain'                                     )
@@ -1381,6 +1415,8 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    real(r8), target :: qsten(state%psetcols,pver)
    real(r8), target :: nrten(state%psetcols,pver)
    real(r8), target :: nsten(state%psetcols,pver)
+   real(r8), target :: qgten(state%psetcols,pver)
+   real(r8), target :: ngten(state%psetcols,pver)
 
    real(r8), target :: prect(state%psetcols)
    real(r8), target :: preci(state%psetcols)
@@ -1393,6 +1429,7 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    real(r8), target :: iflx(state%psetcols,pverp)      ! grid-box avg ice condensate flux (kg m^-2 s^-1)
    real(r8), target :: rflx(state%psetcols,pverp)      ! grid-box average rain flux (kg m^-2 s^-1)
    real(r8), target :: sflx(state%psetcols,pverp)      ! grid-box average snow flux (kg m^-2 s^-1)
+   real(r8), target :: gflx(state%psetcols,pverp)      ! grid-box average graupel/hail flux (kg m^-2 s^-1)
    real(r8), target :: qrout(state%psetcols,pver)      ! Rain mixing ratio
    real(r8), target :: qcsevap(state%psetcols,pver)    ! Evaporation of falling cloud water
    real(r8), target :: qisevap(state%psetcols,pver)    ! Sublimation of falling cloud ice
@@ -1442,6 +1479,8 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    real(r8), target :: qsout2(state%psetcols,pver)
    real(r8), target :: nrout2(state%psetcols,pver)
    real(r8), target :: nsout2(state%psetcols,pver)
+   real(r8), target :: qgout2(state%psetcols,pver)
+   real(r8), target :: ngout2(state%psetcols,pver)
    real(r8), target :: freqs(state%psetcols,pver)
    real(r8), target :: freqr(state%psetcols,pver)
    real(r8), target :: nfice(state%psetcols,pver)
@@ -1461,6 +1500,8 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    real(r8) :: packed_nr(mgncol,nlev)
    real(r8) :: packed_qs(mgncol,nlev)
    real(r8) :: packed_ns(mgncol,nlev)
+   real(r8) :: packed_qg(mgncol,nlev)
+   real(r8) :: packed_ng(mgncol,nlev)
 
    real(r8) :: packed_relvar(mgncol,nlev)
    real(r8) :: packed_accre_enhan(mgncol,nlev)
@@ -1504,6 +1545,8 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    real(r8), target :: packed_qstend(mgncol,nlev)
    real(r8), target :: packed_nrtend(mgncol,nlev)
    real(r8), target :: packed_nstend(mgncol,nlev)
+   real(r8), target :: packed_qgtend(mgncol,nlev)
+   real(r8), target :: packed_ngtend(mgncol,nlev)
 
    real(r8), target :: packed_prect(mgncol)
    real(r8), target :: packed_preci(mgncol)
@@ -1518,6 +1561,7 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    real(r8), target :: packed_iflx(mgncol,nlev+1)
    real(r8), target :: packed_rflx(mgncol,nlev+1)
    real(r8), target :: packed_sflx(mgncol,nlev+1)
+   real(r8), target :: packed_gflx(mgncol,nlev+1)
    real(r8), target :: packed_qrout(mgncol,nlev)
    real(r8), target :: packed_qcsevap(mgncol,nlev)
    real(r8), target :: packed_qisevap(mgncol,nlev)
@@ -1566,6 +1610,8 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    real(r8), target :: packed_qsout2(mgncol,nlev)
    real(r8), target :: packed_nrout2(mgncol,nlev)
    real(r8), target :: packed_nsout2(mgncol,nlev)
+   real(r8), target :: packed_qgout2(mgncol,nlev)
+   real(r8), target :: packed_ngout2(mgncol,nlev)
    real(r8), target :: packed_freqs(mgncol,nlev)
    real(r8), target :: packed_freqr(mgncol,nlev)
    real(r8), target :: packed_nfice(mgncol,nlev)
@@ -1594,9 +1640,7 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    ! (graupel and 10 cm reflectivity; one slice per argument to avoid aliasing).
    type(proc_rates_type) :: proc_rates
    real(r8) :: packed_pint(mgncol,nlev+1)
-   real(r8) :: pumas_qg0(mgncol,nlev)
-   real(r8) :: pumas_dum(mgncol,nlev,12)
-   real(r8) :: pumas_gflx_dum(mgncol,nlev+1)
+   real(r8) :: pumas_dum(mgncol,nlev,10)
 
    ! Heterogeneous-only version of mnuccdo.
    real(r8) :: mnuccdohet(state%psetcols,pver)
@@ -2073,6 +2117,10 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
       lq(ixnumrain) = .true.
       lq(ixnumsnow) = .true.
    end if
+   if (ixgraupel > 0) then
+      lq(ixgraupel) = .true.
+      lq(ixnumgraupel) = .true.
+   end if
 
    ! the name 'cldwat' triggers special tests on cldliq
    ! and cldice in physics_update
@@ -2099,6 +2147,13 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
       call post_proc%add_field(p(ums), p(packed_ums))
       call post_proc%add_field(p(cflx), p(packed_cflx))
       call post_proc%add_field(p(iflx), p(packed_iflx))
+   end if
+   if (micro_mg_version == 3) then
+      call post_proc%add_field(p(qgten), p(packed_qgtend))
+      call post_proc%add_field(p(ngten), p(packed_ngtend))
+      call post_proc%add_field(p(gflx), p(packed_gflx))
+      call post_proc%add_field(p(qgout2), p(packed_qgout2))
+      call post_proc%add_field(p(ngout2), p(packed_ngout2))
    end if
 
    call post_proc%add_field(p(am_evp_st), p(packed_am_evp_st))
@@ -2201,7 +2256,6 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    packed_pdel = packer%pack(state_loc%pdel)
    if (micro_mg_version == 3) then
       packed_pint = packer%pack_interface(state_loc%pint)
-      pumas_qg0 = 0._r8
       call proc_rates%allocate(mgncol, nlev, ncd, micro_pumas_warm_rain, errstring)
       call handle_errmsg(errstring, subname="proc_rates%allocate")
    end if
@@ -2250,6 +2304,13 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
          packed_nr = packer%pack(state_loc%q(:,:,ixnumrain))
          packed_qs = packer%pack(state_loc%q(:,:,ixsnow))
          packed_ns = packer%pack(state_loc%q(:,:,ixnumsnow))
+      end if
+      if (ixgraupel > 0) then
+         packed_qg = packer%pack(state_loc%q(:,:,ixgraupel))
+         packed_ng = packer%pack(state_loc%q(:,:,ixnumgraupel))
+      else
+         packed_qg = 0._r8
+         packed_ng = 0._r8
       end if
 
       select case (micro_mg_version)
@@ -2346,7 +2407,7 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
       case(3)
          select case (micro_mg_sub_version)
          case (0)
-            ! oPUMAS cesm215 interface: PUMAS call, graupel off.
+            ! oPUMAS cesm215 interface: PUMAS call (graupel/hail via micro_mg_do_graupel/hail).
             call micro_pumas_tend( &
                  mgncol,         nlev,           dtime/num_steps,&
                  packed_t,               packed_q,               &
@@ -2354,7 +2415,7 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
                  packed_nc,              packed_ni,              &
                  packed_qr,              packed_qs,              &
                  packed_nr,              packed_ns,              &
-                 pumas_qg0,              pumas_qg0,              &
+                 packed_qg,              packed_ng,              &
                  packed_relvar,          packed_accre_enhan,     &
                  packed_p,               packed_pdel, packed_pint, &
                  packed_cldn, packed_liqcldf, packed_icecldf, packed_qsatfac, &
@@ -2366,7 +2427,7 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
                  packed_nctend,          packed_nitend,          &
                  packed_qrtend,          packed_qstend,          &
                  packed_nrtend,          packed_nstend,          &
-                 pumas_dum(:,:,1),       pumas_dum(:,:,2),       &
+                 packed_qgtend,          packed_ngtend,          &
                  packed_rel,     rel_fn_dum,     packed_rei,     &
                  packed_sadice,          packed_sadsnow,         &
                  packed_prect,           packed_preci,           &
@@ -2377,7 +2438,7 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
                  packed_qsout,           packed_des,             &
                  pumas_dum(:,:,3), pumas_dum(:,:,4), pumas_dum(:,:,5), &
                  packed_cflx,    packed_iflx,                    &
-                 pumas_gflx_dum,                                 &
+                 packed_gflx,                                    &
                  packed_rflx,    packed_sflx,    packed_qrout,   &
                  reff_rain_dum,  reff_snow_dum,  pumas_dum(:,:,6), &
                  packed_nrout,           packed_nsout,           &
@@ -2388,7 +2449,7 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
                  packed_qrout2,          packed_qsout2,          &
                  packed_nrout2,          packed_nsout2,          &
                  drout_dum,              dsout2_dum,             &
-                 pumas_dum(:,:,9), pumas_dum(:,:,10), pumas_dum(:,:,11), pumas_dum(:,:,12), &
+                 packed_qgout2, packed_ngout2, pumas_dum(:,:,9), pumas_dum(:,:,10), &
                  packed_freqs,           packed_freqr,           &
                  packed_nfice,           packed_qcrat,           &
                  proc_rates,                                     &
@@ -2465,6 +2526,11 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
          ptend_loc%q(:,:,ixnumsnow) = packer%unpack(packed_nstend, &
               -state_loc%q(:,:,ixnumsnow)/(dtime/num_steps))
       end if
+      if (ixgraupel > 0) then
+         ptend_loc%q(:,:,ixgraupel)    = packer%unpack(packed_qgtend, 0._r8)
+         ptend_loc%q(:,:,ixnumgraupel) = packer%unpack(packed_ngtend, &
+              -state_loc%q(:,:,ixnumgraupel)/(dtime/num_steps))
+      end if
 
       ! Sum into overall ptend
       call physics_ptend_sum(ptend_loc, ptend, ncol)
@@ -2522,6 +2588,11 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    if (micro_mg_version >= 2) then
       mgflxprc(:ncol,top_lev:pverp) = mgflxprc(:ncol,top_lev:pverp)+ iflx(:ncol,top_lev:pverp) + cflx(:ncol,top_lev:pverp)
       mgflxsnw(:ncol,top_lev:pverp) = mgflxsnw(:ncol,top_lev:pverp) + iflx(:ncol,top_lev:pverp)
+   end if
+   ! oPUMAS cesm215 interface: graupel/hail falls with the snow flux.
+   if (ixgraupel > 0) then
+      mgflxprc(:ncol,top_lev:pverp) = mgflxprc(:ncol,top_lev:pverp) + gflx(:ncol,top_lev:pverp)
+      mgflxsnw(:ncol,top_lev:pverp) = mgflxsnw(:ncol,top_lev:pverp) + gflx(:ncol,top_lev:pverp)
    end if
 
 
@@ -3195,6 +3266,10 @@ subroutine micro_mg_cam_tend_pack(state, ptend, dtime, pbuf, mgncol, mgcols, nle
    call outfld('AQSNOW',      qsout2,      psetcols, lchnk, avg_subcol_field=use_subcol_microp)
    call outfld('ANRAIN',      nrout2,      psetcols, lchnk, avg_subcol_field=use_subcol_microp)
    call outfld('ANSNOW',      nsout2,      psetcols, lchnk, avg_subcol_field=use_subcol_microp)
+   if (ixgraupel > 0) then
+      call outfld('AQGRAU',      qgout2,      psetcols, lchnk, avg_subcol_field=use_subcol_microp)
+      call outfld('ANGRAU',      ngout2,      psetcols, lchnk, avg_subcol_field=use_subcol_microp)
+   end if
    call outfld('FREQR',       freqr,       psetcols, lchnk, avg_subcol_field=use_subcol_microp)
    call outfld('FREQS',       freqs,       psetcols, lchnk, avg_subcol_field=use_subcol_microp)
    call outfld('MPDT',        tlat,        psetcols, lchnk, avg_subcol_field=use_subcol_microp)

@@ -1,8 +1,8 @@
 diff --git a/bld/namelist_files/namelist_definition.xml b/bld/namelist_files/namelist_definition.xml
-index 37a56902..682a5c82 100644
+index 37a56902..aa6b2818 100644
 --- a/bld/namelist_files/namelist_definition.xml
 +++ b/bld/namelist_files/namelist_definition.xml
-@@ -2572,6 +2572,143 @@ In-cloud ice number concentration when micro_mg_nicons=.true.
+@@ -2572,6 +2572,167 @@ In-cloud ice number concentration when micro_mg_nicons=.true.
  Default: 0.1e6 m-3
  </entry>
  
@@ -141,6 +141,30 @@ index 37a56902..682a5c82 100644
 +       group="micro_pumas_nl" valid_values="" >
 +If .true., autoconverted liquid is added to rain and removed from cloud before accretion is estimated (PUMAS).
 +Default: .false.
++</entry>
++
++<entry id="micro_mg_do_graupel" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Switch to prognose dense precipitating ice as graupel (PUMAS, adds constituents GRAUQM and NUMGRA).
++Default: .false.
++</entry>
++
++<entry id="micro_mg_do_hail" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Switch to prognose dense precipitating ice as hail instead of graupel (PUMAS). Only one of micro_mg_do_graupel/micro_mg_do_hail may be true.
++Default: .false.
++</entry>
++
++<entry id="micro_mg_ngcons" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Set .true. to hold graupel/hail number constant (PUMAS).
++Default: .false.
++</entry>
++
++<entry id="micro_mg_ngnst" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++In-cloud graupel/hail number concentration when micro_mg_ngcons=.true. (PUMAS).
++Default: 0.0005e6 m-3
 +</entry>
 +
  <!-- Aerosol microphysics -->

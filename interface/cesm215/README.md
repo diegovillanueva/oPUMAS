@@ -30,9 +30,10 @@ cesmvvv=cesm215_pumas CAM_USR_SRC=$I \
 - 🗂️🔝 CAM `configure -usr_src <dir>` puts `<dir>` first in `Buildconf/camconf/Filepath`, so a file here replaces the CAM file of the same name.
 - 🔗🧊 The nine PUMAS files CAM compiles are relative symlinks to the repo root: `pumas_kinds`, `pumas_gamma_function`, `micro_pumas_utils`, `micro_pumas_diags`, `pumas_stochastic_collect_tau`, `module_neural_net`, `tau_neural_net_quantile`, `ML_fixer_check`, `micro_pumas_v1`.
 - 🚫📄 `micro_pumas_ccpp`, `micro_pumas_tempfix` and the repo-root `micro_mg1_0` are never linked, because they need CCPP or clash with CAM.
-- 🛠️📄 Two CAM files are overridden with full copies of the rel_60 file plus additions. `./make_interface.sh diff` prints the exact patch against the tag.
+- 🛠️📄 Three CAM files are overridden with full copies of the rel_60 file plus additions. `./make_interface.sh diff` prints the exact patch against the tag.
   - 🌧️🧊 `micro_mg_cam.F90` gains a `case (3)` in readnl, init, get_cols and tend_pack, and reads the extra namelist group `micro_pumas_nl`.
   - 💧📐 `wv_sat_methods.F90` gains `wv_sat_qsat_water_vect` and `wv_sat_qsat_ice_vect`, thin wrappers around the elemental rel_60 routines.
+  - ⚖️❄️ `check_energy.F90` counts `GRAUQM` in the ice water budget and excludes it from the dry-mass fixer, so graupel conserves mass and energy.
 - 📝🧊 `namelist_definition.micro_pumas_nl.patch` adds the `micro_pumas_nl` group to CAM. It is committed on the worktree branch `dv_pumas_rel60`.
 - 🌳🔗 `$W/cesm215_pumas` is a CESM root made of symlinks to `$W/cesm215`, except `components/cam`, which points to the clean worktree `$W/cam_rel60_pumas`.
 - 🧭🐍 CIME resolves the `cime` symlink, so the wrapper passes `--srcroot` to `create_newcase`. Cases therefore sit physically in `$W/cesm215/cime/scripts` with the prefix `cesm215_pumas.`.
@@ -49,14 +50,17 @@ cesmvvv=cesm215_pumas CAM_USR_SRC=$I \
 | `micro_mg_homog_size`, `micro_mg_max_nicons` | 25e-6, 1e8 | ice |
 | `micro_mg_vtrmi_factor`, `micro_mg_vtrms_factor`, `micro_mg_effi_factor`, `micro_mg_iaccr_factor` | 1 | ice and snow scaling |
 | `micro_mg_evap_sed_off`, `micro_mg_icenuc_rh_off`, `micro_mg_icenuc_use_meyers`, `micro_mg_*_ifs`, `micro_mg_precip_fall_corr`, `micro_mg_implicit_fall`, `micro_mg_accre_sees_auto` | `.false.` | switches |
+| `micro_mg_do_graupel`, `micro_mg_do_hail` | `.false.` | prognostic graupel or hail (one at most); adds constituents `GRAUQM`, `NUMGRA` |
+| `micro_mg_ngcons`, `micro_mg_ngnst` | `.false.`, 0.0005e6 | constant graupel/hail number |
 
-🧊🚫 Graupel and hail are off, and `emulated` warm rain is not wired. The existing MG2 namelist (`micro_mg_dcs`, `micro_mg_berg_eff_factor`, number constants, `micro_mg_num_steps`) is passed through unchanged.
+🧊❄️ `user_nl_cam.pumas_graupel` is the same plus `micro_mg_do_graupel = .true.` (10 constituents). 🤖🚫 `emulated` warm rain is not wired. The existing MG2 namelist (`micro_mg_dcs`, `micro_mg_berg_eff_factor`, number constants, `micro_mg_num_steps`) is passed through unchanged.
 
 ## 🗺️🔀 Output mapping
 
 - 📊✅ All standard MG2 history fields keep their names. PUMAS process rates in `proc_rates` are copied to the MG2 arrays, e.g. `pratot` to `PRAO` and `bergstot` to `BERGSO`.
 - 🧊✂️ PUMAS splits snow deposition into `bergs` and `vapdeps`, so `BERGSO` is not comparable to MG2. PUMAS-only rates such as `vapdepstot`, `mnudeptot` and the number rates are not written.
-- 🗑️📡 Graupel outputs and the 10 cm reflectivity go to local dummies.
+- ❄️📊 With graupel on, `AQGRAU` and `ANGRAU` are written and the graupel flux is added to `LS_FLXPRC` and `LS_FLXSNW`. Graupel is not seen by radiation (no `ICGRAUWP`/`DEGRAU` fields, rel_60 `cloud_rad_props` does not know them).
+- 🗑️📡 The 10 cm reflectivity, graupel effective radius and diameter go to local dummies.
 
 ## 🧪🔍 Validate
 
