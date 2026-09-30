@@ -1,0 +1,148 @@
+diff --git a/bld/namelist_files/namelist_definition.xml b/bld/namelist_files/namelist_definition.xml
+index 37a56902..682a5c82 100644
+--- a/bld/namelist_files/namelist_definition.xml
++++ b/bld/namelist_files/namelist_definition.xml
+@@ -2572,6 +2572,143 @@ In-cloud ice number concentration when micro_mg_nicons=.true.
+ Default: 0.1e6 m-3
+ </entry>
+ 
++<!-- oPUMAS cesm215 interface: PUMAS-only knobs, read when micro_mg_version = 3 -->
++<entry id="micro_pumas_warm_rain" type="char*16" category="microphys"
++       group="micro_pumas_nl" valid_values="kk2000,sb2001,tau" >
++PUMAS warm rain scheme: kk2000 (Khairoutdinov and Kogan 2000), sb2001 (Seifert and Beheng 2001)
++or tau (stochastic collection, needs micro_pumas_kernel_file).
++Default: kk2000
++</entry>
++
++<entry id="micro_pumas_kernel_file" type="char*256" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Full path of the PUMAS stochastic collection kernel file (KBARF_tau_kernel.dat), used when micro_pumas_warm_rain = tau.
++Default: none
++</entry>
++
++<entry id="micro_mg_accre_enhan_fact" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Unitless ratio to increase the accretion process in microphysics as a method of accounting for unrepresented subgridscale variability.
++Default: 1
++</entry>
++
++<entry id="micro_mg_autocon_fact" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Unitless ratio to directly scale the autoconversion process in microphysics as a method of accounting for unrepresented subgridscale variability.
++Default: 0.01
++</entry>
++
++<entry id="micro_mg_autocon_nd_exp" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Unitless exponent of cloud number condensation in the KK autoconversion parameterization equation. See Khairoutdinov and Kogan, 2002.
++Default: -1.1
++</entry>
++
++<entry id="micro_mg_autocon_lwp_exp" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Unitless exponent of liquid water path in the KK autoconversion parameterization equation. See Khairoutdinov and Kogan, 2002.
++Default: 2.47
++</entry>
++
++<entry id="micro_mg_homog_size" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Mean volume radius of droplets used in the process of homogeneously freezing below -40C in (m). Default value is currently the previously assumed 25 microns.
++Default: 25.e-6 m
++</entry>
++
++<entry id="micro_mg_vtrmi_factor" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Unitless scaling factor for ice fall speed to account for sub-grid scale ice crystal shape variability.
++Default: 1.0
++</entry>
++
++<entry id="micro_mg_vtrms_factor" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Unitless scaling factor for snow fall speed (PUMAS).
++Default: 1.0
++</entry>
++
++<entry id="micro_mg_effi_factor" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Unitless scaling factor for ice effective radius as seen by radiation. This scaling factor adjusts for sub-grid scale ice crystal shape variability.
++Default: 1.0
++</entry>
++
++<entry id="micro_mg_iaccr_factor" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Ice accrete cloud droplet factor
++Default: 1
++</entry>
++
++<entry id="micro_mg_max_nicons" type="real" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Maximum allowed ice number concentration
++Default: 1.0e8
++</entry>
++
++<entry id="micro_mg_evap_sed_off" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++If .true., sedimenting condensate does not evaporate
++Default: .false.
++</entry>
++
++<entry id="micro_mg_icenuc_rh_off" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++If .true., remove RH threshold from ice nucelation calculation
++Default: .false.
++</entry>
++
++<entry id="micro_mg_icenuc_use_meyers" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Hard code Meyers 1992 Temp dependent ice nucleation in microphysics
++Default: .false.
++</entry>
++
++<entry id="micro_mg_evap_scl_ifs" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Apply 0.3 scaling factor to evaporation of precipitation as done in the
++IFS model (https://www.ecmwf.int/en/forecasts/documentation-and-support)
++Default: .false.
++</entry>
++
++<entry id="micro_mg_evap_rhthrsh_ifs" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Do not evaporate precipitation until RH &lt; 90% as done in the
++IFS model (https://www.ecmwf.int/en/forecasts/documentation-and-support)
++Default: .false.
++</entry>
++
++<entry id="micro_mg_rainfreeze_ifs" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++Freeze rain at 0C as done in the
++IFS model (https://www.ecmwf.int/en/forecasts/documentation-and-support)
++Default: .false.
++</entry>
++
++<entry id="micro_mg_ifs_sed" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++If .false., use the default sedimentation fall speed calculation from MG2 for all species. If .true., use constant sedimentation fall speeds for snow and ice, and no sedimentation of liquid, to be consistant with how species descend in the IFS model (https://www.ecmwf.int/en/forecasts/documentation-and-support)
++Default: .false.
++</entry>
++
++<entry id="micro_mg_precip_fall_corr" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++If .true., ensure non-zero precipitation fallspeed (rain,snow and graupel) if precipitation exists above in column (from M2005 in WRFv3.3)
++Default: .false.
++</entry>
++
++<entry id="micro_mg_implicit_fall" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++If .true., use implicit fall speed (sedimentation) routine for all hydrometeors (PUMAS).
++Default: .false.
++</entry>
++
++<entry id="micro_mg_accre_sees_auto" type="logical" category="microphys"
++       group="micro_pumas_nl" valid_values="" >
++If .true., autoconverted liquid is added to rain and removed from cloud before accretion is estimated (PUMAS).
++Default: .false.
++</entry>
++
+ <!-- Aerosol microphysics -->
+ <entry id="microp_aero_bulk_scale" type="real" category="microphys"
+        group="microp_aero_nl" valid_values="" >

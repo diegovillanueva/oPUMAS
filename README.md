@@ -6,6 +6,7 @@
 - 📘📄 Original upstream README (checkout, running with CAM): [`README_PUMAS.md`](README_PUMAS.md)
 - 🐙🔁 Git setup, daily upstream sync, and (disabled) PR recipe: [`git_work.md`](git_work.md)
 - 🤖📋 Agent rules: [`AGENTS.md`](AGENTS.md)
+- 🧊🔌 Run oPUMAS inside CESM 2.1.5 CAM (`micro_mg_version = 3`): [`interface/cesm215/README.md`](interface/cesm215/README.md)
 
 ## Remotes and branches
 
