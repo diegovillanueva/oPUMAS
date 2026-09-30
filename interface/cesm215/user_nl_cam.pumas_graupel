@@ -1,4 +1,5 @@
 ! oPUMAS in CESM 2.1.5 with prognostic graupel (10 constituents)
+! Needs CAM_CONFIG_OPTS += "-nadv <nadv+2>" (35 for F2000climo cam6), see README.md
  micro_mg_version = 3
  micro_mg_sub_version = 0
  micro_mg_do_graupel = .true.

@@ -53,7 +53,7 @@ cesmvvv=cesm215_pumas CAM_USR_SRC=$I \
 | `micro_mg_do_graupel`, `micro_mg_do_hail` | `.false.` | prognostic graupel or hail (one at most); adds constituents `GRAUQM`, `NUMGRA` |
 | `micro_mg_ngcons`, `micro_mg_ngnst` | `.false.`, 0.0005e6 | constant graupel/hail number |
 
-🧊❄️ `user_nl_cam.pumas_graupel` is the same plus `micro_mg_do_graupel = .true.` (10 constituents). 🤖🚫 `emulated` warm rain is not wired. The existing MG2 namelist (`micro_mg_dcs`, `micro_mg_berg_eff_factor`, number constants, `micro_mg_num_steps`) is passed through unchanged.
+🧊❄️ `user_nl_cam.pumas_graupel` is the same plus `micro_mg_do_graupel = .true.` (10 constituents). 🔢⚠️ CAM's `configure` counts tracers before it sees this switch, so a graupel case also needs `./xmlchange --append CAM_CONFIG_OPTS="-nadv 35"` (the case's `nadv` in `Buildconf/camconf/config_cache.xml` plus 2) before `case.setup --reset` and a `case.build --clean-all` rebuild (make does not notice the changed `-DPCNST`, so an incremental build keeps the old executable); otherwise init aborts with `cnst_add: advected tracer index greater than pcnst`. 🤖🚫 `emulated` warm rain is not wired. The existing MG2 namelist (`micro_mg_dcs`, `micro_mg_berg_eff_factor`, number constants, `micro_mg_num_steps`) is passed through unchanged.
 
 ## 🗺️🔀 Output mapping
 
