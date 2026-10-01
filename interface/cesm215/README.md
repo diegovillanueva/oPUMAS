@@ -14,15 +14,15 @@ $I/make_interface.sh all
 
 # every case: the usual wrapper, pointed at the sibling root and this dir
 cd $W
-cesmvvv=cesm215_pumas CAM_USR_SRC=$I \
+cesmvvv=cesm215_pumas_worktrees/cesm215_pumas CAM_USR_SRC=$I \
   ./prepare_cesm.sh create my_case F2000climo --cam-namelist=$I/user_nl_cam.pumas
-./prepare_cesm.sh submit cesm215_pumas.F2000climo.my_case   # with cesmvvv=cesm215_pumas too
+./prepare_cesm.sh submit cesm215_pumas.F2000climo.my_case   # with cesmvvv=cesm215_pumas_worktrees/cesm215_pumas too
 ```
 
 🔍✅ After `create`, check that the case sees the right tree:
 
 ```bash
-./xmlquery SRCROOT,CAM_CONFIG_OPTS   # SRCROOT = $W/cesm215_pumas, CAM_CONFIG_OPTS ends in -usr_src $I
+./xmlquery SRCROOT,CAM_CONFIG_OPTS   # SRCROOT = $W/cesm215_pumas_worktrees/cesm215_pumas, CAM_CONFIG_OPTS ends in -usr_src $I
 ```
 
 ## 🧩⚙️ How it works
@@ -35,7 +35,7 @@ cesmvvv=cesm215_pumas CAM_USR_SRC=$I \
   - 💧📐 `wv_sat_methods.F90` gains `wv_sat_qsat_water_vect` and `wv_sat_qsat_ice_vect`, thin wrappers around the elemental rel_60 routines.
   - ⚖️❄️ `check_energy.F90` counts `GRAUQM` in the ice water budget and excludes it from the dry-mass fixer, so graupel conserves mass and energy.
 - 📝🧊 `namelist_definition.micro_pumas_nl.patch` adds the `micro_pumas_nl` group to CAM. It is committed on the worktree branch `dv_pumas_rel60`.
-- 🌳🔗 `$W/cesm215_pumas` is a CESM root made of symlinks to `$W/cesm215`, except `components/cam`, which points to the clean worktree `$W/cam_rel60_pumas`.
+- 🌳🔗 `$W/cesm215_pumas_worktrees/cesm215_pumas` is a CESM root made of symlinks to `$W/cesm215`, except `components/cam`, which points to the clean worktree `$W/cesm215_pumas_worktrees/cam_rel60_pumas`.
 - 🧭🐍 CIME resolves the `cime` symlink, so the wrapper passes `--srcroot` to `create_newcase`. Cases therefore sit physically in `$W/cesm215/cime/scripts` with the prefix `cesm215_pumas.`.
 
 ## 🎛️📝 Namelist

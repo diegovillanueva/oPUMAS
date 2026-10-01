@@ -7,9 +7,10 @@ HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 W="${W:-/cluster/work/climate/dvillanueva/work/CESM}"   # CESM work dir
 BASE="${BASE:-${W}/cesm215}"                              # existing CESM 2.1.5 root (source of externals)
 TAG="${TAG:-cam_cesm2_1_rel_60}"                          # CAM tag the interface was written against
-CAMWT="${CAMWT:-${W}/cam_rel60_pumas}"                    # CAM worktree
+WT="${WT:-${W}/cesm215_pumas_worktrees}"                 # holds everything PUMAS-specific next to cesm215
+CAMWT="${CAMWT:-${WT}/cam_rel60_pumas}"                   # CAM worktree
 BRANCH="${BRANCH:-dv_pumas_rel60}"                        # branch of the CAM worktree
-ROOT="${ROOT:-${W}/cesm215_pumas}"                        # sibling CESM root seen by cime
+ROOT="${ROOT:-${WT}/cesm215_pumas}"                       # sibling CESM root seen by cime
 
 # 🧮📦 PUMAS files compiled by CAM (never micro_pumas_ccpp, micro_pumas_tempfix, micro_mg1_0).
 PUMAS_FILES=(pumas_kinds pumas_gamma_function micro_pumas_utils micro_pumas_diags
