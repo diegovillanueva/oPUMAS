@@ -1,6 +1,6 @@
 # 🤝❄️ Handoff 7569de1 — graupel/hail for oPUMAS in CESM 2.1.5
 
-- **Commit**: `7569de1` ✨ feat: 🧊❄️ prognostic graupel/hail for oPUMAS in CESM 2.1.5 (micro_mg_do_graupel), on top of `6326b98` (see `handoff.6326b98.md`).
+- **Commit**: `7569de1` ✨ feat: 🧊❄️ prognostic graupel/hail for oPUMAS in CESM 2.1.5 (micro_mg_do_graupel), on top of `6326b98` (see `cesm215.6326b98.md`).
 - **What was done**: 🧊 `micro_mg_cam.F90` adds constituents `GRAUQM`/`NUMGRA` (`ncnst = 10`), the namelist switches `micro_mg_do_graupel`, `micro_mg_do_hail`, `micro_mg_ngcons`, `micro_mg_ngnst`, the graupel state/tendency/flux plumbing into `micro_pumas_tend`, and history fields `AQGRAU`/`ANGRAU`. ⚖️ New override `check_energy.F90` counts `GRAUQM` in the water budget. 📝 XML patch gained the 4 entries (worktree commit `3d77d73c`, pushed to `diego_ssh`).
 - **Current state**: ✅🌍 Case `cesm215_pumas.F2000climo.pumas_grau` (`CAM_CONFIG_OPTS` += `-nadv 35`) built and ran 1 day (job 15736063, 4:45 min, `SUCCESSFUL TERMINATION`, no errors). The restart file has graupel: `GRAUQM` max 1.2e-3 kg/kg, `NUMGRA` max 3.5e3 /kg, i.e. same order as `SNOWQM`. ☀️ Graupel is invisible to rel_60 radiation (no `ICGRAUWP`/`DEGRAU`). Not yet run for 3 months.
 - **Next steps**: 📆 3-month run of `pumas_grau` and comparison with `pumas_test` (`PRECT`, `TGCLDIWP`, `LWCF`, `SWCF`, `AQGRAU`). ☀️ Optional radiative graupel: overrides of `cloud_rad_props.F90`/`radiation.F90` plus the `ICGRAUWP`, `DEGRAU`, `CLDFGRAU` pbuf fields as in cam6_3_097 `micro_pumas_cam.F90` l.620-624, 2569-2585.

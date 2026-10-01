@@ -1,0 +1,8 @@
+# 🤝🧪 Handoff: tests/ directory, handoffs/ directory, override proposal (2026-10-01)
+
+- 📌 Commit: see `git log -1 -- tests/README.md`.
+- ✅ What was done: `tests/compile_check.sh` (14 files, about 40 s), `tests/bfb.sh` (1-day run of `bfb_dev` against a stored baseline), `tests/cmp_restart.py` (variable-by-variable restart comparison), `tests/switches.csv` (18 labels), `tests/README.md` (four-level strategy). All handoffs moved to `handoffs/`. `interface/cesm215/PROPOSAL_overrides.md` written. Issue https://github.com/diegovillanueva/oPUMAS/issues/1 opened for the readable core.
+- 🧪 Current state: `compile_check.sh` passes. `bfb.sh run base` passed on 2026-10-01 (build job 15794393, run job 15794612): 236 variables bit-for-bit with the baseline taken from the 14:51 run of `bfb_dev`. `cmp_restart.py` reproduces the `bfb_dev` against `bfb_cfccpp` result (236 identical). Only `base` has a baseline; the 17 switch rows have never been run, so their namelist lines are unverified.
+- ➡️ Next steps: run the 17 switch labels once with `BUILD=0 tests/bfb.sh run <label>` to store baselines and fix rows that fail; decide on `PROPOSAL_overrides.md`; decide the open question in issue 1 before any structural refactor.
+- 🧭 Key decisions: baselines live outside the repo in `cesm_runs/opumas_bfb_baselines/`; `bfb.sh` shares the case `bfb_dev` with the CF-CCPP check, restores `user_nl_cam` after a switch run and refuses to start while a job of the case is queued; the build goes through `build.proxy.sh` with `sbatch --wait`.
+- ⚠️ Gotcha: the restart comparison takes a few minutes because every variable is read in full.
