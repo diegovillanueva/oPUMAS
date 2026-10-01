@@ -18,7 +18,7 @@
 | `origin` | github.com/diegovillanueva/oPUMAS (private) | push freely |
 | `upstream` | github.com/ESCOMP/PUMAS | fetch only (push URL = `DISABLED`) |
 | `main_cam` | mirror of `upstream/main_cam` | fast-forward only, never commit |
-| `dev` | Diego's development in PUMAS names (default branch) | merge `main_cam` in regularly; dictionary edits happen here |
+| `main_cam_interface` | Diego's development in PUMAS names (default branch) | merge `main_cam` in regularly; dictionary edits happen here |
 | `CF-CCPP` | the same code in CF-CCPP names, editable | run `translation/sync.sh` before and after working on it |
 
 ## Local clone
@@ -40,7 +40,7 @@ tests/compile_check.sh                    # PUMAS files and CAM overrides compil
 tests/bfb.sh run                          # 1-day CESM 2.1.5 run is bit-for-bit with the baseline (about 15 min)
 python3 -m pytest -q translation          # translator tests
 python3 translation/check.py              # dictionary against the sources
-python3 translation/check.py --branches   # CF-CCPP is exactly the translation of dev
+python3 translation/check.py --branches   # CF-CCPP is exactly the translation of main_cam_interface
 ```
 
 🧊♻️ Bit-for-bit test in CESM 2.1.5 (cases `bfb_dev` and `bfb_cfccpp`): see [`interface/cesm215/README.md`](interface/cesm215/README.md).

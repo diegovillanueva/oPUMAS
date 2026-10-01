@@ -1,6 +1,6 @@
 # 🔤🌍 translation/: name dictionary and branch sync
 
-🎯📘 oPUMAS keeps the PUMAS identifiers on `dev` and offers the same code with self-explaining names on the branch `CF-CCPP`. Both branches are editable. One dictionary and one script keep them equivalent.
+🎯📘 oPUMAS keeps the PUMAS identifiers on `main_cam_interface` and offers the same code with self-explaining names on the branch `CF-CCPP`. Both branches are editable. One dictionary and one script keep them equivalent.
 
 | File | Role |
 |---|---|
@@ -10,7 +10,7 @@
 | `abbreviations.csv` | ✂️ The only shortenings allowed in constructed names |
 | `translate.py` | 🔁 Translates identifiers between any two languages |
 | `check.py` | ✅ Static checks of the dictionary and the branch invariant |
-| `sync.sh` | 🔀 Two-way sync between `dev` and the language branches |
+| `sync.sh` | 🔀 Two-way sync between `main_cam_interface` and the language branches |
 | `test_translate.py` | 🧪 Pytest on small Fortran snippets and on the real dictionary |
 
 ## 🧭🔧 Daily use
@@ -18,13 +18,13 @@
 ```bash
 translation/sync.sh                      # before and after working on CF-CCPP
 python3 translation/check.py             # dictionary against the sources
-python3 translation/check.py --branches  # translate(dev) == CF-CCPP
+python3 translation/check.py --branches  # translate(main_cam_interface) == CF-CCPP
 python3 -m pytest -q translation
-git push origin dev CF-CCPP              # sync.sh never pushes
+git push origin main_cam_interface CF-CCPP  # sync.sh never pushes
 ```
 
-- 🌿🔁 `sync.sh` replays new `CF-CCPP` commits, translated, onto `dev`, then writes one `🔁 sync` commit on `CF-CCPP` that holds the translated `dev` tip. The `Translated-from: <hash>` trailer of that commit marks the synced pair.
-- 📥🧬 Upstream PUMAS is merged into `dev` only. Dictionary edits are made on `dev` only. The next sync carries both to `CF-CCPP`.
+- 🌿🔁 `sync.sh` replays new `CF-CCPP` commits, translated, onto `main_cam_interface`, then writes one `🔁 sync` commit on `CF-CCPP` that holds the translated `main_cam_interface` tip. The `Translated-from: <hash>` trailer of that commit marks the synced pair.
+- 📥🧬 Upstream PUMAS is merged into `main_cam_interface` only. Dictionary edits are made on `main_cam_interface` only. The next sync carries both to `CF-CCPP`.
 - 🧳📤 One-way export for other compilers: `translate.py --from PUMAS --to CF-CCPP --wrap` breaks lines over 132 characters, and `--no-units` drops the unit suffixes. Never use these two flags on the editable branches.
 
 ## 📖🧱 Dictionary columns
@@ -57,9 +57,9 @@ fall speeds  <species>_<mass|number>_weighted_fall_speed
 
 ## ➕📖 Add or change a name
 
-1. 🌿 On `dev`, add or edit a row of `dictionary.csv`.
+1. 🌿 On `main_cam_interface`, add or edit a row of `dictionary.csv`.
 2. ✅ Run `python3 translation/check.py`; fix every error.
-3. 💾 Commit on `dev`, run `translation/sync.sh`, push both branches.
+3. 💾 Commit on `main_cam_interface`, run `translation/sync.sh`, push both branches.
 
 ## ➕🌐 Add a language
 

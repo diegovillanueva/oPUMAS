@@ -23,7 +23,7 @@
 | Lines of foreign CAM code in the repo | about 7200 | 0 |
 | Where the real change is visible | `make_interface.sh diff` | the repo itself |
 | Port to a new CAM tag or `dv_diag` | manual | `git am -3` or rebase of a 100-line series |
-| Files that differ between `dev` and `CF-CCPP` | 3400-line CAM copy | the glue module only |
+| Files that differ between `main_cam_interface` and `CF-CCPP` | 3400-line CAM copy | the glue module only |
 | Editing a CAM hook | edit the copy | edit the worktree, then `make_interface.sh export` |
 | Zero-edit promise for the CAM tree | XML only | XML plus hooks, on a dedicated branch |
 
