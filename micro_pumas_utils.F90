@@ -93,7 +93,7 @@ public :: MGHydrometeorProps
 
 type :: MGHydrometeorProps
    ! Density (kg/m^3)
-   real(r8) :: rho
+   real(r8) :: air_density_kg_per_m3
    ! Information for size calculations.
    ! Basic calculation of mean size is:
    !     lambda = (shape_coef*nic/qic)^(1/eff_dim)
@@ -394,13 +394,13 @@ subroutine micro_pumas_utils_init( kind, rair, rh2o, cpair, tmelt_in, latvap, &
 end subroutine micro_pumas_utils_init
 
 ! Constructor for a constituent property object.
-function NewMGHydrometeorProps(rho, eff_dim, lambda_bounds, min_mean_mass) &
+function NewMGHydrometeorProps(air_density_kg_per_m3, eff_dim, lambda_bounds, min_mean_mass) &
      result(res)
-  real(r8), intent(in) :: rho, eff_dim
+  real(r8), intent(in) :: air_density_kg_per_m3, eff_dim
   real(r8), intent(in), optional :: lambda_bounds(2), min_mean_mass
   type(MGHydrometeorProps) :: res
 
-  res%rho = rho
+  res%rho = air_density_kg_per_m3
   res%eff_dim = eff_dim
   if (present(lambda_bounds)) then
      res%lambda_bounds = lambda_bounds
@@ -413,7 +413,7 @@ function NewMGHydrometeorProps(rho, eff_dim, lambda_bounds, min_mean_mass) &
      res%min_mean_mass = no_limiter()
   end if
 
-  res%shape_coef = rho*pi*gamma(eff_dim+1._r8)/6._r8
+  res%shape_coef = air_density_kg_per_m3*pi*gamma(eff_dim+1._r8)/6._r8
 
 end function NewMGHydrometeorProps
 
@@ -545,66 +545,66 @@ subroutine calc_ab_vect(t, qv, xxl, ab, vlen)
 end subroutine calc_ab_vect
 
 ! get cloud droplet size distribution parameters
-subroutine size_dist_param_liq_line(props, qcic, ncic, rho, pgam, lamc)
+subroutine size_dist_param_liq_line(props, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, air_density_kg_per_m3, cldliq_size_dist_shape, cldliq_size_dist_slope_per_m)
   !$acc routine seq
   type(MGHydrometeorProps), intent(in)    :: props
-  real(r8),                 intent(in)    :: qcic
-  real(r8),                 intent(inout) :: ncic
-  real(r8),                 intent(in)    :: rho
-  real(r8),                 intent(out)   :: pgam
-  real(r8),                 intent(out)   :: lamc
+  real(r8),                 intent(in)    :: incloud_cldliq_mass_mixing_ratio_kg_per_kg
+  real(r8),                 intent(inout) :: incloud_cldliq_number_conc_per_kg
+  real(r8),                 intent(in)    :: air_density_kg_per_m3
+  real(r8),                 intent(out)   :: cldliq_size_dist_shape
+  real(r8),                 intent(out)   :: cldliq_size_dist_slope_per_m
 
   ! local variables
   type(MGHydrometeorProps)                :: props_loc
   real(r8)                                :: tmp
 
-  if (qcic > qsmall) then
+  if (incloud_cldliq_mass_mixing_ratio_kg_per_kg > qsmall) then
      ! Local copy of properties that can be modified.
      ! (Elemental routines that operate on arrays can't modify scalar
      ! arguments.)
      props_loc = props
 
      ! Get pgam from fit Rotstayn and Liu 2003 (changed from Martin 1994 for CAM6)
-     pgam = 1.0_r8 - 0.7_r8 * exp(-0.008_r8*1.e-6_r8*ncic*rho)
-     pgam = 1._r8/(pgam**2) - 1._r8
-     pgam = max(pgam, 2._r8)
+     cldliq_size_dist_shape = 1.0_r8 - 0.7_r8 * exp(-0.008_r8*1.e-6_r8*incloud_cldliq_number_conc_per_kg*air_density_kg_per_m3)
+     cldliq_size_dist_shape = 1._r8/(cldliq_size_dist_shape**2) - 1._r8
+     cldliq_size_dist_shape = max(cldliq_size_dist_shape, 2._r8)
 
      ! Set coefficient for use in size_dist_param_basic.
      ! The 3D case is so common and optimizable that we specialize it:
      if (props_loc%eff_dim == 3._r8) then
-        call rising_factorial(pgam+1._r8, 3, tmp)
+        call rising_factorial(cldliq_size_dist_shape+1._r8, 3, tmp)
         props_loc%shape_coef = pi / 6._r8 * props_loc%rho * tmp
      else
-        call rising_factorial(pgam+1._r8, props_loc%eff_dim, tmp)
+        call rising_factorial(cldliq_size_dist_shape+1._r8, props_loc%eff_dim, tmp)
         props_loc%shape_coef = pi / 6._r8 * props_loc%rho * tmp
      end if
 
      ! Limit to between 2 and 50 microns mean size.
-     props_loc%lambda_bounds(1) = (pgam+1._r8)*1._r8/50.e-6_r8
-     props_loc%lambda_bounds(2) = (pgam+1._r8)*1._r8/2.e-6_r8
+     props_loc%lambda_bounds(1) = (cldliq_size_dist_shape+1._r8)*1._r8/50.e-6_r8
+     props_loc%lambda_bounds(2) = (cldliq_size_dist_shape+1._r8)*1._r8/2.e-6_r8
 
-     call size_dist_param_basic(props_loc, qcic, ncic, lamc)
+     call size_dist_param_basic(props_loc, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, cldliq_size_dist_slope_per_m)
   else
      ! pgam not calculated in this case, so set it to a value likely to
      ! cause an error if it is accidentally used
      ! (gamma function undefined for negative integers)
-     pgam = -100._r8
-     lamc = 0._r8
+     cldliq_size_dist_shape = -100._r8
+     cldliq_size_dist_slope_per_m = 0._r8
   end if
 
 end subroutine size_dist_param_liq_line
 
 ! get cloud droplet size distribution parameters
 
-subroutine size_dist_param_liq_2D(props, qcic, ncic, rho, pgam, lamc, dim1, dim2)
+subroutine size_dist_param_liq_2D(props, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, air_density_kg_per_m3, cldliq_size_dist_shape, cldliq_size_dist_slope_per_m, dim1, dim2)
 
   type(mghydrometeorprops),       intent(in)    :: props
   integer,                        intent(in)    :: dim1, dim2
-  real(r8), dimension(dim1,dim2), intent(in)    :: qcic
-  real(r8), dimension(dim1,dim2), intent(inout) :: ncic
-  real(r8), dimension(dim1,dim2), intent(in)    :: rho
-  real(r8), dimension(dim1,dim2), intent(out)   :: pgam
-  real(r8), dimension(dim1,dim2), intent(out)   :: lamc
+  real(r8), dimension(dim1,dim2), intent(in)    :: incloud_cldliq_mass_mixing_ratio_kg_per_kg
+  real(r8), dimension(dim1,dim2), intent(inout) :: incloud_cldliq_number_conc_per_kg
+  real(r8), dimension(dim1,dim2), intent(in)    :: air_density_kg_per_m3
+  real(r8), dimension(dim1,dim2), intent(out)   :: cldliq_size_dist_shape
+  real(r8), dimension(dim1,dim2), intent(out)   :: cldliq_size_dist_slope_per_m
 
   ! local variables
   integer  :: i, k
@@ -617,12 +617,12 @@ subroutine size_dist_param_liq_2D(props, qcic, ncic, rho, pgam, lamc, dim1, dim2
   !$acc loop gang vector collapse(2)
   do k = 1, dim2
      do i = 1, dim1
-        if (qcic(i,k) > qsmall) then
+        if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i,k) > qsmall) then
            ! Get pgam from fit Rotstayn and Liu 2003 (changed from Martin 1994 for CAM6)
-           pgam(i,k) = 1.0_r8 - 0.7_r8 * exp(-0.008_r8*1.e-6_r8*ncic(i,k)*rho(i,k))
-           pgam(i,k) = 1._r8/(pgam(i,k)**2) - 1._r8
-           pgam(i,k) = max(pgam(i,k), 2._r8)
-           pgamp1(i,k) = pgam(i,k)+1._r8
+           cldliq_size_dist_shape(i,k) = 1.0_r8 - 0.7_r8 * exp(-0.008_r8*1.e-6_r8*incloud_cldliq_number_conc_per_kg(i,k)*air_density_kg_per_m3(i,k))
+           cldliq_size_dist_shape(i,k) = 1._r8/(cldliq_size_dist_shape(i,k)**2) - 1._r8
+           cldliq_size_dist_shape(i,k) = max(cldliq_size_dist_shape(i,k), 2._r8)
+           pgamp1(i,k) = cldliq_size_dist_shape(i,k)+1._r8
         else
            pgamp1(i,k) = 0._r8
         end if
@@ -642,7 +642,7 @@ subroutine size_dist_param_liq_2D(props, qcic, ncic, rho, pgam, lamc, dim1, dim2
   !$acc loop gang vector collapse(2)
   do k = 1, dim2
      do i = 1, dim1
-        if (qcic(i,k) > qsmall) then
+        if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i,k) > qsmall) then
            shapeC(i,k) = pi / 6._r8 * props%rho * tmp(i,k)
            ! Limit to between 2 and 50 microns mean size.
            lbnd(i,k)   = pgamp1(i,k)*1._r8/50.e-6_r8
@@ -656,18 +656,18 @@ subroutine size_dist_param_liq_2D(props, qcic, ncic, rho, pgam, lamc, dim1, dim2
   end do
   !$acc end parallel
 
-  call size_dist_param_basic_vect2(props, qcic, ncic, shapeC, lbnd, ubnd, lamc, dim1*dim2)
+  call size_dist_param_basic_vect2(props, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, shapeC, lbnd, ubnd, cldliq_size_dist_slope_per_m, dim1*dim2)
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector collapse(2)
   do k = 1, dim2
      do i = 1, dim1
-        if (qcic(i,k) <= qsmall) then
+        if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i,k) <= qsmall) then
            ! pgam not calculated in this case, so set it to a value likely to
            ! cause an error if it is accidentally used
            ! (gamma function undefined for negative integers)
-           pgam(i,k) = -100._r8
-           lamc(i,k) = 0._r8
+           cldliq_size_dist_shape(i,k) = -100._r8
+           cldliq_size_dist_slope_per_m(i,k) = 0._r8
         end if
      end do
   end do
@@ -678,15 +678,15 @@ end subroutine size_dist_param_liq_2D
 
 ! get cloud droplet size distribution parameters
 
-subroutine size_dist_param_liq_vect(props, qcic, ncic, rho, pgam, lamc, vlen)
+subroutine size_dist_param_liq_vect(props, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, air_density_kg_per_m3, cldliq_size_dist_shape, cldliq_size_dist_slope_per_m, vlen)
 
   type(mghydrometeorprops),  intent(in)    :: props
   integer,                   intent(in)    :: vlen
-  real(r8), dimension(vlen), intent(in)    :: qcic
-  real(r8), dimension(vlen), intent(inout) :: ncic
-  real(r8), dimension(vlen), intent(in)    :: rho
-  real(r8), dimension(vlen), intent(out)   :: pgam
-  real(r8), dimension(vlen), intent(out)   :: lamc
+  real(r8), dimension(vlen), intent(in)    :: incloud_cldliq_mass_mixing_ratio_kg_per_kg
+  real(r8), dimension(vlen), intent(inout) :: incloud_cldliq_number_conc_per_kg
+  real(r8), dimension(vlen), intent(in)    :: air_density_kg_per_m3
+  real(r8), dimension(vlen), intent(out)   :: cldliq_size_dist_shape
+  real(r8), dimension(vlen), intent(out)   :: cldliq_size_dist_slope_per_m
 
   ! local variables
   integer  :: i
@@ -698,12 +698,12 @@ subroutine size_dist_param_liq_vect(props, qcic, ncic, rho, pgam, lamc, vlen)
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i = 1, vlen
-     if (qcic(i) > qsmall) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) > qsmall) then
         ! Get pgam from fit Rotstayn and Liu 2003 (changed from Martin 1994 for CAM6)
-        pgam(i) = 1.0_r8 - 0.7_r8 * exp(-0.008_r8*1.e-6_r8*ncic(i)*rho(i))
-        pgam(i) = 1._r8/(pgam(i)**2) - 1._r8
-        pgam(i) = max(pgam(i), 2._r8)
-        pgamp1(i) = pgam(i)+1._r8
+        cldliq_size_dist_shape(i) = 1.0_r8 - 0.7_r8 * exp(-0.008_r8*1.e-6_r8*incloud_cldliq_number_conc_per_kg(i)*air_density_kg_per_m3(i))
+        cldliq_size_dist_shape(i) = 1._r8/(cldliq_size_dist_shape(i)**2) - 1._r8
+        cldliq_size_dist_shape(i) = max(cldliq_size_dist_shape(i), 2._r8)
+        pgamp1(i) = cldliq_size_dist_shape(i)+1._r8
      else
         pgamp1(i) = 0._r8
      end if
@@ -721,7 +721,7 @@ subroutine size_dist_param_liq_vect(props, qcic, ncic, rho, pgam, lamc, vlen)
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i = 1, vlen
-     if (qcic(i) > qsmall) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) > qsmall) then
         shapeC(i) = pi / 6._r8 * props%rho * tmp(i)
         ! Limit to between 2 and 50 microns mean size.
         lbnd(i)   = pgamp1(i)*1._r8/50.e-6_r8
@@ -734,17 +734,17 @@ subroutine size_dist_param_liq_vect(props, qcic, ncic, rho, pgam, lamc, vlen)
   end do
   !$acc end parallel
 
-  call size_dist_param_basic_vect2(props, qcic, ncic, shapeC, lbnd, ubnd, lamc, vlen)
+  call size_dist_param_basic_vect2(props, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, shapeC, lbnd, ubnd, cldliq_size_dist_slope_per_m, vlen)
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i = 1, vlen
-     if (qcic(i) <= qsmall) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) <= qsmall) then
         ! pgam not calculated in this case, so set it to a value likely to
         ! cause an error if it is accidentally used
         ! (gamma function undefined for negative integers)
-        pgam(i) = -100._r8
-        lamc(i) = 0._r8
+        cldliq_size_dist_shape(i) = -100._r8
+        cldliq_size_dist_slope_per_m(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -1067,97 +1067,97 @@ end subroutine var_coef_integer_vect
 ! Run before the main loop
 ! This subroutine written by Peter Caldwell
 
-subroutine ice_deposition_sublimation(t, qv, qi, ni, &
-                                      icldm, rho, dv,qvl, qvi, &
-                                      berg, vap_dep, ice_sublim, vlen)
+subroutine ice_deposition_sublimation(t, qv, cldice_mass_mixing_ratio_kg_per_kg, cldice_number_conc_per_kg, &
+                                      ice_cloud_area_fraction, air_density_kg_per_m3, dv,saturation_specific_humidity_over_liquid_kg_per_kg, saturation_specific_humidity_over_ice_kg_per_kg, &
+                                      local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s, local_cldice_mass_tend_deposition_kg_per_kg_per_s, local_cldice_mass_tend_sublimation_kg_per_kg_per_s, vlen)
 
   !INPUT VARS:
   !===============================================
   integer,  intent(in)                  :: vlen
   real(r8), dimension(vlen), intent(in) :: t
   real(r8), dimension(vlen), intent(in) :: qv
-  real(r8), dimension(vlen), intent(in) :: qi
-  real(r8), dimension(vlen), intent(in) :: ni
-  real(r8), dimension(vlen), intent(in) :: icldm
-  real(r8), dimension(vlen), intent(in) :: rho
+  real(r8), dimension(vlen), intent(in) :: cldice_mass_mixing_ratio_kg_per_kg
+  real(r8), dimension(vlen), intent(in) :: cldice_number_conc_per_kg
+  real(r8), dimension(vlen), intent(in) :: ice_cloud_area_fraction
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3
   real(r8), dimension(vlen), intent(in) :: dv
-  real(r8), dimension(vlen), intent(in) :: qvl
-  real(r8), dimension(vlen), intent(in) :: qvi
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_liquid_kg_per_kg
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_ice_kg_per_kg
 
   !OUTPUT VARS:
   !===============================================
-  real(r8), dimension(vlen), intent(out) :: vap_dep !ice deposition (cell-ave value)
-  real(r8), dimension(vlen), intent(out) :: ice_sublim !ice sublimation (cell-ave value)
-  real(r8), dimension(vlen), intent(out) :: berg !bergeron enhancement (cell-ave value)
+  real(r8), dimension(vlen), intent(out) :: local_cldice_mass_tend_deposition_kg_per_kg_per_s !ice deposition (cell-ave value)
+  real(r8), dimension(vlen), intent(out) :: local_cldice_mass_tend_sublimation_kg_per_kg_per_s !ice sublimation (cell-ave value)
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s !bergeron enhancement (cell-ave value)
 
   !INTERNAL VARS:
   !===============================================
   real(r8) :: ab(vlen)
   real(r8) :: epsi
-  real(r8) :: qiic(vlen)
-  real(r8) :: niic(vlen)
-  real(r8) :: lami(vlen)
-  real(r8) :: n0i(vlen)
+  real(r8) :: incloud_cldice_mass_mixing_ratio_kg_per_kg(vlen)
+  real(r8) :: incloud_cldice_number_conc_per_kg(vlen)
+  real(r8) :: cldice_size_dist_slope_per_m(vlen)
+  real(r8) :: cldice_size_dist_intercept_per_m4(vlen)
   integer :: i
 
-  !$acc data create (ab,qiic,niic,lami,n0i)
+  !$acc data create (ab,incloud_cldice_mass_mixing_ratio_kg_per_kg,incloud_cldice_number_conc_per_kg,cldice_size_dist_slope_per_m,cldice_size_dist_intercept_per_m4)
 
   !GET IN-CLOUD qi, ni
   !===============================================
 
   !Compute linearized condensational heating correction
-  call calc_ab(t, qvi, xxls, ab, vlen)
+  call calc_ab(t, saturation_specific_humidity_over_ice_kg_per_kg, xxls, ab, vlen)
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i = 1,vlen
-     qiic(i) = qi(i)/icldm(i)
-     niic(i) = ni(i)/icldm(i)
-     if (qi(i)<qsmall) then
-        qiic(i) = 0._r8
-        niic(i) = 0._r8
+     incloud_cldice_mass_mixing_ratio_kg_per_kg(i) = cldice_mass_mixing_ratio_kg_per_kg(i)/ice_cloud_area_fraction(i)
+     incloud_cldice_number_conc_per_kg(i) = cldice_number_conc_per_kg(i)/ice_cloud_area_fraction(i)
+     if (cldice_mass_mixing_ratio_kg_per_kg(i)<qsmall) then
+        incloud_cldice_mass_mixing_ratio_kg_per_kg(i) = 0._r8
+        incloud_cldice_number_conc_per_kg(i) = 0._r8
         ab(i)   = 0._r8
      end if
   end do
   !$acc end parallel
 
   !Get slope and intercept of gamma distn for ice.
-  call size_dist_param_basic_vect(mg_ice_props, qiic, niic, lami, vlen, n0i)
+  call size_dist_param_basic_vect(mg_ice_props, incloud_cldice_mass_mixing_ratio_kg_per_kg, incloud_cldice_number_conc_per_kg, cldice_size_dist_slope_per_m, vlen, cldice_size_dist_intercept_per_m4)
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qi(i)>=qsmall) then
+     if (cldice_mass_mixing_ratio_kg_per_kg(i)>=qsmall) then
         !Get depletion timescale=1/eps
-        epsi = 2._r8*pi*n0i(i)*rho(i)*Dv(i)/(lami(i)*lami(i))
+        epsi = 2._r8*pi*cldice_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)/(cldice_size_dist_slope_per_m(i)*cldice_size_dist_slope_per_m(i))
 
         !Compute deposition/sublimation
-        vap_dep(i) = epsi/ab(i)*(qv(i) - qvi(i))
+        local_cldice_mass_tend_deposition_kg_per_kg_per_s(i) = epsi/ab(i)*(qv(i) - saturation_specific_humidity_over_ice_kg_per_kg(i))
 
         !Make this a grid-averaged quantity
-        vap_dep(i) = vap_dep(i)*icldm(i)
+        local_cldice_mass_tend_deposition_kg_per_kg_per_s(i) = local_cldice_mass_tend_deposition_kg_per_kg_per_s(i)*ice_cloud_area_fraction(i)
 
         !Split into deposition or sublimation.
-        if (t(i) < tmelt .and. vap_dep(i) > 0._r8) then
-           ice_sublim(i) = 0._r8
+        if (t(i) < tmelt .and. local_cldice_mass_tend_deposition_kg_per_kg_per_s(i) > 0._r8) then
+           local_cldice_mass_tend_sublimation_kg_per_kg_per_s(i) = 0._r8
         else
         ! make ice_sublim negative for consistency with other evap/sub processes
-           ice_sublim(i) = min(vap_dep(i),0._r8)
-           vap_dep(i)    = 0._r8
+           local_cldice_mass_tend_sublimation_kg_per_kg_per_s(i) = min(local_cldice_mass_tend_deposition_kg_per_kg_per_s(i),0._r8)
+           local_cldice_mass_tend_deposition_kg_per_kg_per_s(i)    = 0._r8
         end if
 
         !sublimation occurs @ any T. Not so for berg.
         if (t(i) < tmelt) then
 
            !Compute bergeron rate assuming cloud for whole step.
-           berg(i) = max(epsi/ab(i)*(qvl(i) - qvi(i)), 0._r8)
+           local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s(i) = max(epsi/ab(i)*(saturation_specific_humidity_over_liquid_kg_per_kg(i) - saturation_specific_humidity_over_ice_kg_per_kg(i)), 0._r8)
         else   !T>frz
-           berg(i)=0._r8
+           local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s(i)=0._r8
         end if !T<frz
      else      !where qi<qsmall
-        berg(i)       = 0._r8
-        vap_dep(i)    = 0._r8
-        ice_sublim(i) = 0._r8
+        local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s(i)       = 0._r8
+        local_cldice_mass_tend_deposition_kg_per_kg_per_s(i)    = 0._r8
+        local_cldice_mass_tend_sublimation_kg_per_kg_per_s(i) = 0._r8
      end if    !qi>qsmall
   end do
   !$acc end parallel
@@ -1165,10 +1165,10 @@ subroutine ice_deposition_sublimation(t, qv, qi, ni, &
   !$acc end data
 end subroutine ice_deposition_sublimation
 
-subroutine ice_deposition_sublimation_mg4(t, qv, qi, niic, &
-                                      icldm, rho, dv,qvl, qvi, &
-                                      berg, vap_dep, ice_sublim, &
-                                      af1pr5, af1pr14, rhof, mu, sc, &
+subroutine ice_deposition_sublimation_mg4(t, qv, cldice_mass_mixing_ratio_kg_per_kg, incloud_cldice_number_conc_per_kg, &
+                                      ice_cloud_area_fraction, air_density_kg_per_m3, dv,saturation_specific_humidity_over_liquid_kg_per_kg, saturation_specific_humidity_over_ice_kg_per_kg, &
+                                      local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s, local_cldice_mass_tend_deposition_kg_per_kg_per_s, local_cldice_mass_tend_sublimation_kg_per_kg_per_s, &
+                                      af1pr5, af1pr14, fall_speed_air_density_correction, air_dynamic_viscosity_kg_per_m_per_s, schmidt_number, &
                                       vlen)
 
   !INPUT VARS:
@@ -1176,45 +1176,45 @@ subroutine ice_deposition_sublimation_mg4(t, qv, qi, niic, &
   integer,  intent(in)                  :: vlen
   real(r8), dimension(vlen), intent(in) :: t
   real(r8), dimension(vlen), intent(in) :: qv
-  real(r8), dimension(vlen), intent(in) :: qi
-  real(r8), dimension(vlen), intent(in) :: niic ! trude: input nicc as other routines
-  real(r8), dimension(vlen), intent(in) :: icldm
-  real(r8), dimension(vlen), intent(in) :: rho
+  real(r8), dimension(vlen), intent(in) :: cldice_mass_mixing_ratio_kg_per_kg
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_number_conc_per_kg ! trude: input nicc as other routines
+  real(r8), dimension(vlen), intent(in) :: ice_cloud_area_fraction
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3
   real(r8), dimension(vlen), intent(in) :: dv
-  real(r8), dimension(vlen), intent(in) :: qvl
-  real(r8), dimension(vlen), intent(in) :: qvi
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_liquid_kg_per_kg
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_ice_kg_per_kg
   real(r8), dimension(vlen), intent(in) :: af1pr5, af1pr14
-  real(r8), dimension(vlen), intent(in) :: rhof
-  real(r8), dimension(vlen), intent(in) :: mu
-  real(r8), dimension(vlen), intent(in) :: sc
+  real(r8), dimension(vlen), intent(in) :: fall_speed_air_density_correction
+  real(r8), dimension(vlen), intent(in) :: air_dynamic_viscosity_kg_per_m_per_s
+  real(r8), dimension(vlen), intent(in) :: schmidt_number
 
   !OUTPUT VARS:
   !===============================================
-  real(r8), dimension(vlen), intent(out) :: vap_dep !ice deposition (cell-ave value)
-  real(r8), dimension(vlen), intent(out) :: ice_sublim !ice sublimation (cell-ave value)
-  real(r8), dimension(vlen), intent(out) :: berg !bergeron enhancement (cell-ave value)
+  real(r8), dimension(vlen), intent(out) :: local_cldice_mass_tend_deposition_kg_per_kg_per_s !ice deposition (cell-ave value)
+  real(r8), dimension(vlen), intent(out) :: local_cldice_mass_tend_sublimation_kg_per_kg_per_s !ice sublimation (cell-ave value)
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s !bergeron enhancement (cell-ave value)
 
   !INTERNAL VARS:
   !===============================================
   real(r8) :: ab(vlen)
   real(r8) :: epsi
-  real(r8) :: qiic(vlen)
-  real(r8) :: lami(vlen)
-  real(r8) :: n0i(vlen)
+  real(r8) :: incloud_cldice_mass_mixing_ratio_kg_per_kg(vlen)
+  real(r8) :: cldice_size_dist_slope_per_m(vlen)
+  real(r8) :: cldice_size_dist_intercept_per_m4(vlen)
   real(r8), parameter :: thrd = 1._r8/3._r8
   integer :: i
 
-  !$acc data create (ab,qiic,lami,n0i)
+  !$acc data create (ab,incloud_cldice_mass_mixing_ratio_kg_per_kg,cldice_size_dist_slope_per_m,cldice_size_dist_intercept_per_m4)
 
   !GET IN-CLOUD qi, ni
   !===============================================
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i = 1,vlen
-     if (qi(i)>=qsmall) then
-        qiic(i) = qi(i)/icldm(i)
+     if (cldice_mass_mixing_ratio_kg_per_kg(i)>=qsmall) then
+        incloud_cldice_mass_mixing_ratio_kg_per_kg(i) = cldice_mass_mixing_ratio_kg_per_kg(i)/ice_cloud_area_fraction(i)
         !Compute linearized condensational heating correction
-        call calc_ab(t(i), qvi(i), xxls, ab(i))
+        call calc_ab(t(i), saturation_specific_humidity_over_ice_kg_per_kg(i), xxls, ab(i))
      end if
   end do
   !$acc end parallel
@@ -1222,40 +1222,40 @@ subroutine ice_deposition_sublimation_mg4(t, qv, qi, niic, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qi(i)>=qsmall) then
+     if (cldice_mass_mixing_ratio_kg_per_kg(i)>=qsmall) then
         if ( t(i) .lt. tmelt ) then
-           epsi = (af1pr5(i)+af1pr14(i)*sc(i)**thrd*(rhof(i)*rho(i)/mu(i))**0.5_r8)*2._r8*pi* &
-             rho(i)*dv(i)
+           epsi = (af1pr5(i)+af1pr14(i)*schmidt_number(i)**thrd*(fall_speed_air_density_correction(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8)*2._r8*pi* &
+             air_density_kg_per_m3(i)*dv(i)
         else
            epsi = 0._r8
         end if
 
         !Compute deposition/sublimation
-        vap_dep(i) = epsi/ab(i)*(qv(i) - qvi(i))
+        local_cldice_mass_tend_deposition_kg_per_kg_per_s(i) = epsi/ab(i)*(qv(i) - saturation_specific_humidity_over_ice_kg_per_kg(i))
 
         !Make this a grid-averaged quantity
-        vap_dep(i) = vap_dep(i)*icldm(i)
+        local_cldice_mass_tend_deposition_kg_per_kg_per_s(i) = local_cldice_mass_tend_deposition_kg_per_kg_per_s(i)*ice_cloud_area_fraction(i)
 
         !Split into deposition or sublimation.
-        if (t(i) < tmelt .and. vap_dep(i) > 0._r8) then
-           ice_sublim(i)=0._r8
+        if (t(i) < tmelt .and. local_cldice_mass_tend_deposition_kg_per_kg_per_s(i) > 0._r8) then
+           local_cldice_mass_tend_sublimation_kg_per_kg_per_s(i)=0._r8
         else
            ! make ice_sublim negative for consistency with other evap/sub processes
-           ice_sublim(i)=min(vap_dep(i),0._r8)
-           vap_dep(i)=0._r8
+           local_cldice_mass_tend_sublimation_kg_per_kg_per_s(i)=min(local_cldice_mass_tend_deposition_kg_per_kg_per_s(i),0._r8)
+           local_cldice_mass_tend_deposition_kg_per_kg_per_s(i)=0._r8
         end if
 
         !sublimation occurs @ any T. Not so for berg.
         if (t(i) < tmelt) then
            !Compute bergeron rate assuming cloud for whole step.
-           berg(i) = max(epsi/ab(i)*(qvl(i) - qvi(i)), 0._r8)
+           local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s(i) = max(epsi/ab(i)*(saturation_specific_humidity_over_liquid_kg_per_kg(i) - saturation_specific_humidity_over_ice_kg_per_kg(i)), 0._r8)
         else   !T>frz
-           berg(i) = 0._r8
+           local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s(i) = 0._r8
         end if !T<frz
      else      !where qi<qsmall
-        berg(i)       = 0._r8
-        vap_dep(i)    = 0._r8
-        ice_sublim(i) = 0._r8
+        local_cldliq_mass_tend_bergeron_to_cldice_kg_per_kg_per_s(i)       = 0._r8
+        local_cldice_mass_tend_deposition_kg_per_kg_per_s(i)    = 0._r8
+        local_cldice_mass_tend_sublimation_kg_per_kg_per_s(i) = 0._r8
      end if    !qi>qsmall
   end do
   !$acc end parallel
@@ -1263,73 +1263,73 @@ subroutine ice_deposition_sublimation_mg4(t, qv, qi, niic, &
   !$acc end data
 end subroutine ice_deposition_sublimation_mg4
 
-subroutine vapor_deposition_onto_snow(t, qv, qs, ns, &
-   precip_frac, rho, dv,qvl, qvi, asn, mu, sc, &
-   vap_deps, vlen)
+subroutine vapor_deposition_onto_snow(t, qv, snow_mass_mixing_ratio_kg_per_kg, snow_number_conc_per_kg, &
+   precipitation_area_fraction, air_density_kg_per_m3, dv,saturation_specific_humidity_over_liquid_kg_per_kg, saturation_specific_humidity_over_ice_kg_per_kg, snow_fall_speed_prefactor, air_dynamic_viscosity_kg_per_m_per_s, schmidt_number, &
+   local_snow_mass_tend_deposition_kg_per_kg_per_s, vlen)
 
 !INPUT VARS:
 !===============================================
 integer,  intent(in) :: vlen
 real(r8), dimension(vlen), intent(in) :: t     ! Temperature
 real(r8), dimension(vlen), intent(in) :: qv    ! Specific Humidity
-real(r8), dimension(vlen), intent(in) :: qs    ! Snow Mass Mixing Ratio
-real(r8), dimension(vlen), intent(in) :: ns    ! Snow number concentration
-real(r8), dimension(vlen), intent(in) :: precip_frac ! Precipitation Fraction
-real(r8), dimension(vlen), intent(in) :: rho   ! Air Density
+real(r8), dimension(vlen), intent(in) :: snow_mass_mixing_ratio_kg_per_kg    ! Snow Mass Mixing Ratio
+real(r8), dimension(vlen), intent(in) :: snow_number_conc_per_kg    ! Snow number concentration
+real(r8), dimension(vlen), intent(in) :: precipitation_area_fraction ! Precipitation Fraction
+real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3   ! Air Density
 real(r8), dimension(vlen), intent(in) :: dv    ! diffusivity of water vapor
-real(r8), dimension(vlen), intent(in) :: qvl   ! saturation vapor pressure liq
-real(r8), dimension(vlen), intent(in) :: qvi   ! saturation vapor pressure ice
-real(r8), dimension(vlen), intent(in) :: asn   ! fall speed parameter for snow
-real(r8), dimension(vlen), intent(in) :: mu    ! viscosity
-real(r8), dimension(vlen), intent(in) :: sc    ! schmidt number
+real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_liquid_kg_per_kg   ! saturation vapor pressure liq
+real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_ice_kg_per_kg   ! saturation vapor pressure ice
+real(r8), dimension(vlen), intent(in) :: snow_fall_speed_prefactor   ! fall speed parameter for snow
+real(r8), dimension(vlen), intent(in) :: air_dynamic_viscosity_kg_per_m_per_s    ! viscosity
+real(r8), dimension(vlen), intent(in) :: schmidt_number    ! schmidt number
 
 !OUTPUT VARS:
 !===============================================
-real(r8), dimension(vlen), intent(out) :: vap_deps !vapor deposition onto snow (cell-ave value)
+real(r8), dimension(vlen), intent(out) :: local_snow_mass_tend_deposition_kg_per_kg_per_s !vapor deposition onto snow (cell-ave value)
 
 !INTERNAL VARS:
 !===============================================
 real(r8) :: ab
 real(r8) :: eps
-real(r8) :: qsic
-real(r8) :: nsic
-real(r8) :: lams
-real(r8) :: n0s
+real(r8) :: inprecip_snow_mass_mixing_ratio_kg_per_kg
+real(r8) :: inprecip_snow_number_conc_per_kg
+real(r8) :: snow_size_dist_slope_per_m
+real(r8) :: snow_size_dist_intercept_per_m4
 integer :: i
 
 !$acc parallel vector_length(VLENS) default(present)
 !$acc loop gang vector
 do i=1,vlen
-   vap_deps(i)=0._r8
-   if (qs(i)>=qsmall.and.precip_frac(i)>=0.1_r8) then
+   local_snow_mass_tend_deposition_kg_per_kg_per_s(i)=0._r8
+   if (snow_mass_mixing_ratio_kg_per_kg(i)>=qsmall.and.precipitation_area_fraction(i)>=0.1_r8) then
 
 !GET IN-CLOUD qs, ns
 !===============================================
-      qsic = qs(i)/precip_frac(i)
-      nsic = ns(i)/precip_frac(i)
+      inprecip_snow_mass_mixing_ratio_kg_per_kg = snow_mass_mixing_ratio_kg_per_kg(i)/precipitation_area_fraction(i)
+      inprecip_snow_number_conc_per_kg = snow_number_conc_per_kg(i)/precipitation_area_fraction(i)
 
 !Compute linearized condensational heating correction
-      call calc_ab(t(i), qvi(i), xxls, ab)
+      call calc_ab(t(i), saturation_specific_humidity_over_ice_kg_per_kg(i), xxls, ab)
 !Get slope and intercept of gamma distn for ice.
-      call size_dist_param_basic_line(mg_snow_props, qsic, nsic, lams, n0s)
+      call size_dist_param_basic_line(mg_snow_props, inprecip_snow_mass_mixing_ratio_kg_per_kg, inprecip_snow_number_conc_per_kg, snow_size_dist_slope_per_m, snow_size_dist_intercept_per_m4)
 !Get depletion timescale eps
-      eps = 2._r8*pi*n0s*rho(i)*dv(i)* &
-        (f1s/(lams*lams)+ &
-        f2s*(asn(i)*rho(i)/mu(i))**0.5_r8* &
-        sc(i)**(1._r8/3._r8)*gamma_half_bs_plus5/ &
-        (lams**(5._r8/2._r8+bs/2._r8)))
+      eps = 2._r8*pi*snow_size_dist_intercept_per_m4*air_density_kg_per_m3(i)*dv(i)* &
+        (f1s/(snow_size_dist_slope_per_m*snow_size_dist_slope_per_m)+ &
+        f2s*(snow_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8* &
+        schmidt_number(i)**(1._r8/3._r8)*gamma_half_bs_plus5/ &
+        (snow_size_dist_slope_per_m**(5._r8/2._r8+bs/2._r8)))
 
 !Compute deposition/sublimation
-      vap_deps(i) = eps/ab*(qv(i) - qvi(i))
+      local_snow_mass_tend_deposition_kg_per_kg_per_s(i) = eps/ab*(qv(i) - saturation_specific_humidity_over_ice_kg_per_kg(i))
 
 !Make this a grid-averaged quantity
-      vap_deps(i)=vap_deps(i)*precip_frac(i)
+      local_snow_mass_tend_deposition_kg_per_kg_per_s(i)=local_snow_mass_tend_deposition_kg_per_kg_per_s(i)*precipitation_area_fraction(i)
 
 !Only want deposition
-      if (t(i) < tmelt .and. vap_deps(i)>0._r8) then
-         vap_deps(i)=max(vap_deps(i),0._r8)
+      if (t(i) < tmelt .and. local_snow_mass_tend_deposition_kg_per_kg_per_s(i)>0._r8) then
+         local_snow_mass_tend_deposition_kg_per_kg_per_s(i)=max(local_snow_mass_tend_deposition_kg_per_kg_per_s(i),0._r8)
       else
-         vap_deps(i)=0._r8
+         local_snow_mass_tend_deposition_kg_per_kg_per_s(i)=0._r8
       end if
 
    end if !qs>qsmall
@@ -1343,22 +1343,22 @@ end subroutine vapor_deposition_onto_snow
 ! formula from Khrouditnov and Kogan (2000), modified for sub-grid distribution of qc
 ! minimum qc of 1 x 10^-8 prevents floating point error
 
-subroutine kk2000_liq_autoconversion(microp_uniform, qcic, &
-     ncic, rho, relvar, prc, nprc, nprc1, micro_mg_autocon_fact, &
+subroutine kk2000_liq_autoconversion(microp_uniform, incloud_cldliq_mass_mixing_ratio_kg_per_kg, &
+     incloud_cldliq_number_conc_per_kg, air_density_kg_per_m3, relvar, local_cldliq_mass_tend_autoconversion_to_rain_kg_per_kg_per_s, local_rain_number_tend_autoconversion_from_cldliq_per_kg_per_s, local_cldliq_number_tend_autoconversion_to_rain_per_kg_per_s, micro_mg_autocon_fact, &
      micro_mg_autocon_nd_exp, micro_mg_autocon_lwp_exp, vlen)
 
   integer, intent(in) :: vlen
   logical, intent(in) :: microp_uniform
 
-  real(r8), dimension(vlen), intent(in) :: qcic
-  real(r8), dimension(vlen), intent(in) :: ncic
-  real(r8), dimension(vlen), intent(in) :: rho
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_number_conc_per_kg
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3
 
   real(r8), dimension(vlen), intent(in) :: relvar
 
-  real(r8), dimension(vlen), intent(out) :: prc
-  real(r8), dimension(vlen), intent(out) :: nprc
-  real(r8), dimension(vlen), intent(out) :: nprc1
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_autoconversion_to_rain_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(out) :: local_rain_number_tend_autoconversion_from_cldliq_per_kg_per_s
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_number_tend_autoconversion_to_rain_per_kg_per_s
 
   real(r8), intent(in) :: micro_mg_autocon_fact
   real(r8), intent(in) :: micro_mg_autocon_nd_exp
@@ -1384,24 +1384,24 @@ subroutine kk2000_liq_autoconversion(microp_uniform, qcic, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qcic(i) >= icsmall) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) >= icsmall) then
         ! nprc is increase in rain number conc due to autoconversion
         ! nprc1 is decrease in cloud droplet conc due to autoconversion
 
         ! assume exponential sub-grid distribution of qc, resulting in additional
         ! factor related to qcvar below
         ! switch for sub-columns, don't include sub-grid qc
-        prc(i)   = prc_coef(i) * &
-             micro_mg_autocon_fact * 1350._r8 * qcic(i)**micro_mg_autocon_lwp_exp * &
-             (ncic(i)*1.e-6_r8*rho(i))**(micro_mg_autocon_nd_exp)
+        local_cldliq_mass_tend_autoconversion_to_rain_kg_per_kg_per_s(i)   = prc_coef(i) * &
+             micro_mg_autocon_fact * 1350._r8 * incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)**micro_mg_autocon_lwp_exp * &
+             (incloud_cldliq_number_conc_per_kg(i)*1.e-6_r8*air_density_kg_per_m3(i))**(micro_mg_autocon_nd_exp)
 
-        nprc(i)  = prc(i) * (1._r8/droplet_mass_25um)
-        nprc1(i) = prc(i)*ncic(i)/qcic(i)
+        local_rain_number_tend_autoconversion_from_cldliq_per_kg_per_s(i)  = local_cldliq_mass_tend_autoconversion_to_rain_kg_per_kg_per_s(i) * (1._r8/droplet_mass_25um)
+        local_cldliq_number_tend_autoconversion_to_rain_per_kg_per_s(i) = local_cldliq_mass_tend_autoconversion_to_rain_kg_per_kg_per_s(i)*incloud_cldliq_number_conc_per_kg(i)/incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)
 
      else
-        prc(i)   = 0._r8
-        nprc(i)  = 0._r8
-        nprc1(i) = 0._r8
+        local_cldliq_mass_tend_autoconversion_to_rain_kg_per_kg_per_s(i)   = 0._r8
+        local_rain_number_tend_autoconversion_from_cldliq_per_kg_per_s(i)  = 0._r8
+        local_cldliq_number_tend_autoconversion_to_rain_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -1411,7 +1411,7 @@ end subroutine kk2000_liq_autoconversion
 
 !========================================================================
 
-subroutine sb2001v2_liq_autoconversion(pgam,qc,nc,qr,rho,relvar,au,nprc,nprc1,vlen)
+subroutine sb2001v2_liq_autoconversion(cldliq_size_dist_shape,cldliq_mass_mixing_ratio_kg_per_kg,cldliq_number_conc_per_kg,rain_mass_mixing_ratio_kg_per_kg,air_density_kg_per_m3,relvar,au,local_rain_number_tend_autoconversion_from_cldliq_per_kg_per_s,local_cldliq_number_tend_autoconversion_to_rain_per_kg_per_s,vlen)
   !
   ! ---------------------------------------------------------------------
   ! AUTO_SB:  calculates the evolution of mass- and number mxg-ratio for
@@ -1425,16 +1425,16 @@ subroutine sb2001v2_liq_autoconversion(pgam,qc,nc,qr,rho,relvar,au,nprc,nprc1,vl
   ! equivalent to the size spectral shape parameter pgam
 
   integer,                   intent(in)     :: vlen
-  real(r8), dimension(vlen), intent (in)    :: pgam
-  real(r8), dimension(vlen), intent (in)    :: qc  ! = qc (cld water mixing ratio)
-  real(r8), dimension(vlen), intent (in)    :: nc  ! = nc (cld water number conc /kg)
-  real(r8), dimension(vlen), intent (in)    :: qr  ! = qr (rain water mixing ratio)
-  real(r8), dimension(vlen), intent (in)    :: rho ! = rho : density profile
+  real(r8), dimension(vlen), intent (in)    :: cldliq_size_dist_shape
+  real(r8), dimension(vlen), intent (in)    :: cldliq_mass_mixing_ratio_kg_per_kg  ! = qc (cld water mixing ratio)
+  real(r8), dimension(vlen), intent (in)    :: cldliq_number_conc_per_kg  ! = nc (cld water number conc /kg)
+  real(r8), dimension(vlen), intent (in)    :: rain_mass_mixing_ratio_kg_per_kg  ! = qr (rain water mixing ratio)
+  real(r8), dimension(vlen), intent (in)    :: air_density_kg_per_m3 ! = rho : density profile
   real(r8), dimension(vlen), intent (in)    :: relvar
 
   real(r8), dimension(vlen), intent (out)   :: au ! = prc autoconversion rate
-  real(r8), dimension(vlen), intent (out)   :: nprc1 ! = number tendency
-  real(r8), dimension(vlen), intent (out)   :: nprc ! = number tendency fixed size for rain
+  real(r8), dimension(vlen), intent (out)   :: local_cldliq_number_tend_autoconversion_to_rain_per_kg_per_s ! = number tendency
+  real(r8), dimension(vlen), intent (out)   :: local_rain_number_tend_autoconversion_from_cldliq_per_kg_per_s ! = number tendency fixed size for rain
 
   ! parameters for droplet mass spectral shape,
   !used by Seifert and Beheng (2001)
@@ -1452,25 +1452,25 @@ subroutine sb2001v2_liq_autoconversion(pgam,qc,nc,qr,rho,relvar,au,nprc,nprc1,vl
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qc(i) > qsmall) then
-       dumi = int(pgam(i))
+     if (cldliq_mass_mixing_ratio_kg_per_kg(i) > qsmall) then
+       dumi = int(cldliq_size_dist_shape(i))
        nu   = dnu(dumi)+(dnu(dumi+1)-dnu(dumi))* &
-               (pgam(i)-dumi)
+               (cldliq_size_dist_shape(i)-dumi)
 
-       dum  = 1._r8-qc(i)/(qc(i)+qr(i))
+       dum  = 1._r8-cldliq_mass_mixing_ratio_kg_per_kg(i)/(cldliq_mass_mixing_ratio_kg_per_kg(i)+rain_mass_mixing_ratio_kg_per_kg(i))
        dum1 = 600._r8*dum**0.68_r8*(1._r8-dum**0.68_r8)**3
 
        au(i) = kc/(20._r8*2.6e-7_r8)* &
          (nu+2._r8)*(nu+4._r8)/(nu+1._r8)**2._r8* &
-         (rho(i)*qc(i)/1000._r8)**4._r8/(rho(i)*nc(i)/1.e6_r8)**2._r8* &
-         (1._r8+dum1/(1._r8-dum)**2)*1000._r8 / rho(i)
+         (air_density_kg_per_m3(i)*cldliq_mass_mixing_ratio_kg_per_kg(i)/1000._r8)**4._r8/(air_density_kg_per_m3(i)*cldliq_number_conc_per_kg(i)/1.e6_r8)**2._r8* &
+         (1._r8+dum1/(1._r8-dum)**2)*1000._r8 / air_density_kg_per_m3(i)
 
-       nprc1(i) = au(i)*2._r8/2.6e-7_r8*1000._r8
-       nprc(i)  = au(i)/droplet_mass_40um
+       local_cldliq_number_tend_autoconversion_to_rain_per_kg_per_s(i) = au(i)*2._r8/2.6e-7_r8*1000._r8
+       local_rain_number_tend_autoconversion_from_cldliq_per_kg_per_s(i)  = au(i)/droplet_mass_40um
      else
        au(i)    = 0._r8
-       nprc1(i) = 0._r8
-       nprc(i)  = 0._r8
+       local_cldliq_number_tend_autoconversion_to_rain_per_kg_per_s(i) = 0._r8
+       local_rain_number_tend_autoconversion_from_cldliq_per_kg_per_s(i)  = 0._r8
      end if
   end do
   !$acc end parallel
@@ -1480,7 +1480,7 @@ end subroutine sb2001v2_liq_autoconversion
 !========================================================================
 !SB2001 Accretion V2
 
-subroutine sb2001v2_accre_cld_water_rain(qc,nc,qr,rho,relvar,pra,npra,vlen)
+subroutine sb2001v2_accre_cld_water_rain(cldliq_mass_mixing_ratio_kg_per_kg,cldliq_number_conc_per_kg,rain_mass_mixing_ratio_kg_per_kg,air_density_kg_per_m3,relvar,local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s,local_cldliq_number_tend_accretion_by_rain_per_kg_per_s,vlen)
   !
   ! ---------------------------------------------------------------------
   ! ACCR_SB calculates the evolution of mass mxng-ratio due to accretion
@@ -1489,15 +1489,15 @@ subroutine sb2001v2_accre_cld_water_rain(qc,nc,qr,rho,relvar,pra,npra,vlen)
 
   integer, intent(in) :: vlen
 
-  real(r8), dimension(vlen), intent (in)    :: qc  ! = qc (cld water mixing ratio)
-  real(r8), dimension(vlen), intent (in)    :: nc  ! = nc (cld water number conc /kg)
-  real(r8), dimension(vlen), intent (in)    :: qr  ! = qr (rain water mixing ratio)
-  real(r8), dimension(vlen), intent (in)    :: rho ! = rho : density profile
+  real(r8), dimension(vlen), intent (in)    :: cldliq_mass_mixing_ratio_kg_per_kg  ! = qc (cld water mixing ratio)
+  real(r8), dimension(vlen), intent (in)    :: cldliq_number_conc_per_kg  ! = nc (cld water number conc /kg)
+  real(r8), dimension(vlen), intent (in)    :: rain_mass_mixing_ratio_kg_per_kg  ! = qr (rain water mixing ratio)
+  real(r8), dimension(vlen), intent (in)    :: air_density_kg_per_m3 ! = rho : density profile
   real(r8), dimension(vlen), intent (in)    :: relvar
 
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: pra  ! MMR
-  real(r8), dimension(vlen), intent(out) :: npra ! Number
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s  ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_number_tend_accretion_by_rain_per_kg_per_s ! Number
 
   ! parameters for Seifert and Beheng (2001) autoconversion/accretion
   real(r8), parameter :: kc = 9.44e9_r8
@@ -1511,15 +1511,15 @@ subroutine sb2001v2_accre_cld_water_rain(qc,nc,qr,rho,relvar,pra,npra,vlen)
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i = 1,vlen
-    if (qc(i) > qsmall) then
-      dum     = 1._r8-qc(i)/(qc(i)+qr(i))
+    if (cldliq_mass_mixing_ratio_kg_per_kg(i) > qsmall) then
+      dum     = 1._r8-cldliq_mass_mixing_ratio_kg_per_kg(i)/(cldliq_mass_mixing_ratio_kg_per_kg(i)+rain_mass_mixing_ratio_kg_per_kg(i))
       dum1    = (dum/(dum+5.e-4_r8))**4._r8
-      pra(i)  = kr*rho(i)*0.001_r8*qc(i)*qr(i)*dum1
-      npra(i) = pra(i)*rho(i)*0.001_r8*(nc(i)*rho(i)*1.e-6_r8)/ &
-           (qc(i)*rho(i)*0.001_r8)*1.e6_r8 / rho(i)
+      local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s(i)  = kr*air_density_kg_per_m3(i)*0.001_r8*cldliq_mass_mixing_ratio_kg_per_kg(i)*rain_mass_mixing_ratio_kg_per_kg(i)*dum1
+      local_cldliq_number_tend_accretion_by_rain_per_kg_per_s(i) = local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s(i)*air_density_kg_per_m3(i)*0.001_r8*(cldliq_number_conc_per_kg(i)*air_density_kg_per_m3(i)*1.e-6_r8)/ &
+           (cldliq_mass_mixing_ratio_kg_per_kg(i)*air_density_kg_per_m3(i)*0.001_r8)*1.e6_r8 / air_density_kg_per_m3(i)
     else
-      pra(i)  = 0._r8
-      npra(i) = 0._r8
+      local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s(i)  = 0._r8
+      local_cldliq_number_tend_accretion_by_rain_per_kg_per_s(i) = 0._r8
     end if
   end do
   !$acc end parallel
@@ -1530,17 +1530,17 @@ end subroutine sb2001v2_accre_cld_water_rain
 ! Autoconversion of cloud ice to snow
 ! similar to Ferrier (1994)
 
-subroutine ice_autoconversion(t, qiic, lami, n0i, dcs, prci, nprci, vlen)
+subroutine ice_autoconversion(t, incloud_cldice_mass_mixing_ratio_kg_per_kg, cldice_size_dist_slope_per_m, cldice_size_dist_intercept_per_m4, dcs, local_cldice_mass_tend_autoconversion_to_snow_kg_per_kg_per_s, local_cldice_number_tend_autoconversion_to_snow_per_kg_per_s, vlen)
 
   integer, intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t
-  real(r8), dimension(vlen), intent(in) :: qiic
-  real(r8), dimension(vlen), intent(in) :: lami
-  real(r8), dimension(vlen), intent(in) :: n0i
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_mass_mixing_ratio_kg_per_kg
+  real(r8), dimension(vlen), intent(in) :: cldice_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: cldice_size_dist_intercept_per_m4
   real(r8),                    intent(in) :: dcs
 
-  real(r8), dimension(vlen), intent(out) :: prci
-  real(r8), dimension(vlen), intent(out) :: nprci
+  real(r8), dimension(vlen), intent(out) :: local_cldice_mass_tend_autoconversion_to_snow_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(out) :: local_cldice_number_tend_autoconversion_to_snow_per_kg_per_s
 
   ! Assume autoconversion timescale of 180 seconds.
   real(r8), parameter :: ac_time = 180._r8
@@ -1554,21 +1554,21 @@ subroutine ice_autoconversion(t, qiic, lami, n0i, dcs, prci, nprci, vlen)
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (t(i) <= tmelt .and. qiic(i) >= qsmall) then
-        d_rat = lami(i)*dcs
+     if (t(i) <= tmelt .and. incloud_cldice_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+        d_rat = cldice_size_dist_slope_per_m(i)*dcs
 
         ! Rate of ice particle conversion (number).
-        nprci(i) = n0i(i)/(lami(i)*ac_time)*exp(-d_rat)
-        m_ip = (rhoi*pi/6._r8) / lami(i)**3
+        local_cldice_number_tend_autoconversion_to_snow_per_kg_per_s(i) = cldice_size_dist_intercept_per_m4(i)/(cldice_size_dist_slope_per_m(i)*ac_time)*exp(-d_rat)
+        m_ip = (rhoi*pi/6._r8) / cldice_size_dist_slope_per_m(i)**3
 
         ! Rate of mass conversion.
         ! Note that this is:
         ! m n (d^3 + 3 d^2 + 6 d + 6)
-        prci(i) = m_ip * nprci(i) * &
+        local_cldice_mass_tend_autoconversion_to_snow_kg_per_kg_per_s(i) = m_ip * local_cldice_number_tend_autoconversion_to_snow_per_kg_per_s(i) * &
              (((d_rat + 3._r8)*d_rat + 6._r8)*d_rat + 6._r8)
      else
-        prci(i)  = 0._r8
-        nprci(i) = 0._r8
+        local_cldice_mass_tend_autoconversion_to_snow_kg_per_kg_per_s(i)  = 0._r8
+        local_cldice_number_tend_autoconversion_to_snow_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -1578,8 +1578,8 @@ end subroutine ice_autoconversion
 ! immersion freezing (Bigg, 1953)
 !===================================
 
-subroutine immersion_freezing(microp_uniform, t, pgam, lamc, &
-     qcic, ncic, relvar, mnuccc, nnuccc, vlen)
+subroutine immersion_freezing(microp_uniform, t, cldliq_size_dist_shape, cldliq_size_dist_slope_per_m, &
+     incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, relvar, local_cldliq_mass_tend_immersion_freezing_kg_per_kg_per_s, local_cldliq_number_tend_immersion_freezing_per_kg_per_s, vlen)
 
   integer, intent(in) :: vlen
   logical, intent(in) :: microp_uniform
@@ -1588,19 +1588,19 @@ subroutine immersion_freezing(microp_uniform, t, pgam, lamc, &
   real(r8), dimension(vlen), intent(in) :: t
 
   ! Cloud droplet size distribution parameters
-  real(r8), dimension(vlen), intent(in) :: pgam
-  real(r8), dimension(vlen), intent(in) :: lamc
+  real(r8), dimension(vlen), intent(in) :: cldliq_size_dist_shape
+  real(r8), dimension(vlen), intent(in) :: cldliq_size_dist_slope_per_m
 
   ! MMR and number concentration of in-cloud liquid water
-  real(r8), dimension(vlen), intent(in) :: qcic
-  real(r8), dimension(vlen), intent(in) :: ncic
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_number_conc_per_kg
 
   ! Relative variance of cloud water
   real(r8), dimension(vlen), intent(in) :: relvar
 
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: mnuccc ! MMR
-  real(r8), dimension(vlen), intent(out) :: nnuccc ! Number
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_immersion_freezing_kg_per_kg_per_s ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_number_tend_immersion_freezing_per_kg_per_s ! Number
 
   ! Coefficients that will be omitted for sub-columns
   real(r8), dimension(vlen) :: dum
@@ -1623,19 +1623,19 @@ subroutine immersion_freezing(microp_uniform, t, pgam, lamc, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qcic(i) >= qsmall .and. t(i) < 269.15_r8) then
-        call rising_factorial(pgam(i)+1._r8, 3, tmp)
-        nnuccc(i) = &
-             pi/6._r8*ncic(i)*tmp* &
-             bimm*(exp(aimm*(tmelt - t(i)))-1._r8)/lamc(i)**3
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. t(i) < 269.15_r8) then
+        call rising_factorial(cldliq_size_dist_shape(i)+1._r8, 3, tmp)
+        local_cldliq_number_tend_immersion_freezing_per_kg_per_s(i) = &
+             pi/6._r8*incloud_cldliq_number_conc_per_kg(i)*tmp* &
+             bimm*(exp(aimm*(tmelt - t(i)))-1._r8)/cldliq_size_dist_slope_per_m(i)**3
 
-        call rising_factorial(pgam(i)+4._r8, 3, tmp)
-        mnuccc(i) = dum(i) * nnuccc(i) * &
+        call rising_factorial(cldliq_size_dist_shape(i)+4._r8, 3, tmp)
+        local_cldliq_mass_tend_immersion_freezing_kg_per_kg_per_s(i) = dum(i) * local_cldliq_number_tend_immersion_freezing_per_kg_per_s(i) * &
              pi/6._r8*rhow* &
-             tmp/lamc(i)**3
+             tmp/cldliq_size_dist_slope_per_m(i)**3
      else
-        mnuccc(i) = 0._r8
-        nnuccc(i) = 0._r8
+        local_cldliq_mass_tend_immersion_freezing_kg_per_kg_per_s(i) = 0._r8
+        local_cldliq_number_tend_immersion_freezing_per_kg_per_s(i) = 0._r8
      end if ! qcic > qsmall and t < 4 deg C
   end do
   !$acc end parallel
@@ -1648,7 +1648,7 @@ end subroutine immersion_freezing
 ! dust size and number in multiple bins are read in from companion routine
 
 subroutine contact_freezing (microp_uniform, t, p, rndst, nacon, &
-     pgam, lamc, qcic, ncic, relvar, mnucct, nnucct, vlen, mdust)
+     cldliq_size_dist_shape, cldliq_size_dist_slope_per_m, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, relvar, local_cldliq_mass_tend_contact_freezing_kg_per_kg_per_s, local_cldliq_number_tend_contact_freezing_per_kg_per_s, vlen, mdust)
 
   logical, intent(in) :: microp_uniform
 
@@ -1661,19 +1661,19 @@ subroutine contact_freezing (microp_uniform, t, p, rndst, nacon, &
   real(r8), dimension(vlen, mdust), intent(in) :: nacon ! Number (for multiple dust bins)
 
   ! Size distribution parameters for cloud droplets
-  real(r8), dimension(vlen), intent(in) :: pgam
-  real(r8), dimension(vlen), intent(in) :: lamc
+  real(r8), dimension(vlen), intent(in) :: cldliq_size_dist_shape
+  real(r8), dimension(vlen), intent(in) :: cldliq_size_dist_slope_per_m
 
   ! MMR and number concentration of in-cloud liquid water
-  real(r8), dimension(vlen), intent(in) :: qcic
-  real(r8), dimension(vlen), intent(in) :: ncic
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_number_conc_per_kg
 
   ! Relative cloud water variance
   real(r8), dimension(vlen), intent(in) :: relvar
 
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: mnucct ! MMR
-  real(r8), dimension(vlen), intent(out) :: nnucct ! Number
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_contact_freezing_kg_per_kg_per_s ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_number_tend_contact_freezing_per_kg_per_s ! Number
 
   real(r8) :: tcnt                  ! scaled relative temperature
   real(r8) :: viscosity             ! temperature-specific viscosity (kg/m/s)
@@ -1696,7 +1696,7 @@ subroutine contact_freezing (microp_uniform, t, p, rndst, nacon, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i = 1,vlen
-     if (qcic(i) >= qsmall .and. t(i) < 269.15_r8) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. t(i) < 269.15_r8) then
         if (microp_uniform) then
            dum  = 1._r8
            dum1 = 1._r8
@@ -1718,13 +1718,13 @@ subroutine contact_freezing (microp_uniform, t, p, rndst, nacon, &
         end do
 
         contact_factor = dot_product(ndfaer,nacon(i,:)*tcnt) * pi * &
-                                     ncic(i) * (pgam(i) + 1._r8) / lamc(i)
-        call rising_factorial(pgam(i)+2._r8, 3, tmp)
-        mnucct(i) = dum * contact_factor * pi/3._r8*rhow*tmp/lamc(i)**3
-        nnucct(i) = dum1 * 2._r8 * contact_factor
+                                     incloud_cldliq_number_conc_per_kg(i) * (cldliq_size_dist_shape(i) + 1._r8) / cldliq_size_dist_slope_per_m(i)
+        call rising_factorial(cldliq_size_dist_shape(i)+2._r8, 3, tmp)
+        local_cldliq_mass_tend_contact_freezing_kg_per_kg_per_s(i) = dum * contact_factor * pi/3._r8*rhow*tmp/cldliq_size_dist_slope_per_m(i)**3
+        local_cldliq_number_tend_contact_freezing_per_kg_per_s(i) = dum1 * 2._r8 * contact_factor
      else
-        mnucct(i) = 0._r8
-        nnucct(i) = 0._r8
+        local_cldliq_mass_tend_contact_freezing_kg_per_kg_per_s(i) = 0._r8
+        local_cldliq_number_tend_contact_freezing_per_kg_per_s(i) = 0._r8
      end if ! qcic > qsmall and t < 4 deg C
   end do
   !$acc end parallel
@@ -1737,32 +1737,32 @@ end subroutine contact_freezing
 ! this is hard-wired for bs = 0.4 for now
 ! ignore self-collection of cloud ice
 
-subroutine snow_self_aggregation(t, rho, asn, rhosn, qsic, nsic, nsagg, vlen)
+subroutine snow_self_aggregation(t, air_density_kg_per_m3, snow_fall_speed_prefactor, rhosn, inprecip_snow_mass_mixing_ratio_kg_per_kg, inprecip_snow_number_conc_per_kg, local_snow_number_tend_aggregation_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
 
   real(r8), dimension(vlen), intent(in) :: t     ! Temperature
-  real(r8), dimension(vlen), intent(in) :: rho   ! Density
-  real(r8), dimension(vlen), intent(in) :: asn   ! fall speed parameter for snow
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3   ! Density
+  real(r8), dimension(vlen), intent(in) :: snow_fall_speed_prefactor   ! fall speed parameter for snow
   real(r8),                  intent(in) :: rhosn ! density of snow
 
   ! In-cloud snow
-  real(r8), dimension(vlen), intent(in) :: qsic ! MMR
-  real(r8), dimension(vlen), intent(in) :: nsic ! Number
+  real(r8), dimension(vlen), intent(in) :: inprecip_snow_mass_mixing_ratio_kg_per_kg ! MMR
+  real(r8), dimension(vlen), intent(in) :: inprecip_snow_number_conc_per_kg ! Number
 
   ! Output number tendency
-  real(r8), dimension(vlen), intent(out) :: nsagg
+  real(r8), dimension(vlen), intent(out) :: local_snow_number_tend_aggregation_per_kg_per_s
 
   integer :: i
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qsic(i) >= qsmall .and. t(i) <= tmelt) then
-        nsagg(i) = -1108._r8*eii/(4._r8*720._r8*rhosn)*asn(i)*qsic(i)*nsic(i)*rho(i)*&
-             ((qsic(i)/nsic(i))*(1._r8/(rhosn*pi)))**((bs-1._r8)/3._r8)
+     if (inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. t(i) <= tmelt) then
+        local_snow_number_tend_aggregation_per_kg_per_s(i) = -1108._r8*eii/(4._r8*720._r8*rhosn)*snow_fall_speed_prefactor(i)*inprecip_snow_mass_mixing_ratio_kg_per_kg(i)*inprecip_snow_number_conc_per_kg(i)*air_density_kg_per_m3(i)*&
+             ((inprecip_snow_mass_mixing_ratio_kg_per_kg(i)/inprecip_snow_number_conc_per_kg(i))*(1._r8/(rhosn*pi)))**((bs-1._r8)/3._r8)
      else
-        nsagg(i) = 0._r8
+        local_snow_number_tend_aggregation_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -1772,34 +1772,34 @@ end subroutine snow_self_aggregation
 ! ice self-aggregation used in mg4
 !===================================================================
 
-subroutine ice_self_aggregation(t, rho, rhof, af1pr3, qiic, nsagg, vlen)
+subroutine ice_self_aggregation(t, air_density_kg_per_m3, fall_speed_air_density_correction, af1pr3, incloud_cldice_mass_mixing_ratio_kg_per_kg, local_snow_number_tend_aggregation_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
 
   real(r8), dimension(vlen), intent(in) :: t        ! Temperature
-  real(r8), dimension(vlen), intent(in) :: rho      ! Density
-  real(r8), dimension(vlen), intent(in) :: rhof     ! Density correction
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3      ! Density
+  real(r8), dimension(vlen), intent(in) :: fall_speed_air_density_correction     ! Density correction
 
   real(r8), dimension(vlen), intent(in) :: af1pr3   ! process rate
 
   ! In-cloud ice
-  real(r8), dimension(vlen), intent(in) :: qiic ! MMR
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_mass_mixing_ratio_kg_per_kg ! MMR
 
   ! Collection efficiency
   real(r8), parameter :: eii = 0.1_r8
 
   ! Output number tendency
-  real(r8), dimension(vlen), intent(out) :: nsagg
+  real(r8), dimension(vlen), intent(out) :: local_snow_number_tend_aggregation_per_kg_per_s
 
   integer :: i
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qiic(i) >= qsmall .and. t(i) <= tmelt) then
-        nsagg(i) = af1pr3(i)*rho(i)*eii*rhof(i)
+     if (incloud_cldice_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. t(i) <= tmelt) then
+        local_snow_number_tend_aggregation_per_kg_per_s(i) = af1pr3(i)*air_density_kg_per_m3(i)*eii*fall_speed_air_density_correction(i)
      else
-        nsagg(i)=0._r8
+        local_snow_number_tend_aggregation_per_kg_per_s(i)=0._r8
      end if
   end do
   !$acc end parallel
@@ -1813,34 +1813,34 @@ end subroutine ice_self_aggregation
 ! ignore collisions between droplets/cloud ice
 ! since minimum size ice particle for accretion is 50 - 150 micron
 
-subroutine accrete_cloud_water_snow(t, rho, asn, uns, mu, qcic, ncic, qsic, &
-     pgam, lamc, lams, n0s, psacws, npsacws, vlen)
+subroutine accrete_cloud_water_snow(t, air_density_kg_per_m3, snow_fall_speed_prefactor, snow_number_weighted_fall_speed_m_per_s, air_dynamic_viscosity_kg_per_m_per_s, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, inprecip_snow_mass_mixing_ratio_kg_per_kg, &
+     cldliq_size_dist_shape, cldliq_size_dist_slope_per_m, snow_size_dist_slope_per_m, snow_size_dist_intercept_per_m4, local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s, local_cldliq_number_tend_riming_by_snow_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t   ! Temperature
-  real(r8), dimension(vlen), intent(in) :: rho ! Density
-  real(r8), dimension(vlen), intent(in) :: asn ! Fallspeed parameter (snow)
-  real(r8), dimension(vlen), intent(in) :: uns ! Current fallspeed   (snow)
-  real(r8), dimension(vlen), intent(in) :: mu  ! Viscosity
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3 ! Density
+  real(r8), dimension(vlen), intent(in) :: snow_fall_speed_prefactor ! Fallspeed parameter (snow)
+  real(r8), dimension(vlen), intent(in) :: snow_number_weighted_fall_speed_m_per_s ! Current fallspeed   (snow)
+  real(r8), dimension(vlen), intent(in) :: air_dynamic_viscosity_kg_per_m_per_s  ! Viscosity
 
   ! In-cloud liquid water
-  real(r8), dimension(vlen), intent(in) :: qcic ! MMR
-  real(r8), dimension(vlen), intent(in) :: ncic ! Number
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg ! MMR
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_number_conc_per_kg ! Number
 
   ! In-cloud snow
-  real(r8), dimension(vlen), intent(in) :: qsic ! MMR
+  real(r8), dimension(vlen), intent(in) :: inprecip_snow_mass_mixing_ratio_kg_per_kg ! MMR
 
   ! Cloud droplet size parameters
-  real(r8), dimension(vlen), intent(in) :: pgam
-  real(r8), dimension(vlen), intent(in) :: lamc
+  real(r8), dimension(vlen), intent(in) :: cldliq_size_dist_shape
+  real(r8), dimension(vlen), intent(in) :: cldliq_size_dist_slope_per_m
 
   ! Snow size parameters
-  real(r8), dimension(vlen), intent(in) :: lams
-  real(r8), dimension(vlen), intent(in) :: n0s
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_intercept_per_m4
 
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: psacws  ! Mass mixing ratio
-  real(r8), dimension(vlen), intent(out) :: npsacws ! Number concentration
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s  ! Mass mixing ratio
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_number_tend_riming_by_snow_per_kg_per_s ! Number concentration
 
   real(r8) :: dc0 ! Provisional mean droplet size
   real(r8) :: dum
@@ -1855,25 +1855,25 @@ subroutine accrete_cloud_water_snow(t, rho, asn, uns, mu, qcic, ncic, qsic, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qsic(i) >= qsmall .and. t(i) <= tmelt .and. qcic(i) >= qsmall) then
+     if (inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. t(i) <= tmelt .and. incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
         ! put in size dependent collection efficiency
         ! mean diameter of snow is area-weighted, since
         ! accretion is function of crystal geometric area
         ! collection efficiency is approximation based on stoke's law (Thompson et al. 2004)
-        dc0 = (pgam(i)+1._r8)/lamc(i)
-        dum = dc0*dc0*uns(i)*rhow*lams(i)/(9._r8*mu(i))
+        dc0 = (cldliq_size_dist_shape(i)+1._r8)/cldliq_size_dist_slope_per_m(i)
+        dum = dc0*dc0*snow_number_weighted_fall_speed_m_per_s(i)*rhow*snow_size_dist_slope_per_m(i)/(9._r8*air_dynamic_viscosity_kg_per_m_per_s(i))
         eci = dum*dum/((dum+0.4_r8)*(dum+0.4_r8))
         eci = max(eci,0._r8)
         eci = min(eci,1._r8)
 
         ! no impact of sub-grid distribution of qc since psacws
         ! is linear in qc
-        accrete_rate = pi/4._r8*asn(i)*rho(i)*n0s(i)*eci*gamma_bs_plus3 / lams(i)**(bs+3._r8)
-        psacws(i)  = accrete_rate*qcic(i)
-        npsacws(i) = accrete_rate*ncic(i)
+        accrete_rate = pi/4._r8*snow_fall_speed_prefactor(i)*air_density_kg_per_m3(i)*snow_size_dist_intercept_per_m4(i)*eci*gamma_bs_plus3 / snow_size_dist_slope_per_m(i)**(bs+3._r8)
+        local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i)  = accrete_rate*incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)
+        local_cldliq_number_tend_riming_by_snow_per_kg_per_s(i) = accrete_rate*incloud_cldliq_number_conc_per_kg(i)
      else
-        psacws(i)  = 0._r8
-        npsacws(i) = 0._r8
+        local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i)  = 0._r8
+        local_cldliq_number_tend_riming_by_snow_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -1881,21 +1881,21 @@ subroutine accrete_cloud_water_snow(t, rho, asn, uns, mu, qcic, ncic, qsic, &
 end subroutine accrete_cloud_water_snow
 
 ! Version used in MG4
-subroutine accrete_cloud_water_ice(t, rho, rhof, af1pr4, qcic, ncic, qiic, psacws, npsacws, vlen)
+subroutine accrete_cloud_water_ice(t, air_density_kg_per_m3, fall_speed_air_density_correction, af1pr4, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldliq_number_conc_per_kg, incloud_cldice_mass_mixing_ratio_kg_per_kg, local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s, local_cldliq_number_tend_riming_by_snow_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t        ! Temperature
-  real(r8), dimension(vlen), intent(in) :: rho      ! Density
-  real(r8), dimension(vlen), intent(in) :: rhof     ! Density correction factor
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3      ! Density
+  real(r8), dimension(vlen), intent(in) :: fall_speed_air_density_correction     ! Density correction factor
   real(r8), dimension(vlen), intent(in) :: af1pr4   ! Process rate from look-up table
   ! In-cloud liquid water
-  real(r8), dimension(vlen), intent(in) :: qcic     ! MMR
-  real(r8), dimension(vlen), intent(in) :: ncic     ! Number
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg     ! MMR
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_number_conc_per_kg     ! Number
   ! In-cloud ice
-  real(r8), dimension(vlen), intent(in) :: qiic     ! MMR
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_mass_mixing_ratio_kg_per_kg     ! MMR
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: psacws  ! Mass mixing ratio
-  real(r8), dimension(vlen), intent(out) :: npsacws ! Number concentration
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s  ! Mass mixing ratio
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_number_tend_riming_by_snow_per_kg_per_s ! Number concentration
 
   real(r8) :: eci     ! collection efficiency for riming of snow by droplets
   integer  :: i
@@ -1906,12 +1906,12 @@ subroutine accrete_cloud_water_ice(t, rho, rhof, af1pr4, qcic, ncic, qiic, psacw
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qiic(i) >= qsmall .and. t(i) <= tmelt .and. qcic(i) >= qsmall) then
-         psacws(i)  = rhof(i)*af1pr4(i)*qcic(i)*eci*rho(i)
-         npsacws(i) = rhof(i)*af1pr4(i)*ncic(i)*eci*rho(i)
+     if (incloud_cldice_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. t(i) <= tmelt .and. incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+         local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i)  = fall_speed_air_density_correction(i)*af1pr4(i)*incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)*eci*air_density_kg_per_m3(i)
+         local_cldliq_number_tend_riming_by_snow_per_kg_per_s(i) = fall_speed_air_density_correction(i)*af1pr4(i)*incloud_cldliq_number_conc_per_kg(i)*eci*air_density_kg_per_m3(i)
      else
-         psacws(i)  = 0._r8
-         npsacws(i) = 0._r8
+         local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i)  = 0._r8
+         local_cldliq_number_tend_riming_by_snow_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -1922,32 +1922,32 @@ end subroutine accrete_cloud_water_ice
 !===================================================================
 ! (Hallet-Mossop process) (from Cotton et al., 1986)
 
-subroutine secondary_ice_production(t, psacws, msacwi, nsacwi, vlen)
+subroutine secondary_ice_production(t, local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s, local_cldice_mass_tend_splintering_by_snow_kg_per_kg_per_s, local_cldice_number_tend_splintering_by_snow_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t ! Temperature
 
   ! Accretion of cloud water to snow tendencies
-  real(r8), dimension(vlen), intent(inout) :: psacws ! MMR
+  real(r8), dimension(vlen), intent(inout) :: local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s ! MMR
 
   ! Output (ice) tendencies
-  real(r8), dimension(vlen), intent(out) :: msacwi ! MMR
-  real(r8), dimension(vlen), intent(out) :: nsacwi ! Number
+  real(r8), dimension(vlen), intent(out) :: local_cldice_mass_tend_splintering_by_snow_kg_per_kg_per_s ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_cldice_number_tend_splintering_by_snow_per_kg_per_s ! Number
   integer :: i
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
      if((t(i) < 270.16_r8) .and. (t(i) >= 268.16_r8)) then
-        nsacwi(i) = 3.5e8_r8*(270.16_r8-t(i))/2.0_r8*psacws(i)
+        local_cldice_number_tend_splintering_by_snow_per_kg_per_s(i) = 3.5e8_r8*(270.16_r8-t(i))/2.0_r8*local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i)
      else if((t(i) < 268.16_r8) .and. (t(i) >= 265.16_r8)) then
-        nsacwi(i) = 3.5e8_r8*(t(i)-265.16_r8)/3.0_r8*psacws(i)
+        local_cldice_number_tend_splintering_by_snow_per_kg_per_s(i) = 3.5e8_r8*(t(i)-265.16_r8)/3.0_r8*local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i)
      else
-        nsacwi(i) = 0.0_r8
+        local_cldice_number_tend_splintering_by_snow_per_kg_per_s(i) = 0.0_r8
      endif
 
-     msacwi(i) = min(nsacwi(i)*mi0, psacws(i))
-     psacws(i) = psacws(i) - msacwi(i)
+     local_cldice_mass_tend_splintering_by_snow_kg_per_kg_per_s(i) = min(local_cldice_number_tend_splintering_by_snow_per_kg_per_s(i)*mi0, local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i))
+     local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i) = local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i) - local_cldice_mass_tend_splintering_by_snow_kg_per_kg_per_s(i)
   end do
   !$acc end parallel
 
@@ -1957,32 +1957,32 @@ end subroutine secondary_ice_production
 !===================================================================
 ! formula from ikawa and saito, 1991, used by reisner et al., 1998
 
-subroutine accrete_rain_snow(t, rho, umr, ums, unr, uns, qric, qsic, &
-     lamr, n0r, lams, n0s, pracs, npracs, vlen)
+subroutine accrete_rain_snow(t, air_density_kg_per_m3, rain_mass_weighted_fall_speed_m_per_s, snow_mass_weighted_fall_speed_m_per_s, rain_number_weighted_fall_speed_m_per_s, snow_number_weighted_fall_speed_m_per_s, inprecip_rain_mass_mixing_ratio_kg_per_kg, inprecip_snow_mass_mixing_ratio_kg_per_kg, &
+     rain_size_dist_slope_per_m, rain_size_dist_intercept_per_m4, snow_size_dist_slope_per_m, snow_size_dist_intercept_per_m4, local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s, local_rain_number_tend_accretion_by_snow_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t   ! Temperature
-  real(r8), dimension(vlen), intent(in) :: rho ! Density
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3 ! Density
   ! Fallspeeds
   ! mass-weighted
-  real(r8), dimension(vlen), intent(in) :: umr ! rain
-  real(r8), dimension(vlen), intent(in) :: ums ! snow
+  real(r8), dimension(vlen), intent(in) :: rain_mass_weighted_fall_speed_m_per_s ! rain
+  real(r8), dimension(vlen), intent(in) :: snow_mass_weighted_fall_speed_m_per_s ! snow
   ! number-weighted
-  real(r8), dimension(vlen), intent(in) :: unr ! rain
-  real(r8), dimension(vlen), intent(in) :: uns ! snow
+  real(r8), dimension(vlen), intent(in) :: rain_number_weighted_fall_speed_m_per_s ! rain
+  real(r8), dimension(vlen), intent(in) :: snow_number_weighted_fall_speed_m_per_s ! snow
   ! In cloud MMRs
-  real(r8), dimension(vlen), intent(in) :: qric ! rain
-  real(r8), dimension(vlen), intent(in) :: qsic ! snow
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_mass_mixing_ratio_kg_per_kg ! rain
+  real(r8), dimension(vlen), intent(in) :: inprecip_snow_mass_mixing_ratio_kg_per_kg ! snow
   ! Size distribution parameters
   ! rain
-  real(r8), dimension(vlen), intent(in) :: lamr
-  real(r8), dimension(vlen), intent(in) :: n0r
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_intercept_per_m4
   ! snow
-  real(r8), dimension(vlen), intent(in) :: lams
-  real(r8), dimension(vlen), intent(in) :: n0s
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_intercept_per_m4
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: pracs  ! MMR
-  real(r8), dimension(vlen), intent(out) :: npracs ! Number
+  real(r8), dimension(vlen), intent(out) :: local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s  ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_rain_number_tend_accretion_by_snow_per_kg_per_s ! Number
   ! Collection efficiency for accretion of rain by snow
   real(r8), parameter :: ecr = 1.0_r8
   ! Ratio of average snow diameter to average rain diameter.
@@ -1994,18 +1994,18 @@ subroutine accrete_rain_snow(t, rho, umr, ums, unr, uns, qric, qsic, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qric(i) >= icsmall .and. qsic(i) >= icsmall .and. t(i) <= tmelt) then
-        common_factor = pi*ecr*rho(i)*n0r(i)*n0s(i)/(lamr(i)**3 * lams(i))
-        d_rat = lamr(i)/lams(i)
-        pracs(i) = common_factor*pi*rhow* &
-             sqrt((1.2_r8*umr(i)-0.95_r8*ums(i))**2 + 0.08_r8*ums(i)*umr(i)) / lamr(i)**3 * &
+     if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= icsmall .and. inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= icsmall .and. t(i) <= tmelt) then
+        common_factor = pi*ecr*air_density_kg_per_m3(i)*rain_size_dist_intercept_per_m4(i)*snow_size_dist_intercept_per_m4(i)/(rain_size_dist_slope_per_m(i)**3 * snow_size_dist_slope_per_m(i))
+        d_rat = rain_size_dist_slope_per_m(i)/snow_size_dist_slope_per_m(i)
+        local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s(i) = common_factor*pi*rhow* &
+             sqrt((1.2_r8*rain_mass_weighted_fall_speed_m_per_s(i)-0.95_r8*snow_mass_weighted_fall_speed_m_per_s(i))**2 + 0.08_r8*snow_mass_weighted_fall_speed_m_per_s(i)*rain_mass_weighted_fall_speed_m_per_s(i)) / rain_size_dist_slope_per_m(i)**3 * &
              ((0.5_r8*d_rat + 2._r8)*d_rat + 5._r8)
-        npracs(i) = common_factor*0.5_r8* &
-             sqrt(1.7_r8*(unr(i)-uns(i))**2 + 0.3_r8*unr(i)*uns(i)) * &
+        local_rain_number_tend_accretion_by_snow_per_kg_per_s(i) = common_factor*0.5_r8* &
+             sqrt(1.7_r8*(rain_number_weighted_fall_speed_m_per_s(i)-snow_number_weighted_fall_speed_m_per_s(i))**2 + 0.3_r8*rain_number_weighted_fall_speed_m_per_s(i)*snow_number_weighted_fall_speed_m_per_s(i)) * &
              ((d_rat + 1._r8)*d_rat + 1._r8)
      else
-        pracs(i) = 0._r8
-        npracs(i) = 0._r8
+        local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s(i) = 0._r8
+        local_rain_number_tend_accretion_by_snow_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2013,25 +2013,25 @@ subroutine accrete_rain_snow(t, rho, umr, ums, unr, uns, qric, qsic, &
 end subroutine accrete_rain_snow
 
 ! Version used in MG4
-subroutine accrete_rain_ice(t, rho, rhof, af1pr8, af1pr7, qric, qiic, &
-      n0r, pracs, npracs, vlen )
+subroutine accrete_rain_ice(t, air_density_kg_per_m3, fall_speed_air_density_correction, af1pr8, af1pr7, inprecip_rain_mass_mixing_ratio_kg_per_kg, incloud_cldice_mass_mixing_ratio_kg_per_kg, &
+      rain_size_dist_intercept_per_m4, local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s, local_rain_number_tend_accretion_by_snow_per_kg_per_s, vlen )
 
   integer,                   intent(in) :: vlen
-  real(r8), dimension(vlen), intent(in) :: rhof ! Density correction factor
-  real(r8), dimension(vlen), intent(in) :: rho  ! Density
+  real(r8), dimension(vlen), intent(in) :: fall_speed_air_density_correction ! Density correction factor
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3  ! Density
   real(r8), dimension(vlen), intent(in) :: t    ! Temperature
   ! In cloud MMRs
-  real(r8), dimension(vlen), intent(in) :: qric ! rain
-  real(r8), dimension(vlen), intent(in) :: qiic ! combined snow and ice
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_mass_mixing_ratio_kg_per_kg ! rain
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_mass_mixing_ratio_kg_per_kg ! combined snow and ice
   ! Size distribution parameters
   ! rain
-  real(r8), dimension(vlen), intent(in) :: n0r
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_intercept_per_m4
   ! Processrates
   real(r8), dimension(vlen), intent(in) :: af1pr8
   real(r8), dimension(vlen), intent(in) :: af1pr7
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: pracs  ! MMR
-  real(r8), dimension(vlen), intent(out) :: npracs ! Number
+  real(r8), dimension(vlen), intent(out) :: local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s  ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_rain_number_tend_accretion_by_snow_per_kg_per_s ! Number
   ! Collection efficiency for accretion of rain by snow
   real(r8), parameter :: ecr = 1.0_r8
   integer :: i
@@ -2039,12 +2039,12 @@ subroutine accrete_rain_ice(t, rho, rhof, af1pr8, af1pr7, qric, qiic, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qric(i) >= icsmall .and. qiic(i) >= icsmall .and. t(i) <= tmelt) then
-        pracs(i)  = 10._r8**(af1pr8(i)+dlog10(n0r(i)))*rho(i)*rhof(i)*ecr
-        npracs(i) = 10._r8**(af1pr7(i)+dlog10(n0r(i)))*rho(i)*rhof(i)*ecr
+     if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= icsmall .and. incloud_cldice_mass_mixing_ratio_kg_per_kg(i) >= icsmall .and. t(i) <= tmelt) then
+        local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s(i)  = 10._r8**(af1pr8(i)+dlog10(rain_size_dist_intercept_per_m4(i)))*air_density_kg_per_m3(i)*fall_speed_air_density_correction(i)*ecr
+        local_rain_number_tend_accretion_by_snow_per_kg_per_s(i) = 10._r8**(af1pr7(i)+dlog10(rain_size_dist_intercept_per_m4(i)))*air_density_kg_per_m3(i)*fall_speed_air_density_correction(i)*ecr
      else
-        pracs(i)  = 0._r8
-        npracs(i) = 0._r8
+        local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s(i)  = 0._r8
+        local_rain_number_tend_accretion_by_snow_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2055,29 +2055,29 @@ end subroutine accrete_rain_ice
 !===================================================================
 ! follows from Bigg (1953)
 
-subroutine heterogeneous_rain_freezing(t, qric, nric, lamr, mnuccr, nnuccr, vlen)
+subroutine heterogeneous_rain_freezing(t, inprecip_rain_mass_mixing_ratio_kg_per_kg, inprecip_rain_number_conc_per_kg, rain_size_dist_slope_per_m, local_rain_mass_tend_freezing_to_snow_kg_per_kg_per_s, local_rain_number_tend_freezing_to_snow_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t    ! Temperature
   ! In-cloud rain
-  real(r8), dimension(vlen), intent(in) :: qric ! MMR
-  real(r8), dimension(vlen), intent(in) :: nric ! Number
-  real(r8), dimension(vlen), intent(in) :: lamr ! size parameter
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_mass_mixing_ratio_kg_per_kg ! MMR
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_number_conc_per_kg ! Number
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_slope_per_m ! size parameter
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: mnuccr ! MMR
-  real(r8), dimension(vlen), intent(out) :: nnuccr ! Number
+  real(r8), dimension(vlen), intent(out) :: local_rain_mass_tend_freezing_to_snow_kg_per_kg_per_s ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_rain_number_tend_freezing_to_snow_per_kg_per_s ! Number
   integer :: i
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (t(i) < 269.15_r8 .and. qric(i) >= qsmall) then
-        nnuccr(i) = pi*nric(i)*bimm* &
-             (exp(aimm*(tmelt - t(i)))-1._r8)/lamr(i)**3
-        mnuccr(i) = nnuccr(i) * 20._r8*pi*rhow/lamr(i)**3
+     if (t(i) < 269.15_r8 .and. inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+        local_rain_number_tend_freezing_to_snow_per_kg_per_s(i) = pi*inprecip_rain_number_conc_per_kg(i)*bimm* &
+             (exp(aimm*(tmelt - t(i)))-1._r8)/rain_size_dist_slope_per_m(i)**3
+        local_rain_mass_tend_freezing_to_snow_kg_per_kg_per_s(i) = local_rain_number_tend_freezing_to_snow_per_kg_per_s(i) * 20._r8*pi*rhow/rain_size_dist_slope_per_m(i)**3
      else
-        mnuccr(i) = 0._r8
-        nnuccr(i) = 0._r8
+        local_rain_mass_tend_freezing_to_snow_kg_per_kg_per_s(i) = 0._r8
+        local_rain_number_tend_freezing_to_snow_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2089,22 +2089,22 @@ end subroutine heterogeneous_rain_freezing
 ! formula from Khrouditnov and Kogan (2000)
 ! gravitational collection kernel, droplet fall speed neglected
 
-subroutine accrete_cloud_water_rain(microp_uniform, qric, qcic, &
-     ncic, relvar, accre_enhan, pra, npra, vlen)
+subroutine accrete_cloud_water_rain(microp_uniform, inprecip_rain_mass_mixing_ratio_kg_per_kg, incloud_cldliq_mass_mixing_ratio_kg_per_kg, &
+     incloud_cldliq_number_conc_per_kg, relvar, accre_enhan, local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s, local_cldliq_number_tend_accretion_by_rain_per_kg_per_s, vlen)
 
   logical, intent(in) :: microp_uniform
   integer, intent(in) :: vlen
   ! In-cloud rain
-  real(r8), dimension(vlen), intent(in) :: qric ! MMR
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_mass_mixing_ratio_kg_per_kg ! MMR
   ! Cloud droplets
-  real(r8), dimension(vlen), intent(in) :: qcic ! MMR
-  real(r8), dimension(vlen), intent(in) :: ncic ! Number
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg ! MMR
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_number_conc_per_kg ! Number
   ! SGS variability
   real(r8), dimension(vlen), intent(in) :: relvar
   real(r8), dimension(vlen), intent(in) :: accre_enhan
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: pra  ! MMR
-  real(r8), dimension(vlen), intent(out) :: npra ! Number
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s  ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_number_tend_accretion_by_rain_per_kg_per_s ! Number
   ! Coefficient that varies for subcolumns
   real(r8), dimension(vlen) :: pra_coef
   integer :: i
@@ -2131,13 +2131,13 @@ subroutine accrete_cloud_water_rain(microp_uniform, qric, qcic, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qric(i) >= qsmall .and. qcic(i) >= qsmall) then
+     if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
         ! include sub-grid distribution of cloud water
-        pra(i)  = pra_coef(i) * 67._r8*(qcic(i)*qric(i))**1.15_r8
-        npra(i) = pra(i)*ncic(i)/qcic(i)
+        local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s(i)  = pra_coef(i) * 67._r8*(incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)*inprecip_rain_mass_mixing_ratio_kg_per_kg(i))**1.15_r8
+        local_cldliq_number_tend_accretion_by_rain_per_kg_per_s(i) = local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s(i)*incloud_cldliq_number_conc_per_kg(i)/incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)
      else
-        pra(i)  = 0._r8
-        npra(i) = 0._r8
+        local_cldliq_mass_tend_accretion_by_rain_kg_per_kg_per_s(i)  = 0._r8
+        local_cldliq_number_tend_accretion_by_rain_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2149,24 +2149,24 @@ end subroutine accrete_cloud_water_rain
 !===================================================================
 ! from Beheng(1994)
 
-subroutine self_collection_rain(rho, qric, nric, nragg, vlen)
+subroutine self_collection_rain(air_density_kg_per_m3, inprecip_rain_mass_mixing_ratio_kg_per_kg, inprecip_rain_number_conc_per_kg, local_rain_number_tend_self_collection_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
-  real(r8), dimension(vlen), intent(in) :: rho  ! Air density
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3  ! Air density
   ! Rain
-  real(r8), dimension(vlen), intent(in) :: qric ! MMR
-  real(r8), dimension(vlen), intent(in) :: nric ! Number
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_mass_mixing_ratio_kg_per_kg ! MMR
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_number_conc_per_kg ! Number
   ! Output number tendency
-  real(r8), dimension(vlen), intent(out) :: nragg
+  real(r8), dimension(vlen), intent(out) :: local_rain_number_tend_self_collection_per_kg_per_s
   integer :: i
 
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qric(i) >= qsmall) then
-        nragg(i) = -8._r8*nric(i)*qric(i)*rho(i)
+     if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+        local_rain_number_tend_self_collection_per_kg_per_s(i) = -8._r8*inprecip_rain_number_conc_per_kg(i)*inprecip_rain_mass_mixing_ratio_kg_per_kg(i)*air_density_kg_per_m3(i)
      else
-        nragg(i) = 0._r8
+        local_rain_number_tend_self_collection_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2178,23 +2178,23 @@ end subroutine self_collection_rain
 ! For this calculation, it is assumed that the Vs >> Vi
 ! and Ds >> Di for continuous collection
 
-subroutine accrete_cloud_ice_snow(t, rho, asn, qiic, niic, qsic, &
-     lams, n0s, prai, nprai, vlen)
+subroutine accrete_cloud_ice_snow(t, air_density_kg_per_m3, snow_fall_speed_prefactor, incloud_cldice_mass_mixing_ratio_kg_per_kg, incloud_cldice_number_conc_per_kg, inprecip_snow_mass_mixing_ratio_kg_per_kg, &
+     snow_size_dist_slope_per_m, snow_size_dist_intercept_per_m4, local_cldice_mass_tend_accretion_by_snow_kg_per_kg_per_s, local_cldice_number_tend_accretion_by_snow_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t    ! Temperature
-  real(r8), dimension(vlen), intent(in) :: rho   ! Density
-  real(r8), dimension(vlen), intent(in) :: asn  ! Snow fallspeed parameter
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3   ! Density
+  real(r8), dimension(vlen), intent(in) :: snow_fall_speed_prefactor  ! Snow fallspeed parameter
   ! Cloud ice
-  real(r8), dimension(vlen), intent(in) :: qiic ! MMR
-  real(r8), dimension(vlen), intent(in) :: niic ! Number
-  real(r8), dimension(vlen), intent(in) :: qsic ! Snow MMR
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_mass_mixing_ratio_kg_per_kg ! MMR
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_number_conc_per_kg ! Number
+  real(r8), dimension(vlen), intent(in) :: inprecip_snow_mass_mixing_ratio_kg_per_kg ! Snow MMR
   ! Snow size parameters
-  real(r8), dimension(vlen), intent(in) :: lams
-  real(r8), dimension(vlen), intent(in) :: n0s
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_intercept_per_m4
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: prai ! MMR
-  real(r8), dimension(vlen), intent(out) :: nprai ! Number
+  real(r8), dimension(vlen), intent(out) :: local_cldice_mass_tend_accretion_by_snow_kg_per_kg_per_s ! MMR
+  real(r8), dimension(vlen), intent(out) :: local_cldice_number_tend_accretion_by_snow_per_kg_per_s ! Number
   ! Fraction of cloud ice particles accreted per second
   real(r8) :: accrete_rate
   integer  :: i
@@ -2202,14 +2202,14 @@ subroutine accrete_cloud_ice_snow(t, rho, asn, qiic, niic, qsic, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qsic(i) >= qsmall .and. qiic(i) >= qsmall .and. t(i) <= tmelt) then
-        accrete_rate = pi/4._r8 * eii * asn(i) * rho(i) * n0s(i) * gamma_bs_plus3/ &
-             lams(i)**(bs+3._r8)
-        prai(i)  = accrete_rate * qiic(i)
-        nprai(i) = accrete_rate * niic(i)
+     if (inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. incloud_cldice_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. t(i) <= tmelt) then
+        accrete_rate = pi/4._r8 * eii * snow_fall_speed_prefactor(i) * air_density_kg_per_m3(i) * snow_size_dist_intercept_per_m4(i) * gamma_bs_plus3/ &
+             snow_size_dist_slope_per_m(i)**(bs+3._r8)
+        local_cldice_mass_tend_accretion_by_snow_kg_per_kg_per_s(i)  = accrete_rate * incloud_cldice_mass_mixing_ratio_kg_per_kg(i)
+        local_cldice_number_tend_accretion_by_snow_per_kg_per_s(i) = accrete_rate * incloud_cldice_number_conc_per_kg(i)
      else
-        prai(i)  = 0._r8
-        nprai(i) = 0._r8
+        local_cldice_mass_tend_accretion_by_snow_kg_per_kg_per_s(i)  = 0._r8
+        local_cldice_number_tend_accretion_by_snow_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2222,39 +2222,39 @@ end subroutine accrete_cloud_ice_snow
 ! in-cloud condensation/deposition of rain and snow is neglected
 ! except for transfer of cloud water to snow through bergeron process
 
-subroutine evaporate_sublimate_precip(t, rho, dv, mu, sc, q, qvl, qvi, &
-     lcldm, precip_frac, arn, asn, qcic, qiic, qric, qsic, lamr, n0r, lams, n0s, &
-     pre, prds, am_evp_st, vlen, evap_rhthrsh)
+subroutine evaporate_sublimate_precip(t, air_density_kg_per_m3, dv, air_dynamic_viscosity_kg_per_m_per_s, schmidt_number, q, saturation_specific_humidity_over_liquid_kg_per_kg, saturation_specific_humidity_over_ice_kg_per_kg, &
+     liquid_cloud_area_fraction, precipitation_area_fraction, rain_fall_speed_prefactor, snow_fall_speed_prefactor, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldice_mass_mixing_ratio_kg_per_kg, inprecip_rain_mass_mixing_ratio_kg_per_kg, inprecip_snow_mass_mixing_ratio_kg_per_kg, rain_size_dist_slope_per_m, rain_size_dist_intercept_per_m4, snow_size_dist_slope_per_m, snow_size_dist_intercept_per_m4, &
+     local_rain_mass_tend_evaporation_kg_per_kg_per_s, local_snow_mass_tend_sublimation_kg_per_kg_per_s, am_evp_st, vlen, evap_rhthrsh)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t           ! temperature
-  real(r8), dimension(vlen), intent(in) :: rho         ! air density
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3         ! air density
   real(r8), dimension(vlen), intent(in) :: dv          ! water vapor diffusivity
-  real(r8), dimension(vlen), intent(in) :: mu          ! viscosity
-  real(r8), dimension(vlen), intent(in) :: sc          ! schmidt number
+  real(r8), dimension(vlen), intent(in) :: air_dynamic_viscosity_kg_per_m_per_s          ! viscosity
+  real(r8), dimension(vlen), intent(in) :: schmidt_number          ! schmidt number
   real(r8), dimension(vlen), intent(in) :: q           ! humidity
-  real(r8), dimension(vlen), intent(in) :: qvl         ! saturation humidity (water)
-  real(r8), dimension(vlen), intent(in) :: qvi         ! saturation humidity (ice)
-  real(r8), dimension(vlen), intent(in) :: lcldm       ! liquid cloud fraction
-  real(r8), dimension(vlen), intent(in) :: precip_frac ! precipitation fraction (maximum overlap)
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_liquid_kg_per_kg         ! saturation humidity (water)
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_ice_kg_per_kg         ! saturation humidity (ice)
+  real(r8), dimension(vlen), intent(in) :: liquid_cloud_area_fraction       ! liquid cloud fraction
+  real(r8), dimension(vlen), intent(in) :: precipitation_area_fraction ! precipitation fraction (maximum overlap)
   ! fallspeed parameters
-  real(r8), dimension(vlen), intent(in) :: arn         ! rain
-  real(r8), dimension(vlen), intent(in) :: asn         ! snow
+  real(r8), dimension(vlen), intent(in) :: rain_fall_speed_prefactor         ! rain
+  real(r8), dimension(vlen), intent(in) :: snow_fall_speed_prefactor         ! snow
   ! In-cloud MMRs
-  real(r8), dimension(vlen), intent(in) :: qcic        ! cloud liquid
-  real(r8), dimension(vlen), intent(in) :: qiic        ! cloud ice
-  real(r8), dimension(vlen), intent(in) :: qric        ! rain
-  real(r8), dimension(vlen), intent(in) :: qsic        ! snow
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg        ! cloud liquid
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_mass_mixing_ratio_kg_per_kg        ! cloud ice
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_mass_mixing_ratio_kg_per_kg        ! rain
+  real(r8), dimension(vlen), intent(in) :: inprecip_snow_mass_mixing_ratio_kg_per_kg        ! snow
   ! Size parameters
   ! rain
-  real(r8), dimension(vlen), intent(in) :: lamr
-  real(r8), dimension(vlen), intent(in) :: n0r
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_intercept_per_m4
   ! snow
-  real(r8), dimension(vlen), intent(in) :: lams
-  real(r8), dimension(vlen), intent(in) :: n0s
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_intercept_per_m4
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: pre
-  real(r8), dimension(vlen), intent(out) :: prds
+  real(r8), dimension(vlen), intent(out) :: local_rain_mass_tend_evaporation_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(out) :: local_snow_mass_tend_sublimation_kg_per_kg_per_s
   real(r8), dimension(vlen), intent(out) :: am_evp_st  ! Fractional area where rain evaporates.
   ! Switch
   logical, intent(in)                    :: evap_rhthrsh
@@ -2275,10 +2275,10 @@ subroutine evaporate_sublimate_precip(t, rho, dv, mu, sc, q, qvl, qvi, &
   !$acc loop gang vector
   do i=1,vlen
      am_evp_st(i) = 0._r8
-     if (qcic(i)+qiic(i) < 1.e-6_r8) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)+incloud_cldice_mass_mixing_ratio_kg_per_kg(i) < 1.e-6_r8) then
         dum(i) = 0._r8
      else
-        dum(i) = lcldm(i)
+        dum(i) = liquid_cloud_area_fraction(i)
      end if
   end do
   !$acc end parallel
@@ -2287,52 +2287,52 @@ subroutine evaporate_sublimate_precip(t, rho, dv, mu, sc, q, qvl, qvi, &
   !$acc loop gang vector
   do i=1,vlen
      ! only calculate if there is some precip fraction > cloud fraction
-     if (precip_frac(i) > dum(i)) then
-        if (qric(i) >= qsmall .or. qsic(i) >= qsmall) then
-           am_evp_st(i) = precip_frac(i) - dum(i)
+     if (precipitation_area_fraction(i) > dum(i)) then
+        if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall .or. inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           am_evp_st(i) = precipitation_area_fraction(i) - dum(i)
            ! calculate q for out-of-cloud region
-           qclr=(q(i)-dum(i)*qvl(i))/(1._r8-dum(i))
+           qclr=(q(i)-dum(i)*saturation_specific_humidity_over_liquid_kg_per_kg(i))/(1._r8-dum(i))
         end if
 
         ! evaporation of rain
-        if (qric(i) >= qsmall) then
-           if (.not.evap_rhthrsh.or.(evap_rhthrsh.and.qclr/qvl(i).le.0.9_r8)) then
-              call calc_ab(t(i), qvl(i), xxlv, abr)
-              eps = 2._r8*pi*n0r(i)*rho(i)*Dv(i)* &
-                    (f1r/(lamr(i)*lamr(i))+ &
-                    f2r*(arn(i)*rho(i)/mu(i))**0.5_r8* &
-                    sc(i)**(1._r8/3._r8)*gamma_half_br_plus5/ &
-                    (lamr(i)**(5._r8/2._r8+br/2._r8)))
-              pre(i) = eps*(qclr-qvl(i))/abr
+        if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           if (.not.evap_rhthrsh.or.(evap_rhthrsh.and.qclr/saturation_specific_humidity_over_liquid_kg_per_kg(i).le.0.9_r8)) then
+              call calc_ab(t(i), saturation_specific_humidity_over_liquid_kg_per_kg(i), xxlv, abr)
+              eps = 2._r8*pi*rain_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)* &
+                    (f1r/(rain_size_dist_slope_per_m(i)*rain_size_dist_slope_per_m(i))+ &
+                    f2r*(rain_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8* &
+                    schmidt_number(i)**(1._r8/3._r8)*gamma_half_br_plus5/ &
+                    (rain_size_dist_slope_per_m(i)**(5._r8/2._r8+br/2._r8)))
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = eps*(qclr-saturation_specific_humidity_over_liquid_kg_per_kg(i))/abr
               ! only evaporate in out-of-cloud region
               ! and distribute across precip_frac
-              pre(i)=min(pre(i)*am_evp_st(i),0._r8)
-              pre(i)=pre(i)/precip_frac(i)
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)=min(local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)*am_evp_st(i),0._r8)
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)=local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)/precipitation_area_fraction(i)
            else
-              pre(i) = 0._r8
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
            end if
         else
-           pre(i) = 0._r8
+           local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
         end if
 
         ! sublimation of snow
-        if (qsic(i) >= qsmall) then
-           call calc_ab(t(i), qvi(i), xxls, ab)
-           eps = 2._r8*pi*n0s(i)*rho(i)*Dv(i)* &
-                (f1s/(lams(i)*lams(i))+ &
-                f2s*(asn(i)*rho(i)/mu(i))**0.5_r8* &
-                sc(i)**(1._r8/3._r8)*gamma_half_bs_plus5/ &
-                (lams(i)**(5._r8/2._r8+bs/2._r8)))
-           prds(i) = eps*(qclr-qvi(i))/ab
+        if (inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           call calc_ab(t(i), saturation_specific_humidity_over_ice_kg_per_kg(i), xxls, ab)
+           eps = 2._r8*pi*snow_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)* &
+                (f1s/(snow_size_dist_slope_per_m(i)*snow_size_dist_slope_per_m(i))+ &
+                f2s*(snow_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8* &
+                schmidt_number(i)**(1._r8/3._r8)*gamma_half_bs_plus5/ &
+                (snow_size_dist_slope_per_m(i)**(5._r8/2._r8+bs/2._r8)))
+           local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = eps*(qclr-saturation_specific_humidity_over_ice_kg_per_kg(i))/ab
            ! only sublimate in out-of-cloud region and distribute over precip_frac
-           prds(i) = min(prds(i)*am_evp_st(i),0._r8)
-           prds(i) = prds(i)/precip_frac(i)
+           local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = min(local_snow_mass_tend_sublimation_kg_per_kg_per_s(i)*am_evp_st(i),0._r8)
+           local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = local_snow_mass_tend_sublimation_kg_per_kg_per_s(i)/precipitation_area_fraction(i)
         else
-           prds(i) = 0._r8
+           local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = 0._r8
         end if
      else
-        prds(i) = 0._r8
-        pre(i)  = 0._r8
+        local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = 0._r8
+        local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)  = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2346,33 +2346,33 @@ end subroutine evaporate_sublimate_precip
 ! in-cloud condensation/deposition of rain and snow is neglected
 ! except for transfer of cloud water to snow through bergeron process
 
-subroutine evaporate_sublimate_precip_mg4(t, rho, dv, mu, sc, q, qvl, qvi, &
-     lcldm, precip_frac, arn, qcic, qiic, qric, lamr, n0r, &
-     pre, am_evp_st, vlen, evap_rhthrsh)
+subroutine evaporate_sublimate_precip_mg4(t, air_density_kg_per_m3, dv, air_dynamic_viscosity_kg_per_m_per_s, schmidt_number, q, saturation_specific_humidity_over_liquid_kg_per_kg, saturation_specific_humidity_over_ice_kg_per_kg, &
+     liquid_cloud_area_fraction, precipitation_area_fraction, rain_fall_speed_prefactor, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldice_mass_mixing_ratio_kg_per_kg, inprecip_rain_mass_mixing_ratio_kg_per_kg, rain_size_dist_slope_per_m, rain_size_dist_intercept_per_m4, &
+     local_rain_mass_tend_evaporation_kg_per_kg_per_s, am_evp_st, vlen, evap_rhthrsh)
 
   integer,  intent(in)                   :: vlen
   real(r8), dimension(vlen), intent(in)  :: t           ! temperature
-  real(r8), dimension(vlen), intent(in)  :: rho         ! air density
+  real(r8), dimension(vlen), intent(in)  :: air_density_kg_per_m3         ! air density
   real(r8), dimension(vlen), intent(in)  :: dv          ! water vapor diffusivity
-  real(r8), dimension(vlen), intent(in)  :: mu          ! viscosity
-  real(r8), dimension(vlen), intent(in)  :: sc          ! schmidt number
+  real(r8), dimension(vlen), intent(in)  :: air_dynamic_viscosity_kg_per_m_per_s          ! viscosity
+  real(r8), dimension(vlen), intent(in)  :: schmidt_number          ! schmidt number
   real(r8), dimension(vlen), intent(in)  :: q           ! humidity
-  real(r8), dimension(vlen), intent(in)  :: qvl         ! saturation humidity (water)
-  real(r8), dimension(vlen), intent(in)  :: qvi         ! saturation humidity (ice)
-  real(r8), dimension(vlen), intent(in)  :: lcldm       ! liquid cloud fraction
-  real(r8), dimension(vlen), intent(in)  :: precip_frac ! precipitation fraction (maximum overlap)
+  real(r8), dimension(vlen), intent(in)  :: saturation_specific_humidity_over_liquid_kg_per_kg         ! saturation humidity (water)
+  real(r8), dimension(vlen), intent(in)  :: saturation_specific_humidity_over_ice_kg_per_kg         ! saturation humidity (ice)
+  real(r8), dimension(vlen), intent(in)  :: liquid_cloud_area_fraction       ! liquid cloud fraction
+  real(r8), dimension(vlen), intent(in)  :: precipitation_area_fraction ! precipitation fraction (maximum overlap)
   ! fallspeed parameters
-  real(r8), dimension(vlen), intent(in)  :: arn         ! rain
+  real(r8), dimension(vlen), intent(in)  :: rain_fall_speed_prefactor         ! rain
   ! In-cloud MMRs
-  real(r8), dimension(vlen), intent(in)  :: qcic        ! cloud liquid
-  real(r8), dimension(vlen), intent(in)  :: qiic        ! cloud ice
-  real(r8), dimension(vlen), intent(in)  :: qric        ! rain
+  real(r8), dimension(vlen), intent(in)  :: incloud_cldliq_mass_mixing_ratio_kg_per_kg        ! cloud liquid
+  real(r8), dimension(vlen), intent(in)  :: incloud_cldice_mass_mixing_ratio_kg_per_kg        ! cloud ice
+  real(r8), dimension(vlen), intent(in)  :: inprecip_rain_mass_mixing_ratio_kg_per_kg        ! rain
   ! Size parameters
   ! rain
-  real(r8), dimension(vlen), intent(in)  :: lamr
-  real(r8), dimension(vlen), intent(in)  :: n0r
+  real(r8), dimension(vlen), intent(in)  :: rain_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in)  :: rain_size_dist_intercept_per_m4
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: pre
+  real(r8), dimension(vlen), intent(out) :: local_rain_mass_tend_evaporation_kg_per_kg_per_s
   real(r8), dimension(vlen), intent(out) :: am_evp_st   ! Fractional area where rain evaporates.
   ! Switch
   logical, intent(in)                    :: evap_rhthrsh
@@ -2392,10 +2392,10 @@ subroutine evaporate_sublimate_precip_mg4(t, rho, dv, mu, sc, q, qvl, qvi, &
   !$acc loop gang vector
   do i=1,vlen
      am_evp_st(i) = 0._r8
-     if (qcic(i)+qiic(i) < 1.e-6_r8) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)+incloud_cldice_mass_mixing_ratio_kg_per_kg(i) < 1.e-6_r8) then
         dum(i) = 0._r8
      else
-        dum(i) = lcldm(i)
+        dum(i) = liquid_cloud_area_fraction(i)
      end if
   end do
   !$acc end parallel
@@ -2404,35 +2404,35 @@ subroutine evaporate_sublimate_precip_mg4(t, rho, dv, mu, sc, q, qvl, qvi, &
   !$acc loop gang vector
   do i=1,vlen
      ! only calculate if there is some precip fraction > cloud fraction
-     if (precip_frac(i) > dum(i)) then
-        if (qric(i) >= qsmall) then
-           am_evp_st(i) = precip_frac(i) - dum(i)
+     if (precipitation_area_fraction(i) > dum(i)) then
+        if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           am_evp_st(i) = precipitation_area_fraction(i) - dum(i)
            ! calculate q for out-of-cloud region
-           qclr=(q(i)-dum(i)*qvl(i))/(1._r8-dum(i))
+           qclr=(q(i)-dum(i)*saturation_specific_humidity_over_liquid_kg_per_kg(i))/(1._r8-dum(i))
         end if
 
         ! evaporation of rain
-        if (qric(i) >= qsmall) then
-           if (.not.evap_rhthrsh.or.(evap_rhthrsh.and.qclr/qvl(i).le.0.9_r8)) then
-              call calc_ab(t(i), qvl(i), xxlv, abr)
-              eps = 2._r8*pi*n0r(i)*rho(i)*Dv(i)* &
-                 (f1r/(lamr(i)*lamr(i))+ &
-                 f2r*(arn(i)*rho(i)/mu(i))**0.5_r8* &
-                 sc(i)**(1._r8/3._r8)*gamma_half_br_plus5/ &
-                 (lamr(i)**(5._r8/2._r8+br/2._r8)))
-              pre(i) = eps*(qclr-qvl(i))/abr
+        if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           if (.not.evap_rhthrsh.or.(evap_rhthrsh.and.qclr/saturation_specific_humidity_over_liquid_kg_per_kg(i).le.0.9_r8)) then
+              call calc_ab(t(i), saturation_specific_humidity_over_liquid_kg_per_kg(i), xxlv, abr)
+              eps = 2._r8*pi*rain_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)* &
+                 (f1r/(rain_size_dist_slope_per_m(i)*rain_size_dist_slope_per_m(i))+ &
+                 f2r*(rain_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8* &
+                 schmidt_number(i)**(1._r8/3._r8)*gamma_half_br_plus5/ &
+                 (rain_size_dist_slope_per_m(i)**(5._r8/2._r8+br/2._r8)))
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = eps*(qclr-saturation_specific_humidity_over_liquid_kg_per_kg(i))/abr
               ! only evaporate in out-of-cloud region
               ! and distribute across precip_frac
-              pre(i) = min(pre(i)*am_evp_st(i),0._r8)
-              pre(i) = pre(i)/precip_frac(i)
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = min(local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)*am_evp_st(i),0._r8)
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)/precipitation_area_fraction(i)
            else
-              pre(i) = 0._r8
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
            end if
         else
-           pre(i) = 0._r8
+           local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
         end if
      else
-        pre(i) = 0._r8
+        local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2446,46 +2446,46 @@ end subroutine evaporate_sublimate_precip_mg4
 ! in-cloud condensation/deposition of rain and snow is neglected
 ! except for transfer of cloud water to snow through bergeron process
 
-subroutine evaporate_sublimate_precip_graupel(t, rho, dv, mu, sc, q, qvl, qvi, &
-     lcldm, precip_frac, arn, asn, agn, bg, qcic, qiic, qric, qsic, qgic, lamr, n0r, lams, n0s, lamg, n0g, &
-     pre, prds, prdg, am_evp_st, vlen, evap_rhthrsh)
+subroutine evaporate_sublimate_precip_graupel(t, air_density_kg_per_m3, dv, air_dynamic_viscosity_kg_per_m_per_s, schmidt_number, q, saturation_specific_humidity_over_liquid_kg_per_kg, saturation_specific_humidity_over_ice_kg_per_kg, &
+     liquid_cloud_area_fraction, precipitation_area_fraction, rain_fall_speed_prefactor, snow_fall_speed_prefactor, graupel_fall_speed_prefactor, bg, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldice_mass_mixing_ratio_kg_per_kg, inprecip_rain_mass_mixing_ratio_kg_per_kg, inprecip_snow_mass_mixing_ratio_kg_per_kg, inprecip_graupel_mass_mixing_ratio_kg_per_kg, rain_size_dist_slope_per_m, rain_size_dist_intercept_per_m4, snow_size_dist_slope_per_m, snow_size_dist_intercept_per_m4, graupel_size_dist_slope_per_m, graupel_size_dist_intercept_per_m4, &
+     local_rain_mass_tend_evaporation_kg_per_kg_per_s, local_snow_mass_tend_sublimation_kg_per_kg_per_s, local_graupel_mass_tend_deposition_kg_per_kg_per_s, am_evp_st, vlen, evap_rhthrsh)
 
   integer,                   intent(in)  :: vlen
   real(r8), dimension(vlen), intent(in)  :: t           ! temperature
-  real(r8), dimension(vlen), intent(in)  :: rho         ! air density
+  real(r8), dimension(vlen), intent(in)  :: air_density_kg_per_m3         ! air density
   real(r8), dimension(vlen), intent(in)  :: dv          ! water vapor diffusivity
-  real(r8), dimension(vlen), intent(in)  :: mu          ! viscosity
-  real(r8), dimension(vlen), intent(in)  :: sc          ! schmidt number
+  real(r8), dimension(vlen), intent(in)  :: air_dynamic_viscosity_kg_per_m_per_s          ! viscosity
+  real(r8), dimension(vlen), intent(in)  :: schmidt_number          ! schmidt number
   real(r8), dimension(vlen), intent(in)  :: q           ! humidity
-  real(r8), dimension(vlen), intent(in)  :: qvl         ! saturation humidity (water)
-  real(r8), dimension(vlen), intent(in)  :: qvi         ! saturation humidity (ice)
-  real(r8), dimension(vlen), intent(in)  :: lcldm       ! liquid cloud fraction
-  real(r8), dimension(vlen), intent(in)  :: precip_frac ! precipitation fraction (maximum overlap)
+  real(r8), dimension(vlen), intent(in)  :: saturation_specific_humidity_over_liquid_kg_per_kg         ! saturation humidity (water)
+  real(r8), dimension(vlen), intent(in)  :: saturation_specific_humidity_over_ice_kg_per_kg         ! saturation humidity (ice)
+  real(r8), dimension(vlen), intent(in)  :: liquid_cloud_area_fraction       ! liquid cloud fraction
+  real(r8), dimension(vlen), intent(in)  :: precipitation_area_fraction ! precipitation fraction (maximum overlap)
   ! fallspeed parameters
-  real(r8), dimension(vlen), intent(in)  :: arn         ! rain
-  real(r8), dimension(vlen), intent(in)  :: asn         ! snow
-  real(r8), dimension(vlen), intent(in)  :: agn         ! graupel
+  real(r8), dimension(vlen), intent(in)  :: rain_fall_speed_prefactor         ! rain
+  real(r8), dimension(vlen), intent(in)  :: snow_fall_speed_prefactor         ! snow
+  real(r8), dimension(vlen), intent(in)  :: graupel_fall_speed_prefactor         ! graupel
   real(r8),                  intent(in)  :: bg
   ! In-cloud MMRs
-  real(r8), dimension(vlen), intent(in)  :: qcic        ! cloud liquid
-  real(r8), dimension(vlen), intent(in)  :: qiic        ! cloud ice
-  real(r8), dimension(vlen), intent(in)  :: qric        ! rain
-  real(r8), dimension(vlen), intent(in)  :: qsic        ! snow
-  real(r8), dimension(vlen), intent(in)  :: qgic        ! graupel
+  real(r8), dimension(vlen), intent(in)  :: incloud_cldliq_mass_mixing_ratio_kg_per_kg        ! cloud liquid
+  real(r8), dimension(vlen), intent(in)  :: incloud_cldice_mass_mixing_ratio_kg_per_kg        ! cloud ice
+  real(r8), dimension(vlen), intent(in)  :: inprecip_rain_mass_mixing_ratio_kg_per_kg        ! rain
+  real(r8), dimension(vlen), intent(in)  :: inprecip_snow_mass_mixing_ratio_kg_per_kg        ! snow
+  real(r8), dimension(vlen), intent(in)  :: inprecip_graupel_mass_mixing_ratio_kg_per_kg        ! graupel
   ! Size parameters
   ! rain
-  real(r8), dimension(vlen), intent(in)  :: lamr
-  real(r8), dimension(vlen), intent(in)  :: n0r
+  real(r8), dimension(vlen), intent(in)  :: rain_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in)  :: rain_size_dist_intercept_per_m4
   ! snow
-  real(r8), dimension(vlen), intent(in)  :: lams
-  real(r8), dimension(vlen), intent(in)  :: n0s
+  real(r8), dimension(vlen), intent(in)  :: snow_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in)  :: snow_size_dist_intercept_per_m4
   ! graupel
-  real(r8), dimension(vlen), intent(in)  :: lamg
-  real(r8), dimension(vlen), intent(in)  :: n0g
+  real(r8), dimension(vlen), intent(in)  :: graupel_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in)  :: graupel_size_dist_intercept_per_m4
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: pre
-  real(r8), dimension(vlen), intent(out) :: prds
-  real(r8), dimension(vlen), intent(out) :: prdg
+  real(r8), dimension(vlen), intent(out) :: local_rain_mass_tend_evaporation_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(out) :: local_snow_mass_tend_sublimation_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(out) :: local_graupel_mass_tend_deposition_kg_per_kg_per_s
   real(r8), dimension(vlen), intent(out) :: am_evp_st   ! Fractional area where rain evaporates.
   ! Switch
   logical, intent(in) :: evap_rhthrsh
@@ -2506,10 +2506,10 @@ subroutine evaporate_sublimate_precip_graupel(t, rho, dv, mu, sc, q, qvl, qvi, &
   !$acc loop gang vector
   do i=1,vlen
      am_evp_st(i) = 0._r8
-     if (qcic(i)+qiic(i) < 1.e-6_r8) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)+incloud_cldice_mass_mixing_ratio_kg_per_kg(i) < 1.e-6_r8) then
         dum(i) = 0._r8
      else
-        dum(i) = lcldm(i)
+        dum(i) = liquid_cloud_area_fraction(i)
      end if
   end do
   !$acc end parallel
@@ -2518,70 +2518,70 @@ subroutine evaporate_sublimate_precip_graupel(t, rho, dv, mu, sc, q, qvl, qvi, &
   !$acc loop gang vector
   do i=1,vlen
      ! only calculate if there is some precip fraction > cloud fraction
-     if (precip_frac(i) > dum(i)) then
-        if (qric(i) >= qsmall .or. qsic(i) >= qsmall .or. qgic(i) >= qsmall) then
-           am_evp_st(i) = precip_frac(i) - dum(i)
+     if (precipitation_area_fraction(i) > dum(i)) then
+        if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall .or. inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= qsmall .or. inprecip_graupel_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           am_evp_st(i) = precipitation_area_fraction(i) - dum(i)
            ! calculate q for out-of-cloud region
-           qclr=(q(i)-dum(i)*qvl(i))/(1._r8-dum(i))
+           qclr=(q(i)-dum(i)*saturation_specific_humidity_over_liquid_kg_per_kg(i))/(1._r8-dum(i))
         end if
 
         ! evaporation of rain
-        if (qric(i) >= qsmall) then
-           if (.not.evap_rhthrsh.or.(evap_rhthrsh.and.qclr/qvl(i).le.0.9_r8)) then
-              call calc_ab(t(i), qvl(i), xxlv, abr)
-              eps = 2._r8*pi*n0r(i)*rho(i)*Dv(i)* &
-                 (f1r/(lamr(i)*lamr(i))+ &
-                 f2r*(arn(i)*rho(i)/mu(i))**0.5_r8* &
-                 sc(i)**(1._r8/3._r8)*gamma_half_br_plus5/ &
-                 (lamr(i)**(5._r8/2._r8+br/2._r8)))
-              pre(i) = eps*(qclr-qvl(i))/abr
+        if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           if (.not.evap_rhthrsh.or.(evap_rhthrsh.and.qclr/saturation_specific_humidity_over_liquid_kg_per_kg(i).le.0.9_r8)) then
+              call calc_ab(t(i), saturation_specific_humidity_over_liquid_kg_per_kg(i), xxlv, abr)
+              eps = 2._r8*pi*rain_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)* &
+                 (f1r/(rain_size_dist_slope_per_m(i)*rain_size_dist_slope_per_m(i))+ &
+                 f2r*(rain_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8* &
+                 schmidt_number(i)**(1._r8/3._r8)*gamma_half_br_plus5/ &
+                 (rain_size_dist_slope_per_m(i)**(5._r8/2._r8+br/2._r8)))
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = eps*(qclr-saturation_specific_humidity_over_liquid_kg_per_kg(i))/abr
               ! only evaporate in out-of-cloud region
               ! and distribute across precip_frac
-              pre(i) = min(pre(i)*am_evp_st(i),0._r8)
-              pre(i) = pre(i)/precip_frac(i)
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = min(local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)*am_evp_st(i),0._r8)
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)/precipitation_area_fraction(i)
            else
-              pre(i) = 0._r8
+              local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
            end if
         else
-           pre(i) = 0._r8
+           local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
         end if
 
         ! sublimation of snow
-        if (qsic(i) >= qsmall) then
-           call calc_ab(t(i), qvi(i), xxls, ab)
-           eps = 2._r8*pi*n0s(i)*rho(i)*Dv(i)* &
-                (f1s/(lams(i)*lams(i))+ &
-                f2s*(asn(i)*rho(i)/mu(i))**0.5_r8* &
-                sc(i)**(1._r8/3._r8)*gamma_half_bs_plus5/ &
-                (lams(i)**(5._r8/2._r8+bs/2._r8)))
-           prds(i) = eps*(qclr-qvi(i))/ab
+        if (inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           call calc_ab(t(i), saturation_specific_humidity_over_ice_kg_per_kg(i), xxls, ab)
+           eps = 2._r8*pi*snow_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)* &
+                (f1s/(snow_size_dist_slope_per_m(i)*snow_size_dist_slope_per_m(i))+ &
+                f2s*(snow_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8* &
+                schmidt_number(i)**(1._r8/3._r8)*gamma_half_bs_plus5/ &
+                (snow_size_dist_slope_per_m(i)**(5._r8/2._r8+bs/2._r8)))
+           local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = eps*(qclr-saturation_specific_humidity_over_ice_kg_per_kg(i))/ab
            ! only sublimate in out-of-cloud region and distribute over precip_frac
-           prds(i) = min(prds(i)*am_evp_st(i),0._r8)
-           prds(i) = prds(i)/precip_frac(i)
+           local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = min(local_snow_mass_tend_sublimation_kg_per_kg_per_s(i)*am_evp_st(i),0._r8)
+           local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = local_snow_mass_tend_sublimation_kg_per_kg_per_s(i)/precipitation_area_fraction(i)
         else
-           prds(i) = 0._r8
+           local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = 0._r8
         end if
 
         ! ADD GRAUPEL, do Same with prdg.
-        if (qgic(i).ge.qsmall) then
-           call calc_ab(t(i), qvi(i), xxls, abg)
-           eps = 2._r8*pi*n0g(i)*rho(i)*Dv(i)*                    &
-                (f1s/(lamg(i)*lamg(i))+                           &
-                f2s*(agn(i)*rho(i)/mu(i))**0.5_r8*                &
-                sc(i)**(1._r8/3._r8)*gamma(5._r8/2._r8+bg/2._r8)/ &
-                (lamg(i)**(5._r8/2._r8+bs/2._r8)))
-           prdg(i) = eps*(qclr-qvi(i))/abg
+        if (inprecip_graupel_mass_mixing_ratio_kg_per_kg(i).ge.qsmall) then
+           call calc_ab(t(i), saturation_specific_humidity_over_ice_kg_per_kg(i), xxls, abg)
+           eps = 2._r8*pi*graupel_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)*                    &
+                (f1s/(graupel_size_dist_slope_per_m(i)*graupel_size_dist_slope_per_m(i))+                           &
+                f2s*(graupel_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8*                &
+                schmidt_number(i)**(1._r8/3._r8)*gamma(5._r8/2._r8+bg/2._r8)/ &
+                (graupel_size_dist_slope_per_m(i)**(5._r8/2._r8+bs/2._r8)))
+           local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = eps*(qclr-saturation_specific_humidity_over_ice_kg_per_kg(i))/abg
            ! only sublimate in out-of-cloud region and distribute over precip_frac
-           prdg(i) = min(prdg(i)*am_evp_st(i),0._r8)
-           prdg(i) = prdg(i)/precip_frac(i)
+           local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = min(local_graupel_mass_tend_deposition_kg_per_kg_per_s(i)*am_evp_st(i),0._r8)
+           local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = local_graupel_mass_tend_deposition_kg_per_kg_per_s(i)/precipitation_area_fraction(i)
         else
-           prdg(i) = 0._r8
+           local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = 0._r8
         end if
 
      else
-        prds(i) = 0._r8
-        pre(i)  = 0._r8
-        prdg(i) = 0._r8
+        local_snow_mass_tend_sublimation_kg_per_kg_per_s(i) = 0._r8
+        local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)  = 0._r8
+        local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2595,40 +2595,40 @@ end subroutine evaporate_sublimate_precip_graupel
 ! in-cloud condensation/deposition of rain and graupel is neglected
 ! except for transfer of cloud water to snow through bergeron process
 
-subroutine evaporate_sublimate_precip_graupel_mg4(t, rho, dv, mu, sc, q, qvl, qvi, &
-     lcldm, precip_frac, arn, agn, bg, qcic, qiic, qric, qgic, lamr, n0r, lamg, n0g, &
-     pre, prdg, am_evp_st, vlen)
+subroutine evaporate_sublimate_precip_graupel_mg4(t, air_density_kg_per_m3, dv, air_dynamic_viscosity_kg_per_m_per_s, schmidt_number, q, saturation_specific_humidity_over_liquid_kg_per_kg, saturation_specific_humidity_over_ice_kg_per_kg, &
+     liquid_cloud_area_fraction, precipitation_area_fraction, rain_fall_speed_prefactor, graupel_fall_speed_prefactor, bg, incloud_cldliq_mass_mixing_ratio_kg_per_kg, incloud_cldice_mass_mixing_ratio_kg_per_kg, inprecip_rain_mass_mixing_ratio_kg_per_kg, inprecip_graupel_mass_mixing_ratio_kg_per_kg, rain_size_dist_slope_per_m, rain_size_dist_intercept_per_m4, graupel_size_dist_slope_per_m, graupel_size_dist_intercept_per_m4, &
+     local_rain_mass_tend_evaporation_kg_per_kg_per_s, local_graupel_mass_tend_deposition_kg_per_kg_per_s, am_evp_st, vlen)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t            ! temperature
-  real(r8), dimension(vlen), intent(in) :: rho          ! air density
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3          ! air density
   real(r8), dimension(vlen), intent(in) :: dv           ! water vapor diffusivity
-  real(r8), dimension(vlen), intent(in) :: mu           ! viscosity
-  real(r8), dimension(vlen), intent(in) :: sc           ! schmidt number
+  real(r8), dimension(vlen), intent(in) :: air_dynamic_viscosity_kg_per_m_per_s           ! viscosity
+  real(r8), dimension(vlen), intent(in) :: schmidt_number           ! schmidt number
   real(r8), dimension(vlen), intent(in) :: q            ! humidity
-  real(r8), dimension(vlen), intent(in) :: qvl          ! saturation humidity (water)
-  real(r8), dimension(vlen), intent(in) :: qvi          ! saturation humidity (ice)
-  real(r8), dimension(vlen), intent(in) :: lcldm        ! liquid cloud fraction
-  real(r8), dimension(vlen), intent(in) :: precip_frac  ! precipitation fraction (maximum overlap)
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_liquid_kg_per_kg          ! saturation humidity (water)
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_ice_kg_per_kg          ! saturation humidity (ice)
+  real(r8), dimension(vlen), intent(in) :: liquid_cloud_area_fraction        ! liquid cloud fraction
+  real(r8), dimension(vlen), intent(in) :: precipitation_area_fraction  ! precipitation fraction (maximum overlap)
   ! fallspeed parameters
-  real(r8), dimension(vlen), intent(in) :: arn          ! rain
-  real(r8), dimension(vlen), intent(in) :: agn          ! graupel
+  real(r8), dimension(vlen), intent(in) :: rain_fall_speed_prefactor          ! rain
+  real(r8), dimension(vlen), intent(in) :: graupel_fall_speed_prefactor          ! graupel
   real(r8),                  intent(in) :: bg
   ! In-cloud MMRs
-  real(r8), dimension(vlen), intent(in) :: qcic         ! cloud liquid
-  real(r8), dimension(vlen), intent(in) :: qiic         ! cloud ice
-  real(r8), dimension(vlen), intent(in) :: qric         ! rain
-  real(r8), dimension(vlen), intent(in) :: qgic         ! graupel
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg         ! cloud liquid
+  real(r8), dimension(vlen), intent(in) :: incloud_cldice_mass_mixing_ratio_kg_per_kg         ! cloud ice
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_mass_mixing_ratio_kg_per_kg         ! rain
+  real(r8), dimension(vlen), intent(in) :: inprecip_graupel_mass_mixing_ratio_kg_per_kg         ! graupel
   ! Size parameters
   ! rain
-  real(r8), dimension(vlen), intent(in) :: lamr
-  real(r8), dimension(vlen), intent(in) :: n0r
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_intercept_per_m4
   ! graupel
-  real(r8), dimension(vlen), intent(in) :: lamg
-  real(r8), dimension(vlen), intent(in) :: n0g
+  real(r8), dimension(vlen), intent(in) :: graupel_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: graupel_size_dist_intercept_per_m4
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: pre
-  real(r8), dimension(vlen), intent(out) :: prdg
+  real(r8), dimension(vlen), intent(out) :: local_rain_mass_tend_evaporation_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(out) :: local_graupel_mass_tend_deposition_kg_per_kg_per_s
   real(r8), dimension(vlen), intent(out) :: am_evp_st   ! Fractional area where rain evaporates.
 
   real(r8) :: qclr                                      ! water vapor mixing ratio in clear air
@@ -2647,10 +2647,10 @@ subroutine evaporate_sublimate_precip_graupel_mg4(t, rho, dv, mu, sc, q, qvl, qv
   !$acc loop gang vector
   do i=1,vlen
      am_evp_st(i) = 0._r8
-     if (qcic(i)+qiic(i) < 1.e-6_r8) then
+     if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)+incloud_cldice_mass_mixing_ratio_kg_per_kg(i) < 1.e-6_r8) then
         dum(i) = 0._r8
      else
-        dum(i) = lcldm(i)
+        dum(i) = liquid_cloud_area_fraction(i)
      end if
   end do
   !$acc end parallel
@@ -2659,48 +2659,48 @@ subroutine evaporate_sublimate_precip_graupel_mg4(t, rho, dv, mu, sc, q, qvl, qv
   !$acc loop gang vector
   do i=1,vlen
      ! only calculate if there is some precip fraction > cloud fraction
-     if (precip_frac(i) > dum(i)) then
-        if (qric(i) >= qsmall .or. qgic(i) >= qsmall) then
-           am_evp_st(i) = precip_frac(i) - dum(i)
+     if (precipitation_area_fraction(i) > dum(i)) then
+        if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall .or. inprecip_graupel_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           am_evp_st(i) = precipitation_area_fraction(i) - dum(i)
            ! calculate q for out-of-cloud region
-           qclr = (q(i)-dum(i)*qvl(i))/(1._r8-dum(i))
+           qclr = (q(i)-dum(i)*saturation_specific_humidity_over_liquid_kg_per_kg(i))/(1._r8-dum(i))
         end if
 
         ! evaporation of rain
-        if (qric(i) >= qsmall) then
-           call calc_ab(t(i), qvl(i), xxlv, abr)
-           eps = 2._r8*pi*n0r(i)*rho(i)*Dv(i)* &
-                (f1r/(lamr(i)*lamr(i))+ &
-                f2r*(arn(i)*rho(i)/mu(i))**0.5_r8* &
-                sc(i)**(1._r8/3._r8)*gamma_half_br_plus5/ &
-                (lamr(i)**(5._r8/2._r8+br/2._r8)))
-           pre(i) = eps*(qclr-qvl(i))/abr
+        if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i) >= qsmall) then
+           call calc_ab(t(i), saturation_specific_humidity_over_liquid_kg_per_kg(i), xxlv, abr)
+           eps = 2._r8*pi*rain_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)* &
+                (f1r/(rain_size_dist_slope_per_m(i)*rain_size_dist_slope_per_m(i))+ &
+                f2r*(rain_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8* &
+                schmidt_number(i)**(1._r8/3._r8)*gamma_half_br_plus5/ &
+                (rain_size_dist_slope_per_m(i)**(5._r8/2._r8+br/2._r8)))
+           local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = eps*(qclr-saturation_specific_humidity_over_liquid_kg_per_kg(i))/abr
            ! only evaporate in out-of-cloud region
            ! and distribute across precip_frac
-           pre(i) = min(pre(i)*am_evp_st(i),0._r8)
-           pre(i) = pre(i)/precip_frac(i)
+           local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = min(local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)*am_evp_st(i),0._r8)
+           local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = local_rain_mass_tend_evaporation_kg_per_kg_per_s(i)/precipitation_area_fraction(i)
         else
-           pre(i) = 0._r8
+           local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
         end if
 
         ! ADD GRAUPEL, do Same with prdg.
-        if (qgic(i).ge.qsmall) then
-           call calc_ab(t(i), qvi(i), xxls, abg)
-           eps = 2._r8*pi*n0g(i)*rho(i)*Dv(i)*                    &
-                (f1s/(lamg(i)*lamg(i))+                           &
-                f2s*(agn(i)*rho(i)/mu(i))**0.5_r8*                &
-                sc(i)**(1._r8/3._r8)*gamma(5._r8/2._r8+bg/2._r8)/ &
-                (lamg(i)**(5._r8/2._r8+bs/2._r8)))
-           prdg(i) = eps*(qclr-qvi(i))/abg
+        if (inprecip_graupel_mass_mixing_ratio_kg_per_kg(i).ge.qsmall) then
+           call calc_ab(t(i), saturation_specific_humidity_over_ice_kg_per_kg(i), xxls, abg)
+           eps = 2._r8*pi*graupel_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)*                    &
+                (f1s/(graupel_size_dist_slope_per_m(i)*graupel_size_dist_slope_per_m(i))+                           &
+                f2s*(graupel_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8*                &
+                schmidt_number(i)**(1._r8/3._r8)*gamma(5._r8/2._r8+bg/2._r8)/ &
+                (graupel_size_dist_slope_per_m(i)**(5._r8/2._r8+bs/2._r8)))
+           local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = eps*(qclr-saturation_specific_humidity_over_ice_kg_per_kg(i))/abg
            ! only sublimate in out-of-cloud region and distribute over precip_frac
-           prdg(i) = min(prdg(i)*am_evp_st(i),0._r8)
-           prdg(i) = prdg(i)/precip_frac(i)
+           local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = min(local_graupel_mass_tend_deposition_kg_per_kg_per_s(i)*am_evp_st(i),0._r8)
+           local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = local_graupel_mass_tend_deposition_kg_per_kg_per_s(i)/precipitation_area_fraction(i)
         else
-           prdg(i) = 0._r8
+           local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = 0._r8
         end if
      else
-        pre(i) = 0._r8
-        prdg(i) = 0._r8
+        local_rain_mass_tend_evaporation_kg_per_kg_per_s(i) = 0._r8
+        local_graupel_mass_tend_deposition_kg_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2711,27 +2711,27 @@ end subroutine evaporate_sublimate_precip_graupel_mg4
 ! bergeron process - evaporation of droplets and deposition onto snow
 !===================================================================
 
-subroutine bergeron_process_snow(t, rho, dv, mu, sc, qvl, qvi, asn, &
-     qcic, qsic, lams, n0s, bergs, vlen)
+subroutine bergeron_process_snow(t, air_density_kg_per_m3, dv, air_dynamic_viscosity_kg_per_m_per_s, schmidt_number, saturation_specific_humidity_over_liquid_kg_per_kg, saturation_specific_humidity_over_ice_kg_per_kg, snow_fall_speed_prefactor, &
+     incloud_cldliq_mass_mixing_ratio_kg_per_kg, inprecip_snow_mass_mixing_ratio_kg_per_kg, snow_size_dist_slope_per_m, snow_size_dist_intercept_per_m4, local_cldliq_mass_tend_bergeron_to_snow_kg_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
   real(r8), dimension(vlen), intent(in) :: t    ! temperature
-  real(r8), dimension(vlen), intent(in) :: rho  ! air density
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3  ! air density
   real(r8), dimension(vlen), intent(in) :: dv   ! water vapor diffusivity
-  real(r8), dimension(vlen), intent(in) :: mu   ! viscosity
-  real(r8), dimension(vlen), intent(in) :: sc   ! schmidt number
-  real(r8), dimension(vlen), intent(in) :: qvl  ! saturation humidity (water)
-  real(r8), dimension(vlen), intent(in) :: qvi  ! saturation humidity (ice)
+  real(r8), dimension(vlen), intent(in) :: air_dynamic_viscosity_kg_per_m_per_s   ! viscosity
+  real(r8), dimension(vlen), intent(in) :: schmidt_number   ! schmidt number
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_liquid_kg_per_kg  ! saturation humidity (water)
+  real(r8), dimension(vlen), intent(in) :: saturation_specific_humidity_over_ice_kg_per_kg  ! saturation humidity (ice)
   ! fallspeed parameter for snow
-  real(r8), dimension(vlen), intent(in) :: asn
+  real(r8), dimension(vlen), intent(in) :: snow_fall_speed_prefactor
   ! In-cloud MMRs
-  real(r8), dimension(vlen), intent(in) :: qcic ! cloud liquid mixing ratio
-  real(r8), dimension(vlen), intent(in) :: qsic ! snow mixing ratio
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg ! cloud liquid mixing ratio
+  real(r8), dimension(vlen), intent(in) :: inprecip_snow_mass_mixing_ratio_kg_per_kg ! snow mixing ratio
   ! Size parameters for snow
-  real(r8), dimension(vlen), intent(in) :: lams
-  real(r8), dimension(vlen), intent(in) :: n0s
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: snow_size_dist_intercept_per_m4
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: bergs
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_bergeron_to_snow_kg_per_kg_per_s
 
   real(r8) :: ab     ! correction to account for latent heat
   real(r8) :: eps    ! 1/ sat relaxation timescale
@@ -2740,16 +2740,16 @@ subroutine bergeron_process_snow(t, rho, dv, mu, sc, qvl, qvi, asn, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qsic(i) >= qsmall.and. qcic(i) >= qsmall .and. t(i) < tmelt) then
-        call calc_ab(t(i), qvi(i), xxls, ab)
-        eps = 2._r8*pi*n0s(i)*rho(i)*Dv(i)* &
-             (f1s/(lams(i)*lams(i))+ &
-             f2s*(asn(i)*rho(i)/mu(i))**0.5_r8* &
-             sc(i)**(1._r8/3._r8)*gamma_half_bs_plus5/ &
-             (lams(i)**(5._r8/2._r8+bs/2._r8)))
-        bergs(i) = eps*(qvl(i)-qvi(i))/ab
+     if (inprecip_snow_mass_mixing_ratio_kg_per_kg(i) >= qsmall.and. incloud_cldliq_mass_mixing_ratio_kg_per_kg(i) >= qsmall .and. t(i) < tmelt) then
+        call calc_ab(t(i), saturation_specific_humidity_over_ice_kg_per_kg(i), xxls, ab)
+        eps = 2._r8*pi*snow_size_dist_intercept_per_m4(i)*air_density_kg_per_m3(i)*Dv(i)* &
+             (f1s/(snow_size_dist_slope_per_m(i)*snow_size_dist_slope_per_m(i))+ &
+             f2s*(snow_fall_speed_prefactor(i)*air_density_kg_per_m3(i)/air_dynamic_viscosity_kg_per_m_per_s(i))**0.5_r8* &
+             schmidt_number(i)**(1._r8/3._r8)*gamma_half_bs_plus5/ &
+             (snow_size_dist_slope_per_m(i)**(5._r8/2._r8+bs/2._r8)))
+        local_cldliq_mass_tend_bergeron_to_snow_kg_per_kg_per_s(i) = eps*(saturation_specific_humidity_over_liquid_kg_per_kg(i)-saturation_specific_humidity_over_ice_kg_per_kg(i))/ab
      else
-        bergs(i) = 0._r8
+        local_cldliq_mass_tend_bergeron_to_snow_kg_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2760,24 +2760,24 @@ end subroutine bergeron_process_snow
 ! Collection of snow by rain to form graupel
 !========================================================================
 
-subroutine graupel_collecting_snow(qsic,qric,umr,ums,rho,lamr,n0r,lams,n0s, &
-     psacr, vlen)
+subroutine graupel_collecting_snow(inprecip_snow_mass_mixing_ratio_kg_per_kg,inprecip_rain_mass_mixing_ratio_kg_per_kg,rain_mass_weighted_fall_speed_m_per_s,snow_mass_weighted_fall_speed_m_per_s,air_density_kg_per_m3,rain_size_dist_slope_per_m,rain_size_dist_intercept_per_m4,snow_size_dist_slope_per_m,snow_size_dist_intercept_per_m4, &
+     local_snow_mass_tend_collection_by_rain_kg_per_kg_per_s, vlen)
 
   integer,                   intent(in)  :: vlen
   ! In-cloud MMRs
-  real(r8), dimension(vlen), intent(in)  :: qsic  ! snow
-  real(r8), dimension(vlen), intent(in)  :: qric  ! rain
+  real(r8), dimension(vlen), intent(in)  :: inprecip_snow_mass_mixing_ratio_kg_per_kg  ! snow
+  real(r8), dimension(vlen), intent(in)  :: inprecip_rain_mass_mixing_ratio_kg_per_kg  ! rain
   ! mass-weighted fall speeds
-  real(r8), dimension(vlen), intent(in)  :: umr   ! rain
-  real(r8), dimension(vlen), intent(in)  :: ums   ! snow
-  real(r8), dimension(vlen), intent(in)  :: rho   ! air density
+  real(r8), dimension(vlen), intent(in)  :: rain_mass_weighted_fall_speed_m_per_s   ! rain
+  real(r8), dimension(vlen), intent(in)  :: snow_mass_weighted_fall_speed_m_per_s   ! snow
+  real(r8), dimension(vlen), intent(in)  :: air_density_kg_per_m3   ! air density
   ! Size parameters for rain
-  real(r8), dimension(vlen), intent(in)  :: lamr
-  real(r8), dimension(vlen), intent(in)  :: n0r
+  real(r8), dimension(vlen), intent(in)  :: rain_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in)  :: rain_size_dist_intercept_per_m4
   ! Size parameters for snow
-  real(r8), dimension(vlen), intent(in)  :: lams
-  real(r8), dimension(vlen), intent(in)  :: n0s
-  real(r8), dimension(vlen), intent(out) :: psacr ! conversion due to coll of snow by rain
+  real(r8), dimension(vlen), intent(in)  :: snow_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in)  :: snow_size_dist_intercept_per_m4
+  real(r8), dimension(vlen), intent(out) :: local_snow_mass_tend_collection_by_rain_kg_per_kg_per_s ! conversion due to coll of snow by rain
 
   real(r8), parameter :: cons31 = pi*pi*ecr*rhosn
   integer :: i
@@ -2785,15 +2785,15 @@ subroutine graupel_collecting_snow(qsic,qric,umr,ums,rho,lamr,n0r,lams,n0s, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qsic(i).ge.0.1e-3_r8 .and. qric(i).ge.0.1e-3_r8) then
-        psacr(i) = cons31*(((1.2_r8*umr(i)-0.95_r8*ums(i))**2+ &
-             0.08_r8*ums(i)*umr(i))**0.5_r8*rho(i)*            &
-             n0r(i)*n0s(i)/lams(i)**3*                         &
-             (5._r8/(lams(i)**3*lamr(i))+                      &
-             2._r8/(lams(i)**2*lamr(i)**2)+                    &
-             0.5_r8/(lams(i)*lamr(i)**3)))
+     if (inprecip_snow_mass_mixing_ratio_kg_per_kg(i).ge.0.1e-3_r8 .and. inprecip_rain_mass_mixing_ratio_kg_per_kg(i).ge.0.1e-3_r8) then
+        local_snow_mass_tend_collection_by_rain_kg_per_kg_per_s(i) = cons31*(((1.2_r8*rain_mass_weighted_fall_speed_m_per_s(i)-0.95_r8*snow_mass_weighted_fall_speed_m_per_s(i))**2+ &
+             0.08_r8*snow_mass_weighted_fall_speed_m_per_s(i)*rain_mass_weighted_fall_speed_m_per_s(i))**0.5_r8*air_density_kg_per_m3(i)*            &
+             rain_size_dist_intercept_per_m4(i)*snow_size_dist_intercept_per_m4(i)/snow_size_dist_slope_per_m(i)**3*                         &
+             (5._r8/(snow_size_dist_slope_per_m(i)**3*rain_size_dist_slope_per_m(i))+                      &
+             2._r8/(snow_size_dist_slope_per_m(i)**2*rain_size_dist_slope_per_m(i)**2)+                    &
+             0.5_r8/(snow_size_dist_slope_per_m(i)*rain_size_dist_slope_per_m(i)**3)))
      else
-        psacr(i) = 0._r8
+        local_snow_mass_tend_collection_by_rain_kg_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2804,25 +2804,25 @@ end subroutine graupel_collecting_snow
 ! Collection of cloud water by graupel
 !========================================================================
 
-subroutine graupel_collecting_cld_water(qgic,qcic,ncic,rho,n0g,lamg,bg,agn, &
-     psacwg, npsacwg, vlen)
+subroutine graupel_collecting_cld_water(inprecip_graupel_mass_mixing_ratio_kg_per_kg,incloud_cldliq_mass_mixing_ratio_kg_per_kg,incloud_cldliq_number_conc_per_kg,air_density_kg_per_m3,graupel_size_dist_intercept_per_m4,graupel_size_dist_slope_per_m,bg,graupel_fall_speed_prefactor, &
+     local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s, local_cldliq_number_tend_riming_by_graupel_per_kg_per_s, vlen)
 
   integer,                   intent(in) :: vlen
   ! In-cloud MMRs
-  real(r8), dimension(vlen), intent(in) :: qgic ! graupel
-  real(r8), dimension(vlen), intent(in) :: qcic ! cloud water
-  real(r8), dimension(vlen), intent(in) :: ncic ! cloud water number conc
-  real(r8), dimension(vlen), intent(in) :: rho  ! air density
+  real(r8), dimension(vlen), intent(in) :: inprecip_graupel_mass_mixing_ratio_kg_per_kg ! graupel
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_mass_mixing_ratio_kg_per_kg ! cloud water
+  real(r8), dimension(vlen), intent(in) :: incloud_cldliq_number_conc_per_kg ! cloud water number conc
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3  ! air density
   ! Size parameters for graupel
-  real(r8), dimension(vlen), intent(in) :: lamg
-  real(r8), dimension(vlen), intent(in) :: n0g
+  real(r8), dimension(vlen), intent(in) :: graupel_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in) :: graupel_size_dist_intercept_per_m4
   ! fallspeed parameters for graupel
   ! Set AGN and BG  as input (in micro_pumas_v1.F90)  (select hail or graupel as appropriate)
   real(r8),                  intent(in) :: bg
-  real(r8), dimension(vlen), intent(in) :: agn
+  real(r8), dimension(vlen), intent(in) :: graupel_fall_speed_prefactor
   ! Output tendencies
-  real(r8), dimension(vlen), intent(out) :: psacwg
-  real(r8), dimension(vlen), intent(out) :: npsacwg
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(out) :: local_cldliq_number_tend_riming_by_graupel_per_kg_per_s
 
   real(r8) :: cons
   integer  :: i
@@ -2832,16 +2832,16 @@ subroutine graupel_collecting_cld_water(qgic,qcic,ncic,rho,n0g,lamg,bg,agn, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qgic(i).ge.1.e-8_r8 .and. qcic(i).ge.qsmall) then
-        psacwg(i) = cons*agn(i)*qcic(i)*rho(i)*  &
-               n0g(i)/                           &
-               lamg(i)**(bg+3._r8)
-        npsacwg(i) = cons*agn(i)*ncic(i)*rho(i)* &
-               n0g(i)/                           &
-               lamg(i)**(bg+3._r8)
+     if (inprecip_graupel_mass_mixing_ratio_kg_per_kg(i).ge.1.e-8_r8 .and. incloud_cldliq_mass_mixing_ratio_kg_per_kg(i).ge.qsmall) then
+        local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s(i) = cons*graupel_fall_speed_prefactor(i)*incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)*air_density_kg_per_m3(i)*  &
+               graupel_size_dist_intercept_per_m4(i)/                           &
+               graupel_size_dist_slope_per_m(i)**(bg+3._r8)
+        local_cldliq_number_tend_riming_by_graupel_per_kg_per_s(i) = cons*graupel_fall_speed_prefactor(i)*incloud_cldliq_number_conc_per_kg(i)*air_density_kg_per_m3(i)* &
+               graupel_size_dist_intercept_per_m4(i)/                           &
+               graupel_size_dist_slope_per_m(i)**(bg+3._r8)
      else
-        psacwg(i)  = 0._r8
-        npsacwg(i) = 0._r8
+        local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s(i)  = 0._r8
+        local_cldliq_number_tend_riming_by_graupel_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2852,26 +2852,26 @@ end subroutine graupel_collecting_cld_water
 ! Conversion of rimed cloud water onto snow to graupel/hail
 !========================================================================
 
-subroutine graupel_riming_liquid_snow(psacws,qsic,qcic,nsic,rho,rhosn,rhog,asn,lams,n0s,dtime, &
-     pgsacw,nscng,vlen)
+subroutine graupel_riming_liquid_snow(local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s,inprecip_snow_mass_mixing_ratio_kg_per_kg,incloud_cldliq_mass_mixing_ratio_kg_per_kg,inprecip_snow_number_conc_per_kg,air_density_kg_per_m3,rhosn,rhog,snow_fall_speed_prefactor,snow_size_dist_slope_per_m,snow_size_dist_intercept_per_m4,dtime, &
+     local_graupel_mass_tend_from_snow_riming_kg_per_kg_per_s,local_graupel_number_tend_from_snow_riming_per_kg_per_s,vlen)
 
   integer,                   intent(in)    :: vlen
   ! Accretion of cloud water to snow tendency (modified)
-  real(r8), dimension(vlen), intent(inout) :: psacws
-  real(r8), dimension(vlen), intent(in)    :: qsic    ! snow mixing ratio
-  real(r8), dimension(vlen), intent(in)    :: qcic    ! cloud liquid mixing ratio
-  real(r8), dimension(vlen), intent(in)    :: nsic    ! snow number concentration
-  real(r8), dimension(vlen), intent(in)    :: rho     ! air density
+  real(r8), dimension(vlen), intent(inout) :: local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(in)    :: inprecip_snow_mass_mixing_ratio_kg_per_kg    ! snow mixing ratio
+  real(r8), dimension(vlen), intent(in)    :: incloud_cldliq_mass_mixing_ratio_kg_per_kg    ! cloud liquid mixing ratio
+  real(r8), dimension(vlen), intent(in)    :: inprecip_snow_number_conc_per_kg    ! snow number concentration
+  real(r8), dimension(vlen), intent(in)    :: air_density_kg_per_m3     ! air density
   real(r8),                  intent(in)    :: rhosn   ! snow density
   real(r8),                  intent(in)    :: rhog    ! graupel density
-  real(r8), dimension(vlen), intent(in)    :: asn     ! fall speed parameter for snow
+  real(r8), dimension(vlen), intent(in)    :: snow_fall_speed_prefactor     ! fall speed parameter for snow
   ! Size parameters for snow
-  real(r8), dimension(vlen), intent(in)    :: lams
-  real(r8), dimension(vlen), intent(in)    :: n0s
+  real(r8), dimension(vlen), intent(in)    :: snow_size_dist_slope_per_m
+  real(r8), dimension(vlen), intent(in)    :: snow_size_dist_intercept_per_m4
   real(r8),                  intent(in)    :: dtime
   !Output process rates
-  real(r8), dimension(vlen), intent(out)   :: pgsacw  ! dQ graupel due to collection droplets by snow
-  real(r8), dimension(vlen), intent(out)   :: nscng   ! dN graupel due to collection droplets by snow
+  real(r8), dimension(vlen), intent(out)   :: local_graupel_mass_tend_from_snow_riming_kg_per_kg_per_s  ! dQ graupel due to collection droplets by snow
+  real(r8), dimension(vlen), intent(out)   :: local_graupel_number_tend_from_snow_riming_per_kg_per_s   ! dN graupel due to collection droplets by snow
 
   real(r8) :: cons
   real(r8) :: rhosu
@@ -2889,29 +2889,29 @@ subroutine graupel_riming_liquid_snow(psacws,qsic,qcic,nsic,rho,rhosn,rhog,asn,l
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (psacws(i).gt.0._r8 .and. qsic(i).GE.0.1e-3_r8 .AND. qcic(i).GE.0.5E-3_r8) then
+     if (local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i).gt.0._r8 .and. inprecip_snow_mass_mixing_ratio_kg_per_kg(i).GE.0.1e-3_r8 .AND. incloud_cldliq_mass_mixing_ratio_kg_per_kg(i).GE.0.5E-3_r8) then
         ! Only allow conversion if qni > 0.1 and qc > 0.5 g/kg following Rutledge and Hobbs (1984)
         ! if (qsic(i).GE.0.1e-3_r8 .AND. qcic(i).GE.0.5E-3_r8) then
 
         ! portion of riming converted to graupel (Reisner et al. 1998, originally IS1991)
         ! dtime here is correct.
-        pgsacw(i) = min(psacws(i),cons*dtime*n0s(i)*qcic(i)*qcic(i)* &
-             asn(i)*asn(i)/ &
-             (rho(i)*lams(i)**(2._r8*bs+2._r8)))
+        local_graupel_mass_tend_from_snow_riming_kg_per_kg_per_s(i) = min(local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i),cons*dtime*snow_size_dist_intercept_per_m4(i)*incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)*incloud_cldliq_mass_mixing_ratio_kg_per_kg(i)* &
+             snow_fall_speed_prefactor(i)*snow_fall_speed_prefactor(i)/ &
+             (air_density_kg_per_m3(i)*snow_size_dist_slope_per_m(i)**(2._r8*bs+2._r8)))
 
         ! Mix rat converted into graupel as embryo (Reisner et al. 1998, orig M1990)
-        dum       = max(rhosn/(rhog-rhosn)*pgsacw(i),0._r8)
+        dum       = max(rhosn/(rhog-rhosn)*local_graupel_mass_tend_from_snow_riming_kg_per_kg_per_s(i),0._r8)
 
         ! Number concentraiton of embryo graupel from riming of snow
-        nscng(i)  = dum/mg0*rho(i)
+        local_graupel_number_tend_from_snow_riming_per_kg_per_s(i)  = dum/mg0*air_density_kg_per_m3(i)
         ! Limit max number converted to snow number  (dtime here correct? We think yes)
-        nscng(i)  = min(nscng(i),nsic(i)/dtime)
+        local_graupel_number_tend_from_snow_riming_per_kg_per_s(i)  = min(local_graupel_number_tend_from_snow_riming_per_kg_per_s(i),inprecip_snow_number_conc_per_kg(i)/dtime)
 
         ! Portion of riming left for snow
-        psacws(i) = psacws(i) - pgsacw(i)
+        local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i) = local_cldliq_mass_tend_riming_by_snow_kg_per_kg_per_s(i) - local_graupel_mass_tend_from_snow_riming_kg_per_kg_per_s(i)
      else
-        pgsacw(i) = 0._r8
-        nscng(i)  = 0._r8
+        local_graupel_mass_tend_from_snow_riming_kg_per_kg_per_s(i) = 0._r8
+        local_graupel_number_tend_from_snow_riming_per_kg_per_s(i)  = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2922,29 +2922,29 @@ end subroutine graupel_riming_liquid_snow
 !CHANGE IN Q,N COLLECTION RAIN BY GRAUPEL
 !========================================================================
 
-subroutine graupel_collecting_rain(qric,qgic,umg,umr,ung,unr,rho,n0r,lamr,n0g,lamg,&
-     pracg,npracg,vlen)
+subroutine graupel_collecting_rain(inprecip_rain_mass_mixing_ratio_kg_per_kg,inprecip_graupel_mass_mixing_ratio_kg_per_kg,graupel_mass_weighted_fall_speed_m_per_s,rain_mass_weighted_fall_speed_m_per_s,graupel_number_weighted_fall_speed_m_per_s,rain_number_weighted_fall_speed_m_per_s,air_density_kg_per_m3,rain_size_dist_intercept_per_m4,rain_size_dist_slope_per_m,graupel_size_dist_intercept_per_m4,graupel_size_dist_slope_per_m,&
+     local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s,local_rain_number_tend_accretion_by_graupel_per_kg_per_s,vlen)
 
   integer,                   intent(in) :: vlen
   !MMR
-  real(r8), dimension(vlen), intent(in) :: qric  !rain mixing ratio
-  real(r8), dimension(vlen), intent(in) :: qgic  !graupel mixing ratio
+  real(r8), dimension(vlen), intent(in) :: inprecip_rain_mass_mixing_ratio_kg_per_kg  !rain mixing ratio
+  real(r8), dimension(vlen), intent(in) :: inprecip_graupel_mass_mixing_ratio_kg_per_kg  !graupel mixing ratio
   !Mass weighted Fall speeds
-  real(r8), dimension(vlen), intent(in) :: umg ! graupel fall speed
-  real(r8), dimension(vlen), intent(in) :: umr ! rain fall speed
+  real(r8), dimension(vlen), intent(in) :: graupel_mass_weighted_fall_speed_m_per_s ! graupel fall speed
+  real(r8), dimension(vlen), intent(in) :: rain_mass_weighted_fall_speed_m_per_s ! rain fall speed
   !Number weighted fall speeds
-  real(r8), dimension(vlen), intent(in) :: ung ! graupel fall speed
-  real(r8), dimension(vlen), intent(in) :: unr ! rain fall speed
-  real(r8), dimension(vlen), intent(in) :: rho   ! air density
+  real(r8), dimension(vlen), intent(in) :: graupel_number_weighted_fall_speed_m_per_s ! graupel fall speed
+  real(r8), dimension(vlen), intent(in) :: rain_number_weighted_fall_speed_m_per_s ! rain fall speed
+  real(r8), dimension(vlen), intent(in) :: air_density_kg_per_m3   ! air density
   ! Size parameters for rain
-  real(r8), dimension(vlen), intent(in) :: n0r
-  real(r8), dimension(vlen), intent(in) :: lamr
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_intercept_per_m4
+  real(r8), dimension(vlen), intent(in) :: rain_size_dist_slope_per_m
   ! Size parameters for graupel
-  real(r8), dimension(vlen), intent(in) :: n0g
-  real(r8), dimension(vlen), intent(in) :: lamg
+  real(r8), dimension(vlen), intent(in) :: graupel_size_dist_intercept_per_m4
+  real(r8), dimension(vlen), intent(in) :: graupel_size_dist_slope_per_m
   !Output process rates
-  real(r8), dimension(vlen), intent(out) :: pracg   ! Q collection rain by graupel
-  real(r8), dimension(vlen), intent(out) :: npracg  ! N collection rain by graupel
+  real(r8), dimension(vlen), intent(out) :: local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s   ! Q collection rain by graupel
+  real(r8), dimension(vlen), intent(out) :: local_rain_number_tend_accretion_by_graupel_per_kg_per_s  ! N collection rain by graupel
 
 ! Add collection of graupel by rain above freezing
 ! assume all rain collection by graupel above freezing is shed
@@ -2957,30 +2957,30 @@ subroutine graupel_collecting_rain(qric,qgic,umg,umr,ung,unr,rho,n0r,lamr,n0g,la
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (qric(i).ge.1.e-8_r8.and.qgic(i).ge.1.e-8_r8) then
+     if (inprecip_rain_mass_mixing_ratio_kg_per_kg(i).ge.1.e-8_r8.and.inprecip_graupel_mass_mixing_ratio_kg_per_kg(i).ge.1.e-8_r8) then
         ! pracg is mixing ratio of rain per sec collected by graupel/hail
-        pracg(i) = cons41*(((1.2_r8*umr(i)-0.95_r8*umg(i))**2._r8+  &
-             0.08_r8*umg(i)*umr(i))**0.5_r8*rho(i)*                 &
-             n0r(i)*n0g(i)/lamr(i)**3._r8*                          &
-             (5._r8/(lamr(i)**3._r8*lamg(i))+                       &
-             2._r8/(lamr(i)**2._r8*lamg(i)**2._r8)+                 &
-             0.5_r8/(lamr(i)*lamg(i)**3._r8)))
+        local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i) = cons41*(((1.2_r8*rain_mass_weighted_fall_speed_m_per_s(i)-0.95_r8*graupel_mass_weighted_fall_speed_m_per_s(i))**2._r8+  &
+             0.08_r8*graupel_mass_weighted_fall_speed_m_per_s(i)*rain_mass_weighted_fall_speed_m_per_s(i))**0.5_r8*air_density_kg_per_m3(i)*                 &
+             rain_size_dist_intercept_per_m4(i)*graupel_size_dist_intercept_per_m4(i)/rain_size_dist_slope_per_m(i)**3._r8*                          &
+             (5._r8/(rain_size_dist_slope_per_m(i)**3._r8*graupel_size_dist_slope_per_m(i))+                       &
+             2._r8/(rain_size_dist_slope_per_m(i)**2._r8*graupel_size_dist_slope_per_m(i)**2._r8)+                 &
+             0.5_r8/(rain_size_dist_slope_per_m(i)*graupel_size_dist_slope_per_m(i)**3._r8)))
 
 ! assume 1 mm drops are shed, get number shed per sec
-        dum = pracg(i)/5.2e-7_r8
-        npracg(i) = cons32*rho(i)*(1.7_r8*(unr(i)-ung(i))**2._r8+   &
-             0.3_r8*unr(i)*ung(i))**0.5_r8*n0r(i)*n0g(i)*           &
-             (1._r8/(lamr(i)**3._r8*lamg(i))+                       &
-             1._r8/(lamr(i)**2._r8*lamg(i)**2._r8)+                 &
-             1._r8/(lamr(i)*lamg(i)**3._r8))
+        dum = local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i)/5.2e-7_r8
+        local_rain_number_tend_accretion_by_graupel_per_kg_per_s(i) = cons32*air_density_kg_per_m3(i)*(1.7_r8*(rain_number_weighted_fall_speed_m_per_s(i)-graupel_number_weighted_fall_speed_m_per_s(i))**2._r8+   &
+             0.3_r8*rain_number_weighted_fall_speed_m_per_s(i)*graupel_number_weighted_fall_speed_m_per_s(i))**0.5_r8*rain_size_dist_intercept_per_m4(i)*graupel_size_dist_intercept_per_m4(i)*           &
+             (1._r8/(rain_size_dist_slope_per_m(i)**3._r8*graupel_size_dist_slope_per_m(i))+                       &
+             1._r8/(rain_size_dist_slope_per_m(i)**2._r8*graupel_size_dist_slope_per_m(i)**2._r8)+                 &
+             1._r8/(rain_size_dist_slope_per_m(i)*graupel_size_dist_slope_per_m(i)**3._r8))
 
 ! hm 7/15/13, remove limit so that the number of collected drops can smaller than
 ! number of shed drops
 !            NPRACG(K)=MAX(NPRACG(K)-DUM,0.)
-        npracg(i) = npracg(i) - dum
+        local_rain_number_tend_accretion_by_graupel_per_kg_per_s(i) = local_rain_number_tend_accretion_by_graupel_per_kg_per_s(i) - dum
      else
-        npracg(i) = 0._r8
-        pracg(i)  = 0._r8
+        local_rain_number_tend_accretion_by_graupel_per_kg_per_s(i) = 0._r8
+        local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i)  = 0._r8
      end if
   end do
   !$acc end parallel
@@ -2992,29 +2992,29 @@ end subroutine graupel_collecting_rain
 !========================================================================
 ! Conversion of rimed rainwater onto snow converted to graupel
 
-subroutine graupel_rain_riming_snow(pracs,npracs,psacr,qsic,qric,nric,nsic,n0s,lams,n0r,lamr,dtime,&
-     pgracs,ngracs,vlen)
+subroutine graupel_rain_riming_snow(local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s,local_rain_number_tend_accretion_by_snow_per_kg_per_s,local_snow_mass_tend_collection_by_rain_kg_per_kg_per_s,inprecip_snow_mass_mixing_ratio_kg_per_kg,inprecip_rain_mass_mixing_ratio_kg_per_kg,inprecip_rain_number_conc_per_kg,inprecip_snow_number_conc_per_kg,snow_size_dist_intercept_per_m4,snow_size_dist_slope_per_m,rain_size_dist_intercept_per_m4,rain_size_dist_slope_per_m,dtime,&
+     local_graupel_mass_tend_rain_snow_collection_kg_per_kg_per_s,local_graupel_number_tend_rain_snow_collection_per_kg_per_s,vlen)
 
   integer,                   intent(in)    :: vlen
   ! Accretion of rain by snow
-  real(r8), dimension(vlen), intent(inout) :: pracs
-  real(r8), dimension(vlen), intent(inout) :: npracs
-  real(r8), dimension(vlen), intent(inout) :: psacr  ! conversion due to coll of snow by rain
+  real(r8), dimension(vlen), intent(inout) :: local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s
+  real(r8), dimension(vlen), intent(inout) :: local_rain_number_tend_accretion_by_snow_per_kg_per_s
+  real(r8), dimension(vlen), intent(inout) :: local_snow_mass_tend_collection_by_rain_kg_per_kg_per_s  ! conversion due to coll of snow by rain
   !MMR
-  real(r8), dimension(vlen), intent(in)    :: qsic   ! snow mixing ratio
-  real(r8), dimension(vlen), intent(in)    :: qric   ! rain mixing ratio
-  real(r8), dimension(vlen), intent(in)    :: nric   ! rain number concentration
-  real(r8), dimension(vlen), intent(in)    :: nsic   ! snow number concentration
+  real(r8), dimension(vlen), intent(in)    :: inprecip_snow_mass_mixing_ratio_kg_per_kg   ! snow mixing ratio
+  real(r8), dimension(vlen), intent(in)    :: inprecip_rain_mass_mixing_ratio_kg_per_kg   ! rain mixing ratio
+  real(r8), dimension(vlen), intent(in)    :: inprecip_rain_number_conc_per_kg   ! rain number concentration
+  real(r8), dimension(vlen), intent(in)    :: inprecip_snow_number_conc_per_kg   ! snow number concentration
   ! Size parameters for snow
-  real(r8), dimension(vlen), intent(in)    :: n0s
-  real(r8), dimension(vlen), intent(in)    :: lams
+  real(r8), dimension(vlen), intent(in)    :: snow_size_dist_intercept_per_m4
+  real(r8), dimension(vlen), intent(in)    :: snow_size_dist_slope_per_m
   ! Size parameters for rain
-  real(r8), dimension(vlen), intent(in)    :: n0r
-  real(r8), dimension(vlen), intent(in)    :: lamr
+  real(r8), dimension(vlen), intent(in)    :: rain_size_dist_intercept_per_m4
+  real(r8), dimension(vlen), intent(in)    :: rain_size_dist_slope_per_m
   real(r8),                  intent(in)    :: dtime
   !Output process rates
-  real(r8), dimension(vlen), intent(out)   :: pgracs  ! Q graupel due to collection rain by snow
-  real(r8), dimension(vlen), intent(out)   :: ngracs  ! N graupel due to collection rain by snow
+  real(r8), dimension(vlen), intent(out)   :: local_graupel_mass_tend_rain_snow_collection_kg_per_kg_per_s  ! Q graupel due to collection rain by snow
+  real(r8), dimension(vlen), intent(out)   :: local_graupel_number_tend_rain_snow_collection_per_kg_per_s  ! N graupel due to collection rain by snow
 
 !Input: PRACS,NPRACS,PSACR,qni,qr,lams,lamr,nr,ns  Note: No PSACR in MG2
 !Output:PGRACS,NGRACS,PRACS,PSACR
@@ -3026,30 +3026,30 @@ subroutine graupel_rain_riming_snow(pracs,npracs,psacr,qsic,qric,nric,nsic,n0s,l
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (pracs(i).gt.0._r8.and.qsic(i).ge.0.1e-3_r8.and.qric(i).ge.0.1e-3_r8) then
+     if (local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s(i).gt.0._r8.and.inprecip_snow_mass_mixing_ratio_kg_per_kg(i).ge.0.1e-3_r8.and.inprecip_rain_mass_mixing_ratio_kg_per_kg(i).ge.0.1e-3_r8) then
         ! only allow conversion if qs > 0.1 and qr > 0.1 g/kg following rutledge and hobbs (1984)
         !if (qsic(i).ge.0.1e-3_r8.and.qric(i).ge.0.1e-3_r8) then
            ! portion of collected rainwater converted to graupel (reisner et al. 1998)
-        dum = cons18*(4._r8/lams(i))**3*(4._r8/lams(i))**3 &
-             /(cons18*(4._r8/lams(i))**3*(4._r8/lams(i))**3+ &
-             cons19*(4._r8/lamr(i))**3*(4._r8/lamr(i))**3)
+        dum = cons18*(4._r8/snow_size_dist_slope_per_m(i))**3*(4._r8/snow_size_dist_slope_per_m(i))**3 &
+             /(cons18*(4._r8/snow_size_dist_slope_per_m(i))**3*(4._r8/snow_size_dist_slope_per_m(i))**3+ &
+             cons19*(4._r8/rain_size_dist_slope_per_m(i))**3*(4._r8/rain_size_dist_slope_per_m(i))**3)
         dum = min(dum,1._r8)
         dum = max(dum,0._r8)
-        pgracs(i) = (1._r8-dum)*pracs(i)
-        ngracs(i) = (1._r8-dum)*npracs(i)
+        local_graupel_mass_tend_rain_snow_collection_kg_per_kg_per_s(i) = (1._r8-dum)*local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s(i)
+        local_graupel_number_tend_rain_snow_collection_per_kg_per_s(i) = (1._r8-dum)*local_rain_number_tend_accretion_by_snow_per_kg_per_s(i)
         ! limit max number converted to min of either rain or snow number concentration
-        ngracs(i) = min(ngracs(i),nric(i)/dtime)
-        ngracs(i) = min(ngracs(i),nsic(i)/dtime)
+        local_graupel_number_tend_rain_snow_collection_per_kg_per_s(i) = min(local_graupel_number_tend_rain_snow_collection_per_kg_per_s(i),inprecip_rain_number_conc_per_kg(i)/dtime)
+        local_graupel_number_tend_rain_snow_collection_per_kg_per_s(i) = min(local_graupel_number_tend_rain_snow_collection_per_kg_per_s(i),inprecip_snow_number_conc_per_kg(i)/dtime)
 
         ! amount left for snow production
-        pracs(i)  = pracs(i) - pgracs(i)
-        npracs(i) = npracs(i) - ngracs(i)
+        local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s(i)  = local_rain_mass_tend_accretion_by_snow_kg_per_kg_per_s(i) - local_graupel_mass_tend_rain_snow_collection_kg_per_kg_per_s(i)
+        local_rain_number_tend_accretion_by_snow_per_kg_per_s(i) = local_rain_number_tend_accretion_by_snow_per_kg_per_s(i) - local_graupel_number_tend_rain_snow_collection_per_kg_per_s(i)
 
         ! conversion to graupel due to collection of snow by rain
-        psacr(i)=psacr(i)*(1._r8-dum)
+        local_snow_mass_tend_collection_by_rain_kg_per_kg_per_s(i)=local_snow_mass_tend_collection_by_rain_kg_per_kg_per_s(i)*(1._r8-dum)
      else
-        pgracs(i) = 0._r8
-        ngracs(i) = 0._r8
+        local_graupel_mass_tend_rain_snow_collection_kg_per_kg_per_s(i) = 0._r8
+        local_graupel_number_tend_rain_snow_collection_per_kg_per_s(i) = 0._r8
      end if
   end do
   !$acc end parallel
@@ -3059,23 +3059,23 @@ end subroutine graupel_rain_riming_snow
 !========================================================================
 ! Rime Splintering
 !========================================================================
-subroutine graupel_rime_splintering(t,qcic,qric,qgic,psacwg,pracg,&
-     qmultg,nmultg,qmultrg,nmultrg,vlen)
+subroutine graupel_rime_splintering(t,incloud_cldliq_mass_mixing_ratio_kg_per_kg,inprecip_rain_mass_mixing_ratio_kg_per_kg,inprecip_graupel_mass_mixing_ratio_kg_per_kg,local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s,local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s,&
+     local_cldice_mass_tend_splintering_by_graupel_kg_per_kg_per_s,local_cldice_number_tend_splintering_by_graupel_per_kg_per_s,local_cldice_mass_tend_splintering_rain_graupel_kg_per_kg_per_s,local_cldice_number_tend_splintering_rain_graupel_per_kg_per_s,vlen)
 
   integer,                   intent(in)    :: vlen
   real(r8), dimension(vlen), intent(in)    :: t        ! temperature
   !MMR
-  real(r8), dimension(vlen), intent(in)    :: qcic     ! liquid mixing ratio
-  real(r8), dimension(vlen), intent(in)    :: qric     ! rain mixing ratio
-  real(r8), dimension(vlen), intent(in)    :: qgic     ! graupel mixing ratio
+  real(r8), dimension(vlen), intent(in)    :: incloud_cldliq_mass_mixing_ratio_kg_per_kg     ! liquid mixing ratio
+  real(r8), dimension(vlen), intent(in)    :: inprecip_rain_mass_mixing_ratio_kg_per_kg     ! rain mixing ratio
+  real(r8), dimension(vlen), intent(in)    :: inprecip_graupel_mass_mixing_ratio_kg_per_kg     ! graupel mixing ratio
   ! Already calculated terms for collection
-  real(r8), dimension(vlen), intent(inout) :: psacwg   ! collection droplets by graupel
-  real(r8), dimension(vlen), intent(inout) :: pracg    ! collection rain by graupel
+  real(r8), dimension(vlen), intent(inout) :: local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s   ! collection droplets by graupel
+  real(r8), dimension(vlen), intent(inout) :: local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s    ! collection rain by graupel
   !Output process rates for splintering
-  real(r8), dimension(vlen), intent(out)   :: qmultg   ! Q ice mult of droplets/graupel
-  real(r8), dimension(vlen), intent(out)   :: nmultg   ! N ice mult of droplets/graupel
-  real(r8), dimension(vlen), intent(out)   :: qmultrg  ! Q ice mult of rain/graupel
-  real(r8), dimension(vlen), intent(out)   :: nmultrg  ! N ice mult of rain/graupel
+  real(r8), dimension(vlen), intent(out)   :: local_cldice_mass_tend_splintering_by_graupel_kg_per_kg_per_s   ! Q ice mult of droplets/graupel
+  real(r8), dimension(vlen), intent(out)   :: local_cldice_number_tend_splintering_by_graupel_per_kg_per_s   ! N ice mult of droplets/graupel
+  real(r8), dimension(vlen), intent(out)   :: local_cldice_mass_tend_splintering_rain_graupel_kg_per_kg_per_s  ! Q ice mult of rain/graupel
+  real(r8), dimension(vlen), intent(out)   :: local_cldice_number_tend_splintering_rain_graupel_per_kg_per_s  ! N ice mult of rain/graupel
 
 !Input: qg,qc,qr, PSACWG,PRACG,T
 !Output: NMULTG,QMULTG,NMULTRG,QMULTRG,PSACWG,PRACG
@@ -3093,13 +3093,13 @@ subroutine graupel_rime_splintering(t,qcic,qric,qgic,psacwg,pracg,&
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     nmultrg(i) = 0._r8
-     qmultrg(i) = 0._r8
-     nmultg(i)  = 0._r8
-     qmultg(i)  = 0._r8
-     if (qgic(i).ge.0.1e-3_r8) then
-        if (qcic(i).ge.0.5e-3_r8.or.qric(i).ge.0.1e-3_r8) then
-           if (psacwg(i).gt.0._r8.or.pracg(i).gt.0._r8) then
+     local_cldice_number_tend_splintering_rain_graupel_per_kg_per_s(i) = 0._r8
+     local_cldice_mass_tend_splintering_rain_graupel_kg_per_kg_per_s(i) = 0._r8
+     local_cldice_number_tend_splintering_by_graupel_per_kg_per_s(i)  = 0._r8
+     local_cldice_mass_tend_splintering_by_graupel_kg_per_kg_per_s(i)  = 0._r8
+     if (inprecip_graupel_mass_mixing_ratio_kg_per_kg(i).ge.0.1e-3_r8) then
+        if (incloud_cldliq_mass_mixing_ratio_kg_per_kg(i).ge.0.5e-3_r8.or.inprecip_rain_mass_mixing_ratio_kg_per_kg(i).ge.0.1e-3_r8) then
+           if (local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s(i).gt.0._r8.or.local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i).gt.0._r8) then
               if (t(i).lt.tm_3 .and. t(i).gt.tm_8) then
                  if (t(i).gt.tm_3) then
                     fmult = 0._r8
@@ -3112,26 +3112,26 @@ subroutine graupel_rime_splintering(t,qcic,qric,qgic,psacwg,pracg,&
                  end if
 ! 1000 is to convert from kg to g  (Check if needed for MG)
 ! splintering from droplets accreted onto graupel
-                 if (psacwg(i).gt.0._r8) then
-                    nmultg(i) = 35.e4_r8*psacwg(i)*fmult*1000._r8
-                    qmultg(i) = nmultg(i)*mmult
+                 if (local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s(i).gt.0._r8) then
+                    local_cldice_number_tend_splintering_by_graupel_per_kg_per_s(i) = 35.e4_r8*local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s(i)*fmult*1000._r8
+                    local_cldice_mass_tend_splintering_by_graupel_kg_per_kg_per_s(i) = local_cldice_number_tend_splintering_by_graupel_per_kg_per_s(i)*mmult
 ! constrain so that transfer of mass from graupel to ice cannot be more mass
 ! than was rimed onto graupel
-                    qmultg(i) = min(qmultg(i),psacwg(i))
-                    psacwg(i) = psacwg(i)-qmultg(i)
+                    local_cldice_mass_tend_splintering_by_graupel_kg_per_kg_per_s(i) = min(local_cldice_mass_tend_splintering_by_graupel_kg_per_kg_per_s(i),local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s(i))
+                    local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s(i) = local_cldliq_mass_tend_riming_by_graupel_kg_per_kg_per_s(i)-local_cldice_mass_tend_splintering_by_graupel_kg_per_kg_per_s(i)
                  end if
 
 !nmultrg,qmultrg                                                                             .
 !========================================================================
 ! riming and splintering from accreted raindrops
 ! Factor of 1000. again (Check)
-                 if (pracg(i).gt.0._r8) then
-                    nmultrg(i) = 35.e4_r8*pracg(i)*fmult*1000._r8
-                    qmultrg(i) = nmultrg(i)*mmult
+                 if (local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i).gt.0._r8) then
+                    local_cldice_number_tend_splintering_rain_graupel_per_kg_per_s(i) = 35.e4_r8*local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i)*fmult*1000._r8
+                    local_cldice_mass_tend_splintering_rain_graupel_kg_per_kg_per_s(i) = local_cldice_number_tend_splintering_rain_graupel_per_kg_per_s(i)*mmult
 ! constrain so that transfer of mass from graupel to ice cannot be more mass
 ! than was rimed onto graupel
-                    qmultrg(i) = min(qmultrg(i),pracg(i))
-                    pracg(i)   = pracg(i)-qmultrg(i)
+                    local_cldice_mass_tend_splintering_rain_graupel_kg_per_kg_per_s(i) = min(local_cldice_mass_tend_splintering_rain_graupel_kg_per_kg_per_s(i),local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i))
+                    local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i)   = local_rain_mass_tend_accretion_by_graupel_kg_per_kg_per_s(i)-local_cldice_mass_tend_splintering_rain_graupel_kg_per_kg_per_s(i)
                  end if
               end if
            end if

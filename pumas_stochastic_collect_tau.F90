@@ -133,9 +133,9 @@ end subroutine pumas_stochastic_kernel_init
 !main driver routine
 !needs to pull in i,k fields (so might need dimensions here too)
 
-subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
-                        ncin,qrin,nrin,lcldm,precip_frac,mu_c,lambda_c,     &
-                        n0r,lambda_r,qcin_new,ncin_new,qrin_new,nrin_new,   &
+subroutine pumas_stochastic_collect_tau_tend(deltatin,t,air_density_kg_per_m3,cldliq_mass_mixing_ratio_kg_per_kg,rain_mass_mixing_ratio_kg_per_kg,qcin,     &
+                        ncin,qrin,nrin,liquid_cloud_area_fraction,precipitation_area_fraction,mu_c,lambda_c,     &
+                        rain_size_dist_intercept_per_m4,lambda_r,qcin_new,ncin_new,qrin_new,nrin_new,   &
                         qctend,nctend,qrtend,nrtend,qctend_TAU,nctend_TAU,  &
                         qrtend_TAU,nrtend_TAU,scale_qc,scale_nc,scale_qr,   &
                         scale_nr,amk_c,ank_c,amk_r,ank_r,amk,ank,amk_out,   &
@@ -148,15 +148,15 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
   integer, intent(in) :: mgncol,nlev
   real(r8), intent(in) :: deltatin
   real(r8), intent(in) :: t(mgncol,nlev)
-  real(r8), intent(in) :: rho(mgncol,nlev)
-  real(r8), intent(in) :: qc(mgncol,nlev)
-  real(r8), intent(in) :: qr(mgncol,nlev)
+  real(r8), intent(in) :: air_density_kg_per_m3(mgncol,nlev)
+  real(r8), intent(in) :: cldliq_mass_mixing_ratio_kg_per_kg(mgncol,nlev)
+  real(r8), intent(in) :: rain_mass_mixing_ratio_kg_per_kg(mgncol,nlev)
   real(r8), intent(in) :: qcin(mgncol,nlev)
   real(r8), intent(in) :: ncin(mgncol,nlev)
   real(r8), intent(in) :: qrin(mgncol,nlev)
   real(r8), intent(in) :: nrin(mgncol,nlev)
-  real(r8), intent(in) :: lcldm(mgncol,nlev)
-  real(r8), intent(in) :: precip_frac(mgncol,nlev)
+  real(r8), intent(in) :: liquid_cloud_area_fraction(mgncol,nlev)
+  real(r8), intent(in) :: precipitation_area_fraction(mgncol,nlev)
   real(r8), intent(inout) :: qctend(mgncol,nlev)
   real(r8), intent(inout) :: nctend(mgncol,nlev)
   real(r8), intent(inout) :: qrtend(mgncol,nlev)
@@ -183,7 +183,7 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
   real(r8), intent(out) :: mu_c(mgncol,nlev)
   real(r8), intent(out) :: lambda_c(mgncol,nlev)
   real(r8), intent(out) :: lambda_r(mgncol,nlev)
-  real(r8), intent(out) :: n0r(mgncol,nlev)
+  real(r8), intent(out) :: rain_size_dist_intercept_per_m4(mgncol,nlev)
 
   real(r8), intent(out) :: qcin_new(mgncol,nlev)
   real(r8), intent(out) :: ncin_new(mgncol,nlev)
@@ -232,8 +232,8 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
 
   ! First make bins from cam size distribution (bins are diagnostic)
 
-  call cam_bin_distribute(qc,qr,qcin,ncin,qrin,nrin,mu_c,lambda_c, &
-                          lambda_r,n0r,lcldm,precip_frac,scale_qc, &
+  call cam_bin_distribute(cldliq_mass_mixing_ratio_kg_per_kg,rain_mass_mixing_ratio_kg_per_kg,qcin,ncin,qrin,nrin,mu_c,lambda_c, &
+                          lambda_r,rain_size_dist_intercept_per_m4,liquid_cloud_area_fraction,precipitation_area_fraction,scale_qc, &
                           scale_nc,scale_qr,scale_nr,amk_c,ank_c,  &
                           amk_r,ank_r,amk,ank,cutoff_amk,mgncol,nlev)
 
@@ -322,7 +322,7 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
         ! substep bin code
         !$acc loop seq
         do n=1,sub_step
-           call compute_coll_params(rho(i,k),medge,amk0(i,k,1:ncd),ank0(i,k,1:ncd),gnnnn0(i,k,1:ncd),gmnnn0(i,k,1:ncd),lnnnn0(i,k,1:ncd),lmnnn0(i,k,1:ncd))
+           call compute_coll_params(air_density_kg_per_m3(i,k),medge,amk0(i,k,1:ncd),ank0(i,k,1:ncd),gnnnn0(i,k,1:ncd),gmnnn0(i,k,1:ncd),lnnnn0(i,k,1:ncd),lmnnn0(i,k,1:ncd))
 
            all_gmnnn=0._r8
            all_lmnnn=0._r8
@@ -349,9 +349,9 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
            !$acc loop seq
            do lcl=1,ncd
               amk0(i,k,lcl) = amk0(i,k,lcl)+(gmnnn0(i,k,lcl)-lmnnn0(i,k,lcl))*1.e3_r8/ &
-                          rho(i,k)*deltatin/dble(sub_step)
+                          air_density_kg_per_m3(i,k)*deltatin/dble(sub_step)
               ank0(i,k,lcl) = ank0(i,k,lcl)+(gnnnn0(i,k,lcl)-lnnnn0(i,k,lcl))*1.e6_r8/ &
-                          rho(i,k)*deltatin/dble(sub_step)
+                          air_density_kg_per_m3(i,k)*deltatin/dble(sub_step)
               gmnnn(i,k,lcl) = gmnnn(i,k,lcl)+gmnnn0(i,k,lcl)/sub_step
               gnnnn(i,k,lcl) = gnnnn(i,k,lcl)+gnnnn0(i,k,lcl)/sub_step
               lmnnn(i,k,lcl) = lmnnn(i,k,lcl)+lmnnn0(i,k,lcl)/sub_step
@@ -364,8 +364,8 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
         do lcl=1,cutoff(i,k)
            qcin_old(i,k) = qcin_old(i,k)+amk(i,k,lcl)
            ncin_old(i,k) = ncin_old(i,k)+ank(i,k,lcl)
-           qcin_new(i,k) = qcin_new(i,k)+(gmnnn(i,k,lcl)-lmnnn(i,k,lcl))*1.e3_r8/rho(i,k)*deltatin
-           ncin_new(i,k) = ncin_new(i,k)+(gnnnn(i,k,lcl)-lnnnn(i,k,lcl))*1.e6_r8/rho(i,k)*deltatin
+           qcin_new(i,k) = qcin_new(i,k)+(gmnnn(i,k,lcl)-lmnnn(i,k,lcl))*1.e3_r8/air_density_kg_per_m3(i,k)*deltatin
+           ncin_new(i,k) = ncin_new(i,k)+(gnnnn(i,k,lcl)-lnnnn(i,k,lcl))*1.e6_r8/air_density_kg_per_m3(i,k)*deltatin
            qctend_TAU(i,k) = qctend_TAU(i,k)+(amk0(i,k,lcl)-amk(i,k,lcl))/deltatin
            nctend_TAU(i,k) = nctend_TAU(i,k)+(ank0(i,k,lcl)-ank(i,k,lcl))/deltatin
            gmnnn_lmnnn_TAU(i,k) = gmnnn_lmnnn_TAU(i,k)+gmnnn(i,k,lcl)-lmnnn(i,k,lcl)
@@ -376,8 +376,8 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
         do lcl=cutoff(i,k)+1,ncd
            qrin_old(i,k) = qrin_old(i,k)+amk(i,k,lcl)
            nrin_old(i,k) = nrin_old(i,k)+ank(i,k,lcl)
-           qrin_new(i,k) = qrin_new(i,k)+(gmnnn(i,k,lcl)-lmnnn(i,k,lcl))*1.e3_r8/rho(i,k)*deltatin
-           nrin_new(i,k) = nrin_new(i,k)+(gnnnn(i,k,lcl)-lnnnn(i,k,lcl))*1.e6_r8/rho(i,k)*deltatin
+           qrin_new(i,k) = qrin_new(i,k)+(gmnnn(i,k,lcl)-lmnnn(i,k,lcl))*1.e3_r8/air_density_kg_per_m3(i,k)*deltatin
+           nrin_new(i,k) = nrin_new(i,k)+(gnnnn(i,k,lcl)-lnnnn(i,k,lcl))*1.e6_r8/air_density_kg_per_m3(i,k)*deltatin
            qrtend_TAU(i,k) = qrtend_TAU(i,k)+(amk0(i,k,lcl)-amk(i,k,lcl))/deltatin
            nrtend_TAU(i,k) = nrtend_TAU(i,k)+(ank0(i,k,lcl)-ank(i,k,lcl))/deltatin
            gmnnn_lmnnn_TAU(i,k) = gmnnn_lmnnn_TAU(i,k)+gmnnn(i,k,lcl)-lmnnn(i,k,lcl)
@@ -385,8 +385,8 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
 
         !$acc loop seq
         do lcl=1,ncd
-           amk_out(i,k,lcl) = amk(i,k,lcl) + (gmnnn(i,k,lcl)-lmnnn(i,k,lcl))*1.e3_r8/rho(i,k)*deltatin
-           ank_out(i,k,lcl) = ank(i,k,lcl) + (gnnnn(i,k,lcl)-lnnnn(i,k,lcl))*1.e6_r8/rho(i,k)*deltatin
+           amk_out(i,k,lcl) = amk(i,k,lcl) + (gmnnn(i,k,lcl)-lmnnn(i,k,lcl))*1.e3_r8/air_density_kg_per_m3(i,k)*deltatin
+           ank_out(i,k,lcl) = ank(i,k,lcl) + (gnnnn(i,k,lcl)-lnnnn(i,k,lcl))*1.e6_r8/air_density_kg_per_m3(i,k)*deltatin
         end do
 
         qcin_new(i,k) = qcin_new(i,k)+qcin_old(i,k)
@@ -467,17 +467,17 @@ subroutine pumas_stochastic_collect_tau_tend(deltatin,t,rho,qc,qr,qcin,     &
 
 end subroutine pumas_stochastic_collect_tau_tend
 
-subroutine cam_bin_distribute(qc_all,qr_all,qc,nc,qr,nr,mu_c,lambda_c, &
-                              lambda_r,n0r,lcldm,precip_frac,scale_qc, &
+subroutine cam_bin_distribute(qc_all,qr_all,cldliq_mass_mixing_ratio_kg_per_kg,cldliq_number_conc_per_kg,rain_mass_mixing_ratio_kg_per_kg,rain_number_conc_per_kg,mu_c,lambda_c, &
+                              lambda_r,rain_size_dist_intercept_per_m4,liquid_cloud_area_fraction,precipitation_area_fraction,scale_qc, &
                               scale_nc,scale_qr,scale_nr,amk_c,ank_c,  &
                               amk_r,ank_r,amk,ank,cutoff_amk,mgncol,nlev)
 
   implicit none
 
   integer, intent(in) :: mgncol,nlev
-  real(r8), dimension(mgncol,nlev), intent(in) :: qc_all,qr_all,qc,nc,qr,nr,mu_c, &
-                                                  lambda_c,lambda_r,n0r,lcldm,    &
-                                                  precip_frac
+  real(r8), dimension(mgncol,nlev), intent(in) :: qc_all,qr_all,cldliq_mass_mixing_ratio_kg_per_kg,cldliq_number_conc_per_kg,rain_mass_mixing_ratio_kg_per_kg,rain_number_conc_per_kg,mu_c, &
+                                                  lambda_c,lambda_r,rain_size_dist_intercept_per_m4,liquid_cloud_area_fraction,    &
+                                                  precipitation_area_fraction
   real(r8), dimension(mgncol,nlev,ncd), intent(out) :: amk_c,ank_c,amk_r,ank_r,amk,ank
   real(r8), dimension(mgncol,nlev), intent(out) :: scale_nc,scale_qc,scale_nr,scale_qr
   integer, dimension(mgncol,nlev), intent(out) :: cutoff_amk
@@ -521,10 +521,10 @@ subroutine cam_bin_distribute(qc_all,qr_all,qc,nc,qr,nr,mu_c,lambda_c, &
         max_qr = 0._r8
 
         ! cloud water, nc in #/m3 --> #/cm3
-        if ( (qc_all(i,k) > qsmall) .and. (qc(i,k) > qsmall) ) then
+        if ( (qc_all(i,k) > qsmall) .and. (cldliq_mass_mixing_ratio_kg_per_kg(i,k) > qsmall) ) then
            !$acc loop seq
            do j=1,ncd
-              phi = nc(i,k)*lambda_c(i,k)**(mu_c(i,k)+1._r8)/ &
+              phi = cldliq_number_conc_per_kg(i,k)*lambda_c(i,k)**(mu_c(i,k)+1._r8)/ &
                     gamma(mu_c(i,k)+1._r8)*(diammean(j)*1.e-2_r8)**mu_c(i,k)* &
                     exp(-lambda_c(i,k)*diammean(j)*1.e-2_r8)  ! D cm --> m
               ank_c(i,k,j) = phi*(diamedge(j+1)-diamedge(j))*1.e-2_r8   ! D cm --> m
@@ -532,13 +532,13 @@ subroutine cam_bin_distribute(qc_all,qr_all,qc,nc,qr,nr,mu_c,lambda_c, &
               scale_nc(i,k) = scale_nc(i,k)+ank_c(i,k,j)
               scale_qc(i,k) = scale_qc(i,k)+amk_c(i,k,j)
            end do
-           scale_nc(i,k) = scale_nc(i,k)/nc(i,k)
-           scale_qc(i,k) = scale_qc(i,k)/qc(i,k)
+           scale_nc(i,k) = scale_nc(i,k)/cldliq_number_conc_per_kg(i,k)
+           scale_qc(i,k) = scale_qc(i,k)/cldliq_mass_mixing_ratio_kg_per_kg(i,k)
 
            !$acc loop seq
            do j=1,ncd
-              ank_c(i,k,j) = ank_c(i,k,j)/scale_nc(i,k)*lcldm(i,k)
-              amk_c(i,k,j) = amk_c(i,k,j)/scale_qc(i,k)*lcldm(i,k)
+              ank_c(i,k,j) = ank_c(i,k,j)/scale_nc(i,k)*liquid_cloud_area_fraction(i,k)
+              amk_c(i,k,j) = amk_c(i,k,j)/scale_qc(i,k)*liquid_cloud_area_fraction(i,k)
               if ( amk_c(i,k,j) > max_qc ) then
                  id_max_qc = j
                  max_qc = amk_c(i,k,j)
@@ -547,22 +547,22 @@ subroutine cam_bin_distribute(qc_all,qr_all,qc,nc,qr,nr,mu_c,lambda_c, &
         end if
 
         ! rain drop
-        if ( (qr_all(i,k) > qsmall) .and. (qr(i,k) > qsmall) ) then
+        if ( (qr_all(i,k) > qsmall) .and. (rain_mass_mixing_ratio_kg_per_kg(i,k) > qsmall) ) then
            !$acc loop seq
            do j=1,ncd
-              phi = n0r(i,k)*exp(-lambda_r(i,k)*diammean(j)*1.e-2_r8)   ! D cm --> m
+              phi = rain_size_dist_intercept_per_m4(i,k)*exp(-lambda_r(i,k)*diammean(j)*1.e-2_r8)   ! D cm --> m
               ank_r(i,k,j) = phi*(diamedge(j+1)-diamedge(j))*1.e-2_r8   ! D cm --> m
               amk_r(i,k,j) = phi*(diamedge(j+1)-diamedge(j))*1.e-2_r8*mmean(j)*1.e-3_r8
               scale_nr(i,k) = scale_nr(i,k) + ank_r(i,k,j)
               scale_qr(i,k) = scale_qr(i,k) + amk_r(i,k,j)
            end do
-           scale_nr(i,k) = scale_nr(i,k)/nr(i,k)
-           scale_qr(i,k) = scale_qr(i,k)/qr(i,k)
+           scale_nr(i,k) = scale_nr(i,k)/rain_number_conc_per_kg(i,k)
+           scale_qr(i,k) = scale_qr(i,k)/rain_mass_mixing_ratio_kg_per_kg(i,k)
 
            !$acc loop seq
            do j=1,ncd
-              ank_r(i,k,j) = ank_r(i,k,j)/scale_nr(i,k)*precip_frac(i,k)
-              amk_r(i,k,j) = amk_r(i,k,j)/scale_qr(i,k)*precip_frac(i,k)
+              ank_r(i,k,j) = ank_r(i,k,j)/scale_nr(i,k)*precipitation_area_fraction(i,k)
+              amk_r(i,k,j) = amk_r(i,k,j)/scale_qr(i,k)*precipitation_area_fraction(i,k)
               if ( amk_r(i,k,j) > max_qr ) then
                  id_max_qr = j
                  max_qr = amk_r(i,k,j)
@@ -630,7 +630,7 @@ end subroutine cam_bin_distribute
 
 !AG: Global arrays need to be passed around I think? Right now at the module level. Is that okay?
 
-SUBROUTINE COMPUTE_COLL_PARAMS(rhon,xk_gr,qc,qn,gnnnn,gmnnn,lnnnn,lmnnn)
+SUBROUTINE COMPUTE_COLL_PARAMS(rhon,xk_gr,cldliq_mass_mixing_ratio_kg_per_kg,qn,gnnnn,gmnnn,lnnnn,lmnnn)
 
   !$acc routine seq
 
@@ -640,7 +640,7 @@ SUBROUTINE COMPUTE_COLL_PARAMS(rhon,xk_gr,qc,qn,gnnnn,gmnnn,lnnnn,lmnnn)
 ! note: vertical array looping is stripped out, this subroutine operates
 ! only on LOCAL values
 
-  real(r8), dimension(ncd) :: qc,qn
+  real(r8), dimension(ncd) :: cldliq_mass_mixing_ratio_kg_per_kg,qn
   real(r8), dimension(ncdp) :: xk_gr
   real(r8) :: tbase,rhon
   integer :: lk
@@ -656,7 +656,7 @@ SUBROUTINE COMPUTE_COLL_PARAMS(rhon,xk_gr,qc,qn,gnnnn,gmnnn,lnnnn,lmnnn)
   lk=ncd
 
   DO L=1,LK
-     SMN0(L)=QC(L)*RHON/1.E3_r8
+     SMN0(L)=CLDLIQ_MASS_MIXING_RATIO_KG_PER_KG(L)*RHON/1.E3_r8
      SNN0(L)=QN(L)*RHON/1.E6_r8
 
      IF(SMN0(L).LT.lsmall.OR.SNN0(L).LT.lsmall)THEN
