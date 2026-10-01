@@ -18,6 +18,7 @@ python3 tests/cmp_restart.py a.cam.r.nc b.cam.r.nc   # compare any two restarts,
 - 📦📂 Baselines are restart files and live outside the repo: `/cluster/work/climate/$USER/cesm_runs/opumas_bfb_baselines/<case>/<label>.cam.r.nc`.
 - 🔁📌 After an intended change of results, renew a baseline with `tests/bfb.sh save <label>`.
 - ⚡🎚️ `BUILD=0 tests/bfb.sh run <label>` skips the build when only the namelist changed.
+- 🧩🔁 Before each build `bfb.sh` deletes `bld/atm/obj/{Srcfiles,Depends}`: CIME never regenerates them, so a new source file (e.g. `micro_pumas_sppe.F90`) would otherwise fail with `Can't open module file`.
 
 ## 🎚️🧭 Strategy for testing switches
 

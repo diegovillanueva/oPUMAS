@@ -43,6 +43,8 @@ use ndrop_bam,        only: ndrop_bam_init, ndrop_bam_run, ndrop_bam_ccn
 use hetfrz_classnuc_cam, only: hetfrz_classnuc_cam_readnl, hetfrz_classnuc_cam_register, hetfrz_classnuc_cam_init, &
                                hetfrz_classnuc_cam_save_cbaero, hetfrz_classnuc_cam_calc
 
+use micro_dv_nml, only: micro_dv_readnl
+
 use cam_history,      only: addfld, add_default, outfld
 use cam_logfile,      only: iulog
 use cam_abortutils,       only: endrun
@@ -368,6 +370,7 @@ subroutine microp_aero_readnl(nlfile)
 
    call nucleate_ice_cam_readnl(nlfile)
    call hetfrz_classnuc_cam_readnl(nlfile)
+   call micro_dv_readnl(nlfile)
 
 end subroutine microp_aero_readnl
 

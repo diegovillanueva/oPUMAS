@@ -1,0 +1,32 @@
+diff --git a/src/physics/cam/micro_pumas_cam.F90 b/src/physics/cam/micro_pumas_cam.F90
+index 6156d59..b24c828 100644
+--- a/src/physics/cam/micro_pumas_cam.F90
++++ b/src/physics/cam/micro_pumas_cam.F90
+@@ -822,6 +822,12 @@ subroutine micro_pumas_cam_init(pbuf2d)
+    use micro_pumas_utils, only: micro_pumas_utils_init
+    use micro_mg1_0, only: micro_mg_init1_0 => micro_mg_init
+    use micro_pumas_v1, only: micro_mg_init3_0 => micro_pumas_init
++   use micro_pumas_sppe, only: micro_pumas_sppe_set
++   use micro_dv_nml, only: dv_naai_het_also_in_mpc => naai_het_also_in_mpc, dv_enable_nimax => enable_nimax, &
++        dv_detrainment_ramp_liq => detrainment_ramp_liq, dv_onoff_contact_freezing => onoff_contact_freezing, &
++        dv_onoff_sip => onoff_sip, dv_rain_freeze => rain_freeze, dv_auto_liq_factor => auto_liq_factor, &
++        dv_riming_factor => riming_factor, dv_berg_ice_factor => micro_mg_ice_berg_ice_factor, &
++        dv_berg_snow_factor => micro_mg_ice_berg_snow_factor, dv_factor_HM => factor_HM
+ 
+    !-----------------------------------------------------------------------
+    !
+@@ -913,6 +919,14 @@ subroutine micro_pumas_cam_init(pbuf2d)
+ 
+    call handle_errmsg(errstring, subname="micro_mg_init")
+ 
++   ! oPUMAS Sppe: hand the micro_dv_nl controls (read in microp_aero_readnl) to PUMAS.
++   call micro_pumas_sppe_set( &
++        naai_het_also_in_mpc_in=dv_naai_het_also_in_mpc, enable_nimax_in=dv_enable_nimax, &
++        detrainment_ramp_liq_in=dv_detrainment_ramp_liq, onoff_contact_freezing_in=dv_onoff_contact_freezing, &
++        onoff_sip_in=dv_onoff_sip, rain_freeze_in=dv_rain_freeze, auto_liq_factor_in=dv_auto_liq_factor, &
++        riming_factor_in=dv_riming_factor, micro_mg_ice_berg_ice_factor_in=dv_berg_ice_factor, &
++        micro_mg_ice_berg_snow_factor_in=dv_berg_snow_factor, factor_HM_in=dv_factor_HM)
++
+    ! Retrieve the index for water vapor
+    call cnst_get_ind('Q', ixq)
+ 

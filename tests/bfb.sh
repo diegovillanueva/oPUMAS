@@ -51,6 +51,8 @@ submit() {
 	fi
 	./xmlchange STOP_OPTION=ndays,STOP_N=1,CONTINUE_RUN=FALSE,RESUBMIT=0,DOUT_S=FALSE
 	if [[ "${BUILD}" == 1 ]]; then
+		# 🧩🔁 CIME never regenerates these lists, so a new source file (micro_pumas_sppe.F90) would be missing
+		rm -f "$(./xmlquery --value EXEROOT)"/atm/obj/{Srcfiles,Depends}
 		sbatch --wait "${W}/build.proxy.sh"
 		[[ "$(./xmlquery --value BUILD_COMPLETE)" == TRUE ]] || { echo "ERROR: build failed, see ${CASEDIR}/build.err" >&2; exit 1; }
 	fi

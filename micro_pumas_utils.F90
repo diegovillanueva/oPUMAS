@@ -36,6 +36,8 @@ module micro_pumas_utils
 !--------------------------------------------------------------------------
 
 use pumas_kinds, only: r8=>kind_r8, i8=>kind_i8
+! oPUMAS Sppe process controls (defaults = upstream PUMAS).
+use micro_pumas_sppe, only: onoff_contact_freezing, onoff_sip, rain_freeze, factor_HM
 
 #ifndef HAVE_GAMMA_INTRINSICS
 use pumas_gamma_function, only: gamma=>pumas_gamma
@@ -1696,7 +1698,7 @@ subroutine contact_freezing (microp_uniform, t, p, rndst, nacon, &
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i = 1,vlen
-     if (qcic(i) >= qsmall .and. t(i) < 269.15_r8) then
+     if (qcic(i) >= qsmall .and. t(i) < 269.15_r8 .and. onoff_contact_freezing) then
         if (microp_uniform) then
            dum  = 1._r8
            dum1 = 1._r8
@@ -1938,13 +1940,16 @@ subroutine secondary_ice_production(t, psacws, msacwi, nsacwi, vlen)
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if((t(i) < 270.16_r8) .and. (t(i) >= 268.16_r8)) then
+     if (.not. onoff_sip) then
+        nsacwi(i) = 0.0_r8
+     else if((t(i) < 270.16_r8) .and. (t(i) >= 268.16_r8)) then
         nsacwi(i) = 3.5e8_r8*(270.16_r8-t(i))/2.0_r8*psacws(i)
      else if((t(i) < 268.16_r8) .and. (t(i) >= 265.16_r8)) then
         nsacwi(i) = 3.5e8_r8*(t(i)-265.16_r8)/3.0_r8*psacws(i)
      else
         nsacwi(i) = 0.0_r8
      endif
+     if (factor_HM /= 1._r8) nsacwi(i) = nsacwi(i)*factor_HM
 
      msacwi(i) = min(nsacwi(i)*mi0, psacws(i))
      psacws(i) = psacws(i) - msacwi(i)
@@ -2071,7 +2076,7 @@ subroutine heterogeneous_rain_freezing(t, qric, nric, lamr, mnuccr, nnuccr, vlen
   !$acc parallel vector_length(VLENS) default(present)
   !$acc loop gang vector
   do i=1,vlen
-     if (t(i) < 269.15_r8 .and. qric(i) >= qsmall) then
+     if (t(i) < 269.15_r8 .and. qric(i) >= qsmall .and. rain_freeze) then
         nnuccr(i) = pi*nric(i)*bimm* &
              (exp(aimm*(tmelt - t(i)))-1._r8)/lamr(i)**3
         mnuccr(i) = nnuccr(i) * 20._r8*pi*rhow/lamr(i)**3

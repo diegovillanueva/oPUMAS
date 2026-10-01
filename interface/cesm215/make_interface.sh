@@ -13,11 +13,12 @@ BRANCH="${BRANCH:-dv_pumas_rel60}"                        # branch of the CAM wo
 ROOT="${ROOT:-${WT}/cesm215_pumas}"                       # sibling CESM root seen by cime
 
 # 🧮📦 PUMAS files compiled by CAM (never micro_pumas_ccpp, micro_pumas_tempfix, micro_mg1_0).
-PUMAS_FILES=(pumas_kinds pumas_gamma_function micro_pumas_utils micro_pumas_diags
+PUMAS_FILES=(pumas_kinds pumas_gamma_function micro_pumas_sppe micro_pumas_utils micro_pumas_diags
 	pumas_stochastic_collect_tau module_neural_net tau_neural_net_quantile
 	ML_fixer_check micro_pumas_v1)
 CAM_EXTERNALS=(chem_proc src/physics/clubb src/physics/carma/base src/physics/cosp2/src)
-OVERRIDES=(micro_mg_cam.F90 wv_sat_methods.F90 check_energy.F90 microp_aero.F90 ndrop.F90)
+OVERRIDES=(micro_mg_cam.F90 wv_sat_methods.F90 check_energy.F90 microp_aero.F90 ndrop.F90
+	hetfrz_classnuc.F90 hetfrz_classnuc_cam.F90 clubb_intr.F90 macrop_driver.F90)
 XML=bld/namelist_files/namelist_definition.xml
 
 links() {
@@ -53,15 +54,17 @@ setup_tree() {
 }
 
 patch_xml() {
-	# 📝🧊 Add namelist group micro_pumas_nl to the worktree (idempotent), committed on BRANCH.
-	local p="${HERE}/namelist_definition.micro_pumas_nl.patch"
-	if grep -q 'group="micro_pumas_nl"' "${CAMWT}/${XML}"; then
-		echo "already patched: ${CAMWT}/${XML}"
-		return 0
-	fi
-	git -C "${CAMWT}" apply "${p}"
-	git -C "${CAMWT}" commit -q -m "✨ feat: 🧊📝 add micro_pumas_nl namelist group for oPUMAS" -- "${XML}"
-	echo "${CAMWT}/${XML}"
+	# 📝🧊 Add namelist groups micro_pumas_nl and micro_dv_nl (Sppe) to the worktree (idempotent), committed on BRANCH.
+	local group
+	for group in micro_pumas_nl micro_dv_nl; do
+		if grep -q "group=\"${group}\"" "${CAMWT}/${XML}"; then
+			echo "already patched (${group}): ${CAMWT}/${XML}"
+			continue
+		fi
+		git -C "${CAMWT}" apply "${HERE}/namelist_definition.${group}.patch"
+		git -C "${CAMWT}" commit -q -m "✨ feat: 🧊📝 add ${group} namelist group for oPUMAS" -- "${XML}"
+		echo "${CAMWT}/${XML}"
+	done
 }
 
 show_diff() {

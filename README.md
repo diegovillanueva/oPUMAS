@@ -10,6 +10,7 @@
 - 🧪♻️ Compile check, bit-for-bit test and switch matrix: [`tests/README.md`](tests/README.md)
 - 🤝📂 Handoffs of all topics: [`handoffs/`](handoffs/)
 - 🧊🔌 Run oPUMAS inside CESM 2.1.5 CAM (`micro_mg_version = 3`): [`interface/cesm215/README.md`](interface/cesm215/README.md)
+- 🌍🩹 Sppe CAM-side patches for CESM 3 / CAM7 (checked, untested): [`interface/cesm3/README.md`](interface/cesm3/README.md)
 
 ## Remotes and branches
 
@@ -20,6 +21,9 @@
 | `main_cam` | mirror of `upstream/main_cam` | fast-forward only, never commit |
 | `main_cam_interface` | Diego's development in PUMAS names (default branch) | merge `main_cam` in regularly; dictionary edits happen here |
 | `CF-CCPP` | the same code in CF-CCPP names, editable | run `translation/sync.sh` before and after working on it |
+| `dev/Sppe` | `main_cam_interface` plus the Sppe process controls (`micro_pumas_sppe.F90`, group `micro_dv_nl`), all off by default | not synced to `CF-CCPP`; merge `main_cam_interface` in |
+
+🔤🌿 Branch names used by the translation scripts come from `translation/languages.csv`. 🧪🏷️ `bfb_dev` in `tests/` is a CESM case name, not a branch.
 
 ## Local clone
 

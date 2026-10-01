@@ -1,0 +1,25 @@
+diff --git a/src/physics/cam/hetfrz_classnuc_cam.F90 b/src/physics/cam/hetfrz_classnuc_cam.F90
+index 52a4ce6..e499b60 100644
+--- a/src/physics/cam/hetfrz_classnuc_cam.F90
++++ b/src/physics/cam/hetfrz_classnuc_cam.F90
+@@ -24,6 +24,7 @@ use error_messages, only: handle_errmsg, alloc_err
+ use cam_abortutils, only: endrun
+ use string_utils,   only: int2str
+ use hetfrz_classnuc,only: hetfrz_classnuc_init, hetfrz_classnuc_calc
++use micro_dv_nml,   only: hclas_du_imm, hclas_du_dep, hclas_du_cnt, hclas_bc_imm, hclas_bc_dep, hclas_bc_cnt
+ 
+ use aerosol_properties_mod, only: aerosol_properties, aero_name_len
+ use aerosol_state_mod, only: aerosol_state
+@@ -528,9 +529,9 @@ subroutine hetfrz_classnuc_cam_calc(aero_props, aero_state, state, deltatin, fac
+ 
+             call handle_errmsg(errstring, subname="hetfrz_classnuc_calc")
+ 
+-            frzimm(i,k) = frzbcimm(i,k) + frzduimm(i,k)
+-            frzcnt(i,k) = frzbccnt(i,k) + frzducnt(i,k)
+-            frzdep(i,k) = frzbcdep(i,k) + frzdudep(i,k)
++            frzimm(i,k) = hclas_bc_imm*frzbcimm(i,k) + hclas_du_imm*frzduimm(i,k)
++            frzcnt(i,k) = hclas_bc_cnt*frzbccnt(i,k) + hclas_du_cnt*frzducnt(i,k)
++            frzdep(i,k) = hclas_bc_dep*frzbcdep(i,k) + hclas_du_dep*frzdudep(i,k)
+ 
+             if (frzimm(i,k) > 0._r8) freqimm(i,k) = 1._r8
+             if (frzcnt(i,k) > 0._r8) freqcnt(i,k) = 1._r8

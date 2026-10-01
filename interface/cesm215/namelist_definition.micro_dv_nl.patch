@@ -1,0 +1,137 @@
+diff --git a/bld/namelist_files/namelist_definition.xml b/bld/namelist_files/namelist_definition.xml
+--- a/bld/namelist_files/namelist_definition.xml
++++ b/bld/namelist_files/namelist_definition.xml
+@@ -7745,6 +7745,133 @@
+        group="offline_driver_nl" valid_values="" >
+ List of filepaths for dataset for offline unit driver.
+ Default: none
+ </entry>
+ 
++
++<entry id="auto_liq_factor" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++Multiplier applied to liquid autoconversion rate (prc, nprc, nprc1) for sensitivity tuning.
++Applies to both KK2000 and SB2001v2 schemes.
++Default: 1.0
++</entry>
++
++<entry id="depr_point_frz" type="logical" category="conv"
++       group="micro_dv_nl" valid_values="" >
++Enable freezing point depression effect in heterogeneous immersion freezing nucleation (inside droplets water activity close to 1).
++Default: .true.
++</entry>
++
++<entry id="detrainment_ramp_liq" type="logical" category="conv"
++       group="micro_dv_nl" valid_values="" >
++Turn all detrainment (CLUBB and macroP) to liquid instead of 30dg ramp.
++Default: .false.
++</entry>
++
++<entry id="enable_nimax" type="logical" category="conv"
++       group="micro_dv_nl" valid_values="" >
++Switch nimax threshold (should be disabled)
++Default: .true.
++</entry>
++
++<entry id="factor_HM" type="real" category="microphys"
++    group="micro_dv_nl" valid_values="" >
++    factor for changing Hallte Mossop   
++    Default: 1
++</entry>
++
++<entry id="hclas_bc_cnt" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++factor for contact black carbon freezing
++Default: 1
++</entry>
++
++<entry id="hclas_bc_dep" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++factor for deposition black carbon freezing
++Default: 1
++</entry>
++
++<entry id="hclas_bc_imm" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++factor for black carbon immersion freezing
++Default: 1
++</entry>
++
++<entry id="hclas_du_cnt" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++factor for dust contact freezing
++Default: 1
++</entry>
++
++<entry id="hclas_du_dep" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++factor for dust deposition freezing
++Default: 1
++</entry>
++
++<entry id="hclas_du_imm" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++factor for  dust immersion freezing. (Still model timing dependent)
++Default: 1
++</entry>
++
++<entry id="limfacdu" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++limit dust aerosol N for dust-drive droplet freezing . (Still model timing dependent)
++Default: 5%
++</entry>
++
++<entry id="limfacdu_niemand_continuous" type="logical" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++If .true., dust immersion freezing follows Niemand et al. (2012): the frozen fraction
++FF(T,r) = 1-exp(-4*pi*r^2*n_s(T)), n_s(T) = exp(-0.517*(T-273.15)+8.934) [m-2] (n_s = 0 below 233 K),
++of the immersed dust number of each dust mode freezes every call. Replaces the
++limfacdu-capped classical-nucleation-theory rate, so limfacdu is then inactive.
++Default: .false.
++</entry>
++
++<entry id="micro_mg_ice_berg_ice_factor" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++factor for bergeron ice process
++Default: 1
++</entry>
++
++<entry id="micro_mg_ice_berg_snow_factor" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++factor for bergeron snow process
++Default: 1
++</entry>
++
++<entry id="naai_het_also_in_mpc" type="logical" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++controls naai (deposition) nucleation in mpc clouds
++Default: true
++</entry>
++
++<entry id="onoff_contact_freezing" type="logical" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++controls parallel/legqcy contact freezing in micro_mg_utils.F90.patch
++Default: true
++</entry>
++
++<entry id="onoff_sip" type="logical" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++controls hallet mossop in micro_mg_utils.F90.patch
++Default: true
++</entry>
++
++<entry id="rain_freeze" type="logical" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++controls legacy freezing of rain
++Default: true
++</entry>
++
++<entry id="riming_factor" type="real" category="microphys"
++       group="micro_dv_nl" valid_values="" >
++Multiplier applied to snow riming rate (psacws, npsacws) for sensitivity tuning.
++Scaling occurs before the Hallett-Mossop secondary ice call, so H-M splinter
++production is also proportionally affected.
++Default: 1.0
++</entry>
++
+ </namelist_definition>

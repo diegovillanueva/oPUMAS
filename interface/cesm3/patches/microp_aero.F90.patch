@@ -1,0 +1,20 @@
+diff --git a/src/physics/cam/microp_aero.F90 b/src/physics/cam/microp_aero.F90
+index 4aa9d30..5adc9a8 100644
+--- a/src/physics/cam/microp_aero.F90
++++ b/src/physics/cam/microp_aero.F90
+@@ -48,6 +48,7 @@ use ndrop_bam,        only: ndrop_bam_init, ndrop_bam_calc, &
+ 
+ use hetfrz_classnuc_cam, only: hetfrz_classnuc_cam_readnl, hetfrz_classnuc_cam_register, hetfrz_classnuc_cam_init, &
+                                hetfrz_classnuc_cam_calc
++use micro_dv_nml,       only: micro_dv_readnl
+ 
+ use compute_subgrid_vertical_velocity, only: compute_subgrid_vertical_velocity_tke_run, &
+                                              compute_subgrid_vertical_velocity_kvh_run, &
+@@ -486,6 +487,7 @@ subroutine microp_aero_readnl(nlfile)
+ 
+    call nucleate_ice_cam_readnl(nlfile)
+    call hetfrz_classnuc_cam_readnl(nlfile)
++   call micro_dv_readnl(nlfile)
+ 
+ end subroutine microp_aero_readnl
+ 

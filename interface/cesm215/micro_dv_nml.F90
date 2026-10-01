@@ -1,0 +1,148 @@
+module micro_dv_nml
+
+!---------------------------------------------------------------------------------
+! Purpose:
+!   get namelist variables for microphysics
+!
+! Author: Diego Villanueva
+!
+!---------------------------------------------------------------------------------
+
+use shr_kind_mod,     only: r8=>shr_kind_r8
+use spmd_utils,      only: masterproc, mpicom, masterprocid, mpi_logical, mpi_real8
+
+
+use cam_logfile,      only: iulog
+use cam_abortutils,   only: endrun
+
+implicit none
+private
+save
+
+public :: micro_dv_readnl
+
+
+
+!fix imm frz (McGraw "Hoose")
+logical, public            :: enable_nimax = .true.          ! should be FALSE -> no thresh
+real(r8), public           :: limfacdu = 1.0_r8              ! should be 0.05_r8 -> max. INP fraction
+logical, public            :: limfacdu_niemand_continuous = .false. ! should be TRUE -> Niemand (2012) FF*N_dust frozen every call
+
+!fix leak
+logical, public            :: naai_het_also_in_mpc = .true.  !should be FALSE -> no leak
+
+real(r8), public           :: hclas_du_imm = 1.0_r8
+!Simplification
+real(r8), public           :: hclas_du_dep = 1.0_r8 !all but imm should be 0 or off
+real(r8), public           :: hclas_du_cnt = 1.0_r8
+real(r8), public           :: hclas_bc_imm = 1.0_r8
+real(r8), public           :: hclas_bc_dep = 1.0_r8
+real(r8), public           :: hclas_bc_cnt = 1.0_r8
+logical, public            :: onoff_contact_freezing = .true. !only relevant if use_hetfrz_classnuc=false
+logical, public            :: onoff_sip = .true.
+logical, public            :: rain_freeze = .true. !  bigg 1953 -> rain to snow
+logical, public            :: detrainment_ramp_liq = .false. ! should be TRUE -> liq (clubb)
+logical, public            :: depr_point_frz = .true.  ! freezing point depression effect
+
+real(r8), public           :: micro_mg_ice_berg_ice_factor = 1.0_r8
+real(r8), public           :: micro_mg_ice_berg_snow_factor = 1.0_r8
+real(r8), public           :: factor_HM = 1.0_r8 !this was hardcoded like this by default
+real(r8), public           :: auto_liq_factor = 1.0_r8  ! multiplier for liquid autoconversion rate (prc)
+real(r8), public           :: riming_factor    = 1.0_r8  ! multiplier for snow riming rate (psacws/npsacws)
+
+
+!=========================================================================================
+contains
+!=========================================================================================
+
+subroutine micro_dv_readnl(nlfile)
+
+   use namelist_utils,  only: find_group_name
+   use units,           only: getunit, freeunit
+   use mpishorthand
+
+   character(len=*), intent(in) :: nlfile  ! filepath for file containing namelist input
+
+   ! Local variables
+   integer :: unitn, ierr
+   character(len=*), parameter :: subname = 'micro_dv_readnl'
+
+   namelist /micro_dv_nl/ auto_liq_factor, depr_point_frz, detrainment_ramp_liq, enable_nimax, &
+       factor_HM, hclas_bc_cnt, hclas_bc_dep, hclas_bc_imm, &
+       hclas_du_cnt, hclas_du_dep, hclas_du_imm, limfacdu, limfacdu_niemand_continuous, &
+       micro_mg_ice_berg_ice_factor, micro_mg_ice_berg_snow_factor, naai_het_also_in_mpc, onoff_contact_freezing, &
+       onoff_sip, rain_freeze, riming_factor
+   !-----------------------------------------------------------------------------
+
+   if (masterproc) then
+      unitn = getunit()
+      open( unitn, file=trim(nlfile), status='old' )
+      call find_group_name(unitn, 'micro_dv_nl', status=ierr)
+      if (ierr == 0) then
+         read(unitn, micro_dv_nl, iostat=ierr)
+         if (ierr /= 0) then
+            call endrun(subname // ':: ERROR reading namelist')
+         end if
+      end if
+      close(unitn)
+      call freeunit(unitn)
+   end if
+
+   ! Broadcast namelist variable
+  call mpi_bcast(onoff_contact_freezing, 1, mpi_logical, masterprocid, mpicom, ierr)
+  call mpi_bcast(detrainment_ramp_liq, 1, mpi_logical, masterprocid, mpicom, ierr)
+  call mpi_bcast(depr_point_frz, 1, mpi_logical, masterprocid, mpicom, ierr)
+  call mpi_bcast(naai_het_also_in_mpc, 1, mpi_logical, masterprocid, mpicom, ierr)
+  call mpi_bcast(enable_nimax, 1, mpi_logical, masterprocid, mpicom, ierr)
+  call mpi_bcast(onoff_sip, 1, mpi_logical, masterprocid, mpicom, ierr)
+  call mpi_bcast(rain_freeze, 1, mpi_logical, masterprocid, mpicom, ierr)
+  call mpi_bcast(limfacdu_niemand_continuous, 1, mpi_logical, masterprocid, mpicom, ierr)
+
+  call mpi_bcast(factor_HM, 1, mpi_real8,masterprocid, mpicom, ierr)
+
+  call mpi_bcast(micro_mg_ice_berg_ice_factor, 1, mpi_real8,masterprocid, mpicom, ierr)
+  call mpi_bcast(micro_mg_ice_berg_snow_factor, 1, mpi_real8,masterprocid, mpicom, ierr)
+
+  call mpi_bcast(hclas_du_imm, 1, mpi_real8,masterprocid, mpicom, ierr)
+  call mpi_bcast(hclas_du_dep, 1, mpi_real8,masterprocid, mpicom, ierr)
+  call mpi_bcast(hclas_du_cnt, 1, mpi_real8,masterprocid, mpicom, ierr)
+  call mpi_bcast(hclas_bc_imm, 1, mpi_real8,masterprocid, mpicom, ierr)
+  call mpi_bcast(hclas_bc_dep, 1, mpi_real8,masterprocid, mpicom, ierr)
+  call mpi_bcast(hclas_bc_cnt, 1, mpi_real8,masterprocid, mpicom, ierr)
+
+  call mpi_bcast(limfacdu, 1, mpi_real8,masterprocid, mpicom, ierr)
+  call mpi_bcast(auto_liq_factor,   1, mpi_real8, masterprocid, mpicom, ierr)
+  call mpi_bcast(riming_factor,     1, mpi_real8, masterprocid, mpicom, ierr)
+
+  if (masterproc) then
+
+      write(iulog,*) ' factor_HM = ', factor_HM
+
+      write(iulog,*) ' micro_mg_ice_berg_ice_factor = ', micro_mg_ice_berg_ice_factor
+      write(iulog,*) ' micro_mg_ice_berg_snow_factor = ', micro_mg_ice_berg_snow_factor
+      write(iulog,*) ' rain_freeze = ', rain_freeze
+
+      write(iulog,*) ' hclas_du_imm = ', hclas_du_imm
+      write(iulog,*) ' hclas_du_dep = ', hclas_du_dep
+      write(iulog,*) ' hclas_du_cnt = ', hclas_du_cnt
+      write(iulog,*) ' hclas_bc_imm = ', hclas_bc_imm
+      write(iulog,*) ' hclas_bc_dep = ', hclas_bc_dep
+      write(iulog,*) ' hclas_bc_cnt = ', hclas_bc_cnt
+
+      write(iulog,*) ' limfacdu = ', limfacdu
+      write(iulog,*) ' limfacdu_niemand_continuous = ', limfacdu_niemand_continuous
+      write(iulog,*) ' auto_liq_factor  = ', auto_liq_factor
+      write(iulog,*) ' riming_factor    = ', riming_factor
+
+      write(iulog,*) ' onoff_contact_freezing = ', onoff_contact_freezing
+      write(iulog,*) ' onoff_sip = ', onoff_sip
+      write(iulog,*) ' detrainment_ramp_liq = ', detrainment_ramp_liq
+      write(iulog,*) ' depr_point_frz = ', depr_point_frz
+      write(iulog,*) ' enable_nimax = ', enable_nimax
+      write(iulog,*) ' naai_het_also_in_mpc = ', naai_het_also_in_mpc
+  end if
+
+end subroutine micro_dv_readnl
+
+!=========================================================================================
+end module micro_dv_nml
