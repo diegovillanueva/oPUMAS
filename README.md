@@ -3,6 +3,7 @@
 🧊🌧️ Diego's private development copy of [ESCOMP/PUMAS](https://github.com/ESCOMP/PUMAS) (Parameterization for Unified Microphysics Across Scales).
 🔄🌿 It tracks upstream fixes continuously; changes that should go upstream will later be sent as a single PR to ESCOMP/PUMAS.
 
+- 🧭🧊 What separates oPUMAS from PUMAS (naming, defaults, sync): [`PHILOSOPHY.md`](PHILOSOPHY.md); name dictionary: [`name_map.csv`](name_map.csv)
 - 📘📄 Original upstream README (checkout, running with CAM): [`README_PUMAS.md`](README_PUMAS.md)
 - 🐙🔁 Git setup, daily upstream sync, and (disabled) PR recipe: [`git_work.md`](git_work.md)
 - 🤖📋 Agent rules: [`AGENTS.md`](AGENTS.md)
