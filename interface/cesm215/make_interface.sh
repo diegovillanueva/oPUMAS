@@ -17,7 +17,7 @@ PUMAS_FILES=(pumas_kinds pumas_gamma_function micro_pumas_utils micro_pumas_diag
 	pumas_stochastic_collect_tau module_neural_net tau_neural_net_quantile
 	ML_fixer_check micro_pumas_v1)
 CAM_EXTERNALS=(chem_proc src/physics/clubb src/physics/carma/base src/physics/cosp2/src)
-OVERRIDES=(micro_mg_cam.F90 wv_sat_methods.F90)
+OVERRIDES=(micro_mg_cam.F90 wv_sat_methods.F90 check_energy.F90 microp_aero.F90 ndrop.F90)
 XML=bld/namelist_files/namelist_definition.xml
 
 links() {
@@ -65,7 +65,7 @@ patch_xml() {
 }
 
 show_diff() {
-	# 🔍📐 Effective patch of the two overridden CAM files against the tag.
+	# 🔍📐 Effective patch of the overridden CAM files against the tag.
 	local f
 	for f in "${OVERRIDES[@]}"; do
 		diff -u --label "${TAG}:src/physics/cam/${f}" --label "interface/cesm215/${f}" \

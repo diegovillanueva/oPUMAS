@@ -1,0 +1,24 @@
+! 🧊🌍 oPUMAS with the CESM 3 (CAM7) out-of-the-box microphysics settings, on CESM 2.1.5 (CAM6).
+! 📌🔖 Reference: ESCOMP/CESM tag cesm3_0_beta10 -> ESCOMP/CAM tag cam6_4_203 (same micro defaults in
+!       cam6_4_204, commit 650d6779), bld/namelist_files/namelist_defaults_cam.xml, entries with
+!       phys="cam7" or microphys="mg3". CAM7 itself runs PUMAS tag pumas_cam-release_v1.17_rename.
+! ⚠️🔧 Graupel adds 2 advected tracers: ./xmlchange --append CAM_CONFIG_OPTS="-nadv 35" and
+!       ./case.build --clean-all (F2000climo cam6: 33 -> 35).
+! 🌡️⚖️ Only microphysics and activation follow CAM7; the rest stays CAM6, so expect a TOA imbalance.
+micro_mg_version          = 3
+micro_mg_sub_version      = 0
+micro_mg_num_steps        = 1
+micro_mg_do_graupel       = .true.
+micro_mg_do_hail          = .false.
+micro_mg_implicit_fall    = .true.
+micro_mg_accre_sees_auto  = .true.
+micro_mg_precip_fall_corr = .true.
+micro_pumas_warm_rain     = 'kk2000'
+micro_mg_accre_enhan_fact = 0.731D0
+micro_mg_autocon_lwp_exp  = 2.37D0
+micro_mg_vtrmi_factor     = 1.39D0
+microp_aero_wsub_scale    = 0.9D0
+microp_aero_wsubi_scale   = 1.5D0
+microp_aero_wsub_min      = 0.1D0
+microp_aero_wsub_min_asf  = 0.0D0
+microp_aero_wsubi_min     = 0.001D0

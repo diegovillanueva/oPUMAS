@@ -1,5 +1,5 @@
 diff --git a/bld/namelist_files/namelist_definition.xml b/bld/namelist_files/namelist_definition.xml
-index 37a56902..aa6b2818 100644
+index 37a56902..0b48473f 100644
 --- a/bld/namelist_files/namelist_definition.xml
 +++ b/bld/namelist_files/namelist_definition.xml
 @@ -2572,6 +2572,167 @@ In-cloud ice number concentration when micro_mg_nicons=.true.
@@ -170,3 +170,40 @@ index 37a56902..aa6b2818 100644
  <!-- Aerosol microphysics -->
  <entry id="microp_aero_bulk_scale" type="real" category="microphys"
         group="microp_aero_nl" valid_values="" >
+@@ -2579,6 +2740,36 @@ prescribed aerosol bulk sulfur scale factor
+ Default: 2
+ </entry>
+ 
++<entry id="microp_aero_wsub_scale" type="real" category="microphys"
++       group="microp_aero_nl" valid_values="" >
++Unitless scaling factor for the liquid droplet subgrid scale vertical velocity during aerosol activation (oPUMAS interface, CAM7 name).
++Default: 1.0
++</entry>
++
++<entry id="microp_aero_wsubi_scale" type="real" category="microphys"
++       group="microp_aero_nl" valid_values="" >
++Unitless scaling factor for the ice subgrid scale vertical velocity during ice nucleation (oPUMAS interface, CAM7 name).
++Default: 1.0
++</entry>
++
++<entry id="microp_aero_wsub_min" type="real" category="microphys"
++       group="microp_aero_nl" valid_values="" >
++Minimum subgrid vertical velocity (before scale factor) for liquid droplets during aerosol activation (m s-1).
++Default: 0.2
++</entry>
++
++<entry id="microp_aero_wsub_min_asf" type="real" category="microphys"
++       group="microp_aero_nl" valid_values="" >
++Minimum subgrid vertical velocity (after scale factor) for liquid droplets, used in dropmixnuc (m s-1).
++Default: 0.1
++</entry>
++
++<entry id="microp_aero_wsubi_min" type="real" category="microphys"
++       group="microp_aero_nl" valid_values="" >
++Minimum subgrid vertical velocity for ice nucleation (m s-1).
++Default: 0.001
++</entry>
++
+ <entry id="use_hetfrz_classnuc" type="logical" category="microphys"
+        group="phys_ctl_nl" valid_values="" >
+ Switch to turn on heterogeneous freezing code.
