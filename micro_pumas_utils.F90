@@ -93,7 +93,7 @@ public :: MGHydrometeorProps
 
 type :: MGHydrometeorProps
    ! Density (kg/m^3)
-   real(r8) :: air_density_kg_per_m3
+   real(r8) :: rho
    ! Information for size calculations.
    ! Basic calculation of mean size is:
    !     lambda = (shape_coef*nic/qic)^(1/eff_dim)

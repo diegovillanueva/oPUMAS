@@ -77,3 +77,8 @@ def test_wrap_keeps_lines_short() -> None:
 
 def test_real_dictionary_passes_static_checks() -> None:
     assert check.run_checks(Path(__file__).resolve().parent.parent) == []
+
+
+def test_components_of_other_types_keep_their_names() -> None:
+    src = "type :: MGHydrometeorProps\n  real(r8) :: rho\nend type MGHydrometeorProps\nx = props%rho*rho\nselect type (a)\ntype is (real)\n  y = rho\nend select\n"
+    assert fwd(src) == src.replace("%rho*rho", "%rho*air_density_kg_per_m3").replace("y = rho", "y = air_density_kg_per_m3")
