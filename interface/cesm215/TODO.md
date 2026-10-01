@@ -1,6 +1,6 @@
 # 📝🧭 Open work for the CESM 2.1.5 interface
 
-📌🔄 Single source of truth for what the interface does not do yet. Update it in the commit that implements or tests an item; handoffs only point here.
+📌🔄 Single source of truth for what the interface does not do yet. Update it in the commit that implements or tests an item; handoffs (`../../handoffs/`) only point here.
 🎛️🔕 Every item must follow the rules in `../../AGENTS.md`: switchable, off by default, CESM 2.3 defaults.
 
 ## 🔧🧊 Features that need interface changes
