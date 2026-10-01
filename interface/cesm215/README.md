@@ -81,7 +81,7 @@ cesmvvv=cesm215_pumas_worktrees/cesm215_pumas CAM_USR_SRC=$I \
 
 - 🧬⚠️ `create_clone` resets `SRCROOT` to `$W/cesm215/cime/..`. After cloning a PUMAS case, set it back to `$W/cesm215_pumas_worktrees/cesm215_pumas` in `env_case.xml` and `LockedFiles/env_case.xml`, otherwise `build-namelist` rejects the oPUMAS variables.
 - 🏗️⚠️ A clone of a case that was itself created with `--keepexe` inherits the `EXEROOT` of the original case. Before building such a clone, run `./xmlchange EXEROOT=<cesm_runs>/<case>/bld`, otherwise the build overwrites the executable of the other case.
-- 🔤🧪 Bit-for-bit check of the `CF-CCPP` branch: cases `cesm215_pumas.F2000climo.bfb_dev` and `bfb_cfccpp` (clones of `pumas_c3like`, 1 day); the second one has `-usr_src $W/cesm215_pumas_worktrees/opumas_CF-CCPP/interface/cesm215`. After a dictionary change, sync, rebuild `bfb_cfccpp` with `case.build --clean-all`, rerun, and `cmp` the two `cam.r` restarts.
+- 🔤🧪 Bit-for-bit check of the `CF-CCPP` branch: cases `cesm215_pumas.F2000climo.bfb_dev` and `bfb_cfccpp` (clones of `pumas_c3like`, 1 day); the second one has `-usr_src $W/cesm215_pumas_worktrees/opumas_CF-CCPP/interface/cesm215`. After a dictionary change, sync, rebuild `bfb_cfccpp` with `case.build --clean-all`, rerun, and compare the two `cam.r` restarts variable by variable (`netCDF4`, `tobytes()`). `cmp` cannot be used across two cases, because the header holds the case name; only `hrestpath` and the global attribute `caseid` may differ. Result on 2026-10-01: 236 of 237 variables bit-identical, `hrestpath` differs as expected.
 - ♻️✅ Bit-for-bit check for a new switch: rebuild `pumas_grau`, rerun 1 day, `cmp` the new `cam.r` restart with a saved copy of the old one.
 
 ## 📝🧭 Open work
