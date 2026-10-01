@@ -104,4 +104,4 @@ for entry in "${langs[@]:1}"; do
     advance "${br}" "${new}"
     echo "synced ${ref} ${ref_tip:0:7} -> ${br} ${new:0:7}"
 done
-echo "next: git push origin ${ref} $(printf '%s ' "${langs[@]:1}" | sed 's/[^ ]*,//g')"
+echo "next: git push origin $(printf '%s\n' "${langs[@]}" | cut -d, -f2 | tr '\n' ' ')"

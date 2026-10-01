@@ -142,7 +142,7 @@ def translate_text(text: str, maps: Maps, filename: str, mode: str = "full",
             continue
         if in_type is None:
             t = TYPE_BEGIN.match(line)
-            if t and t.group(1).lower() in maps.comp:
+            if t and t.group(1).lower() != "is":
                 in_type = t.group(1).lower()
             out.append(translate_code(line, table, maps.any_comp, problems))
             continue
@@ -150,7 +150,8 @@ def translate_text(text: str, maps: Maps, filename: str, mode: str = "full",
             in_type = None
             out.append(line)
             continue
-        out.append(translate_code(line, maps.comp[in_type], maps.any_comp, problems))
+        # 🧱 inside a type definition only that type's own components are translated
+        out.append(translate_code(line, maps.comp.get(in_type, {}), maps.any_comp, problems))
     return "".join(out)
 
 
