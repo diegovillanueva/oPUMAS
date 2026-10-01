@@ -3,6 +3,30 @@
 📌🔄 Single source of truth for what the interface does not do yet. Update it in the commit that implements or tests an item; handoffs (`../../handoffs/`) only point here.
 🎛️🔕 Every item must follow the rules in `../../AGENTS.md`: switchable, off by default, CESM 2.3 defaults.
 
+## 🧪🎚️ Deferred: fill the switch baselines
+
+- 📌⏳ Status: open, to do later. Only the label `base` has a baseline (2026-10-01).
+- 🎯 Goal: every row of `../../tests/switches.csv` has run once, so each switch is proven to be wired and its code path is protected bit-for-bit.
+- ▶️ Proposed test, one label at a time (about 5 minutes each, one run job, no rebuild):
+  ```bash
+  cd /cluster/work/climate/dvillanueva/work/CESM/PUMAS
+  for l in $(tail -n +3 tests/switches.csv | cut -d, -f1); do BUILD=0 tests/bfb.sh run "$l" || echo "FAILED $l"; done
+  tests/bfb.sh list
+  ```
+- ✅ Pass criterion per label: the run ends, the restart differs from `base`, and the baseline is stored (`NEW`). A second run of the same label must report `PASS`.
+- 🔧 Expected follow-up: fix rows whose namelist line is rejected or has no effect, then move the label from "Wired but not yet run" below to tested.
+- 🚧 Not covered: graupel off needs a second reference case without `-nadv 35`.
+
+## 💡🧩 Deferred: replace the full-file CAM overrides
+
+- 📌⏳ Status: open, to do later. Full plan and trade-offs: `PROPOSAL_overrides.md`.
+- 🪜 Plan:
+  1. Fill the switch baselines (item above), so every code path is protected.
+  2. Store the CAM edits as a patch series in `patches/` and apply them with `git am` to the worktree branch `dv_pumas_rel60`; add `export` and `verify` to `make_interface.sh`; remove the five full copies. Test: `tests/bfb.sh run` passes without a new baseline.
+  3. Move the PUMAS-specific code of `micro_mg_cam.F90` into a new module `micro_pumas_cam.F90` in small moves (readnl, init, tend). Test after each move: `tests/compile_check.sh` and `tests/bfb.sh run`.
+  4. Point `translation/files.csv` at the new module instead of `micro_mg_cam.F90` and rerun the `CF-CCPP` check.
+- ⚠️ Risk to settle in step 3: the glue uses module-private variables of `micro_mg_cam` (pbuf and constituent indices).
+
 ## 🔧🧊 Features that need interface changes
 
 | Feature | What is missing | Effort | Status |
