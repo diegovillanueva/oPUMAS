@@ -41,7 +41,8 @@
 
 ```bash
 tests/compile_check.sh                    # PUMAS files and CAM overrides compile (about 40 s, herdr-compute)
-tests/bfb.sh run                          # 1-day CESM 2.1.5 run is bit-for-bit with the baseline (about 15 min)
+tests/bfb.sh run                          # 3-step CESM 2.1.5 run is bit-for-bit with the baseline
+tests/bfb.sh par sppe_                     # switch rows in parallel, one --keepexe clone each
 python3 -m pytest -q translation          # translator tests
 python3 translation/check.py              # dictionary against the sources
 python3 translation/check.py --branches   # CF-CCPP is exactly the translation of main_cam_interface
