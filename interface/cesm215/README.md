@@ -62,6 +62,14 @@ cesmvvv=cesm215_pumas CAM_USR_SRC=$I \
 - ❄️📊 With graupel on, `AQGRAU` and `ANGRAU` are written and the graupel flux is added to `LS_FLXPRC` and `LS_FLXSNW`. Graupel is not seen by radiation (no `ICGRAUWP`/`DEGRAU` fields, rel_60 `cloud_rad_props` does not know them).
 - 🗑️📡 The 10 cm reflectivity, graupel effective radius and diameter go to local dummies.
 
+## 🔎🧭 Audit against CESM 2.3 / CESM 3 (2026-10-01)
+
+- 🧪📖 References: `cam6_3_097` (CESM 2.3-era, local copy in `/cluster/work/climate/dvillanueva/work/CESM/pumas_code/CAM`) and `cam6_4_204` (latest ESCOMP/CAM, carries the CAM7 = CESM 3 beta physics; fetched from GitHub, no local checkout). Fetch with `curl -sfL https://raw.githubusercontent.com/ESCOMP/CAM/cam6_4_204/<path>`.
+- ☀️🚫 Graupel/rimed ice is **not radiatively active** in either reference: `graupel_in_rad` is a `radiation` namelist switch that defaults to `.false.` in both tags (`namelist_defaults_cam.xml` l.2122 / l.2389), and no CAM7 use case or testmod turns it on. The rel_60 interface therefore matches CESM 3 behaviour as-is.
+- 🧊✅ CAM7 (`-phys cam7`) selects `mg3` and sets `micro_mg_do_graupel=.true.`; in this interface graupel stays off unless `micro_mg_do_graupel=.true.` (golden rule). `cnst_add` of `GRAUQM`/`NUMGRA`, `is_convtran1=.true.`, and the `gflx` addition to `LS_FLXPRC`/`LS_FLXSNW` are identical to the upstream host.
+- 🎛️📐 CAM7 ships MG3 tuning that is **not** PUMAS default (`micro_mg_vtrmi_factor=1.39`, `micro_mg_accre_enhan_fact=0.731`, `micro_mg_autocon_lwp_exp=2.37`, `micro_mg_implicit_fall`, `micro_mg_accre_sees_auto`, `micro_mg_precip_fall_corr=.true.`). The interface keeps the cam6 defaults; set them in `user_nl_cam` to mimic CAM7.
+- 📡🗑️ Not yet in the interface (only needed if graupel radiation is ever switched on, or for diagnostics): pbuf `DEGRAU`/`ICGRAUWP`/`CLDFGRAU` (filled in `cam6_4_204` `micro_pumas_cam.F90` l.2611-2664), history `LS_REFFGRAU`, `CLDFGRAU`, `UMG`, `FREQG`, `QGSEDTEN`, and the graupel process rates (`PRACGO`, `PSACWGO`, `PGSACWO`, `PGRACSO`, `PRDGO`, `QMULTGO`, `QMULTRGO`, `PSACRO`, `NPRACGO`, `NSCNGO`, `NGRACSO`, `NMULTGO`, `NMULTRGO`, `NPSACWGO`, `MELTGTOT`). Radiative graupel would need overrides of rel_60 `cloud_rad_props.F90` and `radiation.F90` (cam6_3_097 `get_grau_optics_sw`, `grau_cloud_get_rad_props_lw`, `cldfprime = max(cld, cldfgrau)`), behind a `graupel_in_rad` switch defaulting to `.false.`.
+
 ## 🧪🔍 Validate
 
 - 🛠️📋 `Buildconf/camconf/Filepath` of the case must start with this directory.
