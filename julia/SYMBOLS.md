@@ -193,6 +193,7 @@
 | `qs_in` | `inputs.snow.q` | qsn | s01, s10 |
 | `ns_from_host` | `inputs.snow_from_host.N` | tnd_nsnow | s06 |
 | `qs_from_host` | `inputs.snow_from_host.q` | tnd_qsnow | s06 |
+| `Δt` | `inputs.time_step` | deltat | s02, s06, s07, s09, s11, s12, s13, s14, s15 |
 | `qi_accretion_snow_mean` | `process_rates.cloud_ice.accretion_by_snow.mass` | praitot | s09 |
 | `ni_accretion_snow_mean` | `process_rates.cloud_ice.accretion_by_snow.number` | npraitot | s09 |
 | `qi_autoconversion_mean` | `process_rates.cloud_ice.autoconversion_to_snow.mass` | prcitot | s09 |
