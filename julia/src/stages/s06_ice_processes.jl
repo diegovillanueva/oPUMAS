@@ -2,10 +2,13 @@
 #    2166–2530).
 
 "Scalar air NamedTuple of the vapor diffusion twins at point (i, k)."
-function air_at(F, i, k)
-    return (T = F.t[i, k], ρ = F.rho[i, k], diffusivity = F.dv[i, k],
-        viscosity = F.mu[i, k], schmidt = F.sc[i, k], q_vapor = F.q[i, k],
-        q_sat_liquid = F.qvl[i, k], q_sat_ice = F.qvi[i, k])
+function air_at(work, i, k)
+    (; inputs, state) = work
+    (; air) = state
+    return (T = inputs.T[i, k], ρ = air.density[i, k], diffusivity = air.diffusivity[i, k],
+        viscosity = air.viscosity[i, k], schmidt = air.schmidt[i, k],
+        q_vapor = inputs.q_vapor[i, k], q_sat_liquid = air.q_sat_liquid[i, k],
+        q_sat_ice = air.q_sat_ice[i, k])
 end
 
 """
@@ -18,87 +21,163 @@ the Bergeron process and vapor deposition.
 function ice_snow_processes!(work, parameters)
     (; settings, hydrometeors, gamma) = parameters
     dense = dense_precipitation(parameters)
-    F = work.fortran
-    (; t, q, rho, mu, rhof, arn, asn, agn, relvar, accre_enhan, cldm, lcldm, icldm) = F
-    (; qi, ni, qs, ns, qg, ng, precip_frac, dum_2D) = F
-    (; qcic, ncic, pgam, lamc, qiic, niic, lami, n0i, qric, nric, lamr, n0r, unr) = F
-    (; qsic, nsic, lams, n0s, uns, qgic, ngic, lamg, n0g, ung, umr, ums, umg) = F
-    (; prci, nprci, prc, nprc, pra, npra, nragg, nsagg, psacws, npsacws, msacwi, nsacwi) = F
-    (; pracs, npracs, mnuccr, nnuccr, mnuccc, nnuccc, mnucct, nnucct, mnudep, nnudep) = F
-    (; prai, nprai, bergs, vap_deps, vap_dep, ice_sublim, berg, nsubi, nsubc) = F
+    (; inputs, state, incloud, rates, process_rates, scratch) = work
+    qs_from_host = inputs.snow_from_host.q  # tnd_qsnow
+    ns_from_host = inputs.snow_from_host.N  # tnd_nsnow
+    immersion_freezing_host = inputs.host_freezing.immersion  # frzimm
+    contact_freezing_host = inputs.host_freezing.contact  # frzcnt
+    deposition_freezing_host = inputs.host_freezing.deposition  # frzdep
+    T = inputs.T  # t
+    qv = inputs.q_vapor  # q
+    ρ = state.air.density  # rho
+    η = state.air.viscosity  # mu
+    ρ_correction = state.air.density_correction  # rhof
+    a_rain = state.air.fall_speed_prefactor.rain  # arn
+    a_snow = state.air.fall_speed_prefactor.snow  # asn
+    a_graupel = state.air.fall_speed_prefactor.graupel  # agn
+    relative_variance = inputs.relative_variance  # relvar
+    accretion_enhancement = inputs.accretion_enhancement  # accre_enhan
+    cloud_fraction = incloud.cloud_fraction  # cldm
+    liquid_fraction = incloud.liquid_fraction  # lcldm
+    ice_fraction = incloud.ice_fraction  # icldm
+    qi = state.cloud_ice.q
+    ni = state.cloud_ice.N
+    qs = state.snow.q
+    ns = state.snow.N
+    qg = state.graupel.q
+    ng = state.graupel.N
+    precip_fraction = incloud.precipitation_fraction  # precip_frac
+    number_before = scratch.number_before  # dum_2D
+    qc_cloud = incloud.cloud_liquid.q  # qcic
+    nc_cloud = incloud.cloud_liquid.N  # ncic
+    μc = incloud.cloud_liquid.μ  # pgam
+    λc = incloud.cloud_liquid.λ  # lamc
+    qi_cloud = incloud.cloud_ice.q  # qiic
+    ni_cloud = incloud.cloud_ice.N  # niic
+    λi = incloud.cloud_ice.λ  # lami
+    N₀i = incloud.cloud_ice.N₀  # n0i
+    qr_precip = incloud.rain.q  # qric
+    nr_precip = incloud.rain.N  # nric
+    λr = incloud.rain.λ  # lamr
+    N₀r = incloud.rain.N₀  # n0r
+    vr_number = incloud.rain.fall_speed_number  # unr
+    qs_precip = incloud.snow.q  # qsic
+    ns_precip = incloud.snow.N  # nsic
+    λs = incloud.snow.λ  # lams
+    N₀s = incloud.snow.N₀  # n0s
+    vs_number = incloud.snow.fall_speed_number  # uns
+    qg_precip = incloud.graupel.q  # qgic
+    ng_precip = incloud.graupel.N  # ngic
+    λg = incloud.graupel.λ  # lamg
+    N₀g = incloud.graupel.N₀  # n0g
+    vg_number = incloud.graupel.fall_speed_number  # ung
+    vr_mass = process_rates.rain.fall_speed.mass  # umr
+    vs_mass = process_rates.snow.fall_speed.mass  # ums
+    vg_mass = process_rates.graupel.fall_speed.mass  # umg
+    qi_autoconversion = rates.cloud_ice.autoconversion_to_snow.mass  # prci
+    ni_autoconversion = rates.cloud_ice.autoconversion_to_snow.number  # nprci
+    qc_autoconversion = rates.cloud_liquid.autoconversion_to_rain.mass  # prc
+    nr_autoconversion = rates.rain.autoconversion_from_cloud_liquid.number  # nprc
+    qc_accretion = rates.cloud_liquid.accretion_by_rain.mass  # pra
+    nc_accretion = rates.cloud_liquid.accretion_by_rain.number  # npra
+    nr_self_collection = rates.rain.self_collection.number  # nragg
+    ns_aggregation = rates.snow.aggregation.number  # nsagg
+    qc_riming_snow = rates.cloud_liquid.riming_by_snow.mass  # psacws
+    nc_riming_snow = rates.cloud_liquid.riming_by_snow.number  # npsacws
+    qi_splintering_snow = rates.cloud_ice.splintering_by_snow.mass  # msacwi
+    ni_splintering_snow = rates.cloud_ice.splintering_by_snow.number  # nsacwi
+    qr_accretion_snow = rates.rain.accretion_by_snow.mass  # pracs
+    nr_accretion_snow = rates.rain.accretion_by_snow.number  # npracs
+    qr_freezing_snow = rates.rain.freezing_to_snow.mass  # mnuccr
+    nr_freezing_snow = rates.rain.freezing_to_snow.number  # nnuccr
+    qc_immersion_freezing = rates.cloud_liquid.immersion_freezing.mass  # mnuccc
+    nc_immersion_freezing = rates.cloud_liquid.immersion_freezing.number  # nnuccc
+    qc_contact_freezing = rates.cloud_liquid.contact_freezing.mass  # mnucct
+    nc_contact_freezing = rates.cloud_liquid.contact_freezing.number  # nnucct
+    qc_deposition_nucleation = rates.cloud_liquid.deposition_nucleation.mass  # mnudep
+    nc_deposition_nucleation = rates.cloud_liquid.deposition_nucleation.number  # nnudep
+    qi_accretion_snow = rates.cloud_ice.accretion_by_snow.mass  # prai
+    ni_accretion_snow = rates.cloud_ice.accretion_by_snow.number  # nprai
+    qc_bergeron_snow = rates.cloud_liquid.bergeron_to_snow.mass  # bergs
+    qs_deposition = rates.snow.deposition.mass  # vap_deps
+    qi_deposition = rates.cloud_ice.deposition.mass  # vap_dep
+    qi_sublimation = rates.cloud_ice.sublimation.mass  # ice_sublim
+    qc_bergeron_ice = rates.cloud_liquid.bergeron_to_cloud_ice.mass  # berg
+    ni_sublimation = rates.cloud_ice.sublimation.number  # nsubi
+    nc_evaporation = rates.cloud_liquid.evaporation.number  # nsubc
     deltat = work.inputs.time_step
     columns, levels = grid_size(work)
 
     for k in 1:levels, i in 1:columns
-        ice = size_distribution(hydrometeors.cloud_ice, qiic[i, k], niic[i, k])
-        lami[i, k], n0i[i, k], niic[i, k] = ice.slope, ice.intercept, ice.number
+        ice = size_distribution(hydrometeors.cloud_ice, qi_cloud[i, k], ni_cloud[i, k])
+        λi[i, k], N₀i[i, k], ni_cloud[i, k] = ice.slope, ice.intercept, ice.number
     end
 
     # 🧊➡️❄️ autoconversion of cloud ice to snow
     for k in 1:levels, i in 1:columns
         if settings.prognostic_cloud_ice
-            rate = ice_to_snow_autoconversion(parameters, t[i, k], qiic[i, k], lami[i, k],
-                n0i[i, k])
-            prci[i, k], nprci[i, k] = rate.mass, rate.number
+            rate = ice_to_snow_autoconversion(parameters, T[i, k], qi_cloud[i, k], λi[i, k],
+                N₀i[i, k])
+            qi_autoconversion[i, k], ni_autoconversion[i, k] = rate.mass, rate.number
         else
-            prci[i, k] = F.tnd_qsnow[i, k] / cldm[i, k]
-            nprci[i, k] = F.tnd_nsnow[i, k] / cldm[i, k]
+            qi_autoconversion[i, k] = qs_from_host[i, k] / cloud_fraction[i, k]
+            ni_autoconversion[i, k] = ns_from_host[i, k] / cloud_fraction[i, k]
         end
     end
 
     # ❄️🟤 in-precipitation snow and graupel
     for k in 1:levels, i in 1:columns
-        qsic[i, k] = qs[i, k] / precip_frac[i, k]
-        nsic[i, k] = ns[i, k] / precip_frac[i, k]
-        qsic[i, k] = min(qsic[i, k], 0.01)
-        if qsic[i, k] < qsmall
-            qsic[i, k] = 0.0
-            nsic[i, k] = 0.0
+        qs_precip[i, k] = qs[i, k] / precip_fraction[i, k]
+        ns_precip[i, k] = ns[i, k] / precip_fraction[i, k]
+        qs_precip[i, k] = min(qs_precip[i, k], 0.01)
+        if qs_precip[i, k] < qsmall
+            qs_precip[i, k] = 0.0
+            ns_precip[i, k] = 0.0
         end
-        nsic[i, k] = max(nsic[i, k], 0.0)
-        qgic[i, k] = qg[i, k] / precip_frac[i, k]
-        ngic[i, k] = ng[i, k] / precip_frac[i, k]
-        qgic[i, k] = min(qgic[i, k], 0.01)
-        if qgic[i, k] < qsmall
-            qgic[i, k] = 0.0
-            ngic[i, k] = 0.0
+        ns_precip[i, k] = max(ns_precip[i, k], 0.0)
+        qg_precip[i, k] = qg[i, k] / precip_fraction[i, k]
+        ng_precip[i, k] = ng[i, k] / precip_fraction[i, k]
+        qg_precip[i, k] = min(qg_precip[i, k], 0.01)
+        if qg_precip[i, k] < qsmall
+            qg_precip[i, k] = 0.0
+            ng_precip[i, k] = 0.0
         end
-        ngic[i, k] = max(ngic[i, k], 0.0)
+        ng_precip[i, k] = max(ng_precip[i, k], 0.0)
     end
 
     # 🌧️ provisional rain fall speeds (m/s)
     br = fall_speed_law.rain.b
     for k in 1:levels, i in 1:columns
-        if lamr[i, k] >= qsmall
-            dum_2D[i, k] = lamr[i, k]^br
-            unr[i, k] = min(arn[i, k] * gamma.rain_plus1 / dum_2D[i, k], 9.1 * rhof[i, k])
-            umr[i, k] = min(arn[i, k] * gamma.rain_plus4 / (6.0 * dum_2D[i, k]),
-                9.1 * rhof[i, k])
+        if λr[i, k] >= qsmall
+            number_before[i, k] = λr[i, k]^br
+            vr_number[i, k] = min(a_rain[i, k] * gamma.rain_plus1 / number_before[i, k], 9.1 * ρ_correction[i, k])
+            vr_mass[i, k] = min(a_rain[i, k] * gamma.rain_plus4 / (6.0 * number_before[i, k]),
+                9.1 * ρ_correction[i, k])
         else
-            umr[i, k] = 0.0
-            unr[i, k] = 0.0
+            vr_mass[i, k] = 0.0
+            vr_number[i, k] = 0.0
         end
     end
 
     # ❄️ snow size distribution and provisional fall speeds
     for k in 1:levels, i in 1:columns
-        snow = size_distribution(hydrometeors.snow, qsic[i, k], nsic[i, k])
-        lams[i, k], n0s[i, k], nsic[i, k] = snow.slope, snow.intercept, snow.number
+        snow = size_distribution(hydrometeors.snow, qs_precip[i, k], ns_precip[i, k])
+        λs[i, k], N₀s[i, k], ns_precip[i, k] = snow.slope, snow.intercept, snow.number
     end
     bs = fall_speed_law.snow.b
     for k in 1:levels, i in 1:columns
         if settings.ifs_snow_fall_speed
-            ums[i, k] = lams[i, k] > 0.0 ? 1.0 : 0.0
-            uns[i, k] = lams[i, k] > 0.0 ? 1.0 : 0.0
-        elseif lams[i, k] > 0.0
-            dum_2D[i, k] = lams[i, k]^bs
-            ums[i, k] = min(asn[i, k] * gamma.snow_plus4 / (6.0 * dum_2D[i, k]),
-                1.2 * rhof[i, k])
-            ums[i, k] = ums[i, k] * settings.snow_fall_speed_factor
-            uns[i, k] = min(asn[i, k] * gamma.snow_plus1 / dum_2D[i, k], 1.2 * rhof[i, k])
+            vs_mass[i, k] = λs[i, k] > 0.0 ? 1.0 : 0.0
+            vs_number[i, k] = λs[i, k] > 0.0 ? 1.0 : 0.0
+        elseif λs[i, k] > 0.0
+            number_before[i, k] = λs[i, k]^bs
+            vs_mass[i, k] = min(a_snow[i, k] * gamma.snow_plus4 / (6.0 * number_before[i, k]),
+                1.2 * ρ_correction[i, k])
+            vs_mass[i, k] = vs_mass[i, k] * settings.snow_fall_speed_factor
+            vs_number[i, k] = min(a_snow[i, k] * gamma.snow_plus1 / number_before[i, k], 1.2 * ρ_correction[i, k])
         else
-            ums[i, k] = 0.0
-            uns[i, k] = 0.0
+            vs_mass[i, k] = 0.0
+            vs_number[i, k] = 0.0
         end
     end
 
@@ -106,21 +185,21 @@ function ice_snow_processes!(work, parameters)
     if settings.do_hail || settings.do_graupel
         dense_props = settings.do_hail ? hydrometeors.hail : hydrometeors.graupel
         for k in 1:levels, i in 1:columns
-            graupel = size_distribution(dense_props, qgic[i, k], ngic[i, k])
-            lamg[i, k], n0g[i, k], ngic[i, k] =
+            graupel = size_distribution(dense_props, qg_precip[i, k], ng_precip[i, k])
+            λg[i, k], N₀g[i, k], ng_precip[i, k] =
                 graupel.slope, graupel.intercept, graupel.number
         end
     end
     for k in 1:levels, i in 1:columns
-        if lamg[i, k] > 0.0
-            dum_2D[i, k] = lamg[i, k]^dense.b
-            umg[i, k] = min(agn[i, k] * gamma.graupel_plus4 / (6.0 * dum_2D[i, k]),
-                20.0 * rhof[i, k])
-            ung[i, k] = min(agn[i, k] * gamma.graupel_plus1 / dum_2D[i, k],
-                20.0 * rhof[i, k])
+        if λg[i, k] > 0.0
+            number_before[i, k] = λg[i, k]^dense.b
+            vg_mass[i, k] = min(a_graupel[i, k] * gamma.graupel_plus4 / (6.0 * number_before[i, k]),
+                20.0 * ρ_correction[i, k])
+            vg_number[i, k] = min(a_graupel[i, k] * gamma.graupel_plus1 / number_before[i, k],
+                20.0 * ρ_correction[i, k])
         else
-            umg[i, k] = 0.0
-            ung[i, k] = 0.0
+            vg_mass[i, k] = 0.0
+            vg_number[i, k] = 0.0
         end
     end
 
@@ -129,151 +208,157 @@ function ice_snow_processes!(work, parameters)
         settings.host_heterogeneous_freezing ||
             error("Bigg droplet freezing (hetfrz off) is not translated yet")
         for k in 1:levels, i in 1:columns
-            mi0l = qcic[i, k] / max(ncic[i, k], 1.0e6 / rho[i, k])
+            mi0l = qc_cloud[i, k] / max(nc_cloud[i, k], 1.0e6 / ρ[i, k])
             mi0l = max(mi0l_min, mi0l)
-            if qcic[i, k] >= qsmall
-                nnuccc[i, k] = F.frzimm[i, k] * 1.0e6 / rho[i, k]
-                mnuccc[i, k] = nnuccc[i, k] * mi0l
-                nnucct[i, k] = F.frzcnt[i, k] * 1.0e6 / rho[i, k]
-                mnucct[i, k] = nnucct[i, k] * mi0l
-                nnudep[i, k] = F.frzdep[i, k] * 1.0e6 / rho[i, k]
-                mnudep[i, k] = nnudep[i, k] * mi0
+            if qc_cloud[i, k] >= qsmall
+                nc_immersion_freezing[i, k] = immersion_freezing_host[i, k] * 1.0e6 / ρ[i, k]
+                qc_immersion_freezing[i, k] = nc_immersion_freezing[i, k] * mi0l
+                nc_contact_freezing[i, k] = contact_freezing_host[i, k] * 1.0e6 / ρ[i, k]
+                qc_contact_freezing[i, k] = nc_contact_freezing[i, k] * mi0l
+                nc_deposition_nucleation[i, k] = deposition_freezing_host[i, k] * 1.0e6 / ρ[i, k]
+                qc_deposition_nucleation[i, k] = nc_deposition_nucleation[i, k] * mi0
             else
-                nnuccc[i, k] = 0.0
-                mnuccc[i, k] = 0.0
-                nnucct[i, k] = 0.0
-                mnucct[i, k] = 0.0
-                nnudep[i, k] = 0.0
-                mnudep[i, k] = 0.0
+                nc_immersion_freezing[i, k] = 0.0
+                qc_immersion_freezing[i, k] = 0.0
+                nc_contact_freezing[i, k] = 0.0
+                qc_contact_freezing[i, k] = 0.0
+                nc_deposition_nucleation[i, k] = 0.0
+                qc_deposition_nucleation[i, k] = 0.0
             end
         end
     else
-        for array in (mnuccc, nnuccc, mnucct, nnucct, mnudep, nnudep)
+        for array in (qc_immersion_freezing, nc_immersion_freezing, qc_contact_freezing, nc_contact_freezing, qc_deposition_nucleation, nc_deposition_nucleation)
             fill!(array, 0.0)
         end
     end
 
     iaccr = settings.ice_accretion_factor
     for k in 1:levels, i in 1:columns
-        nsagg[i, k] = snow_self_aggregation(parameters, t[i, k], rho[i, k], asn[i, k],
-            rhosn, qsic[i, k], nsic[i, k])
+        ns_aggregation[i, k] = snow_self_aggregation(parameters, T[i, k], ρ[i, k], a_snow[i, k],
+            rhosn, qs_precip[i, k], ns_precip[i, k])
     end
     for k in 1:levels, i in 1:columns
-        riming = droplet_collection_by_snow(parameters, t[i, k], rho[i, k], asn[i, k],
-            uns[i, k], mu[i, k], qcic[i, k], ncic[i, k], qsic[i, k], pgam[i, k],
-            lamc[i, k], lams[i, k], n0s[i, k])
-        psacws[i, k], npsacws[i, k] = riming.mass, riming.number
+        riming = droplet_collection_by_snow(parameters, T[i, k], ρ[i, k], a_snow[i, k],
+            vs_number[i, k], η[i, k], qc_cloud[i, k], nc_cloud[i, k], qs_precip[i, k], μc[i, k],
+            λc[i, k], λs[i, k], N₀s[i, k])
+        qc_riming_snow[i, k], nc_riming_snow[i, k] = riming.mass, riming.number
     end
     for k in 1:levels, i in 1:columns
-        psacws[i, k] = psacws[i, k] * iaccr
-        npsacws[i, k] = npsacws[i, k] * iaccr
+        qc_riming_snow[i, k] = qc_riming_snow[i, k] * iaccr
+        nc_riming_snow[i, k] = nc_riming_snow[i, k] * iaccr
     end
     for k in 1:levels, i in 1:columns
         if settings.prognostic_cloud_ice
-            splinters = rime_splintering_by_snow(t[i, k], psacws[i, k])
-            msacwi[i, k], nsacwi[i, k] = splinters.mass, splinters.number
-            psacws[i, k] = splinters.riming
+            splinters = rime_splintering_by_snow(T[i, k], qc_riming_snow[i, k])
+            qi_splintering_snow[i, k], ni_splintering_snow[i, k] = splinters.mass, splinters.number
+            qc_riming_snow[i, k] = splinters.riming
         else
-            nsacwi[i, k] = 0.0
-            msacwi[i, k] = 0.0
+            ni_splintering_snow[i, k] = 0.0
+            qi_splintering_snow[i, k] = 0.0
         end
     end
     for k in 1:levels, i in 1:columns
-        collection = rain_collection_by_snow(parameters, t[i, k], rho[i, k], umr[i, k],
-            ums[i, k], unr[i, k], uns[i, k], qric[i, k], qsic[i, k], lamr[i, k], n0r[i, k],
-            lams[i, k], n0s[i, k])
-        pracs[i, k], npracs[i, k] = collection.mass, collection.number
+        collection = rain_collection_by_snow(parameters, T[i, k], ρ[i, k], vr_mass[i, k],
+            vs_mass[i, k], vr_number[i, k], vs_number[i, k], qr_precip[i, k], qs_precip[i, k], λr[i, k], N₀r[i, k],
+            λs[i, k], N₀s[i, k])
+        qr_accretion_snow[i, k], nr_accretion_snow[i, k] = collection.mass, collection.number
     end
     for k in 1:levels, i in 1:columns
-        freezing = rain_immersion_freezing(parameters, t[i, k], qric[i, k], nric[i, k],
-            lamr[i, k])
-        mnuccr[i, k], nnuccr[i, k] = freezing.mass, freezing.number
+        freezing = rain_immersion_freezing(parameters, T[i, k], qr_precip[i, k], nr_precip[i, k],
+            λr[i, k])
+        qr_freezing_snow[i, k], nr_freezing_snow[i, k] = freezing.mass, freezing.number
     end
 
     # 💧🌧️ accretion of cloud liquid by rain
     if settings.warm_rain == :sb2001
-        (; qctend_SB2001, nctend_SB2001, qrtend_SB2001, nrtend_SB2001) = F
+        qc_sb2001 = process_rates.cloud_liquid.warm_rain_sb2001.mass  # qctend_SB2001
+        nc_sb2001 = process_rates.cloud_liquid.warm_rain_sb2001.number  # nctend_SB2001
+        qr_sb2001 = process_rates.rain.warm_rain_sb2001.mass  # qrtend_SB2001
+        nr_sb2001 = process_rates.rain.warm_rain_sb2001.number  # nrtend_SB2001
         for k in 1:levels, i in 1:columns
-            rate = sb2001_accretion(qcic[i, k], ncic[i, k], qric[i, k], rho[i, k])
-            pra[i, k], npra[i, k] = rate.mass, rate.droplet_number
+            rate = sb2001_accretion(qc_cloud[i, k], nc_cloud[i, k], qr_precip[i, k], ρ[i, k])
+            qc_accretion[i, k], nc_accretion[i, k] = rate.mass, rate.droplet_number
         end
         for k in 1:levels, i in 1:columns
-            nctend_SB2001[i, k] = nctend_SB2001[i, k] + npra[i, k]
-            qctend_SB2001[i, k] = qctend_SB2001[i, k] + pra[i, k]
-            nrtend_SB2001[i, k] = nrtend_SB2001[i, k] + npra[i, k]
-            qrtend_SB2001[i, k] = qrtend_SB2001[i, k] - pra[i, k]
+            nc_sb2001[i, k] = nc_sb2001[i, k] + nc_accretion[i, k]
+            qc_sb2001[i, k] = qc_sb2001[i, k] + qc_accretion[i, k]
+            nr_sb2001[i, k] = nr_sb2001[i, k] + nc_accretion[i, k]
+            qr_sb2001[i, k] = qr_sb2001[i, k] - qc_accretion[i, k]
         end
     end
     if settings.warm_rain == :kk2000
-        (; qctend_KK2000, nctend_KK2000, qrtend_KK2000, nrtend_KK2000) = F
+        qc_kk2000 = process_rates.cloud_liquid.warm_rain_kk2000.mass  # qctend_KK2000
+        nc_kk2000 = process_rates.cloud_liquid.warm_rain_kk2000.number  # nctend_KK2000
+        qr_kk2000 = process_rates.rain.warm_rain_kk2000.mass  # qrtend_KK2000
+        nr_kk2000 = process_rates.rain.warm_rain_kk2000.number  # nrtend_KK2000
         for k in 1:levels, i in 1:columns
-            rtmp = qric[i, k]
-            ctmp = qcic[i, k]
-            ntmp = ncic[i, k]
+            rtmp = qr_precip[i, k]
+            ctmp = qc_cloud[i, k]
+            ntmp = nc_cloud[i, k]
             if settings.accretion_sees_autoconversion
-                rtmp = rtmp + prc[i, k] * deltat
-                ctmp = ctmp - prc[i, k] * deltat
-                ntmp = ntmp - nprc[i, k] * deltat
+                rtmp = rtmp + qc_autoconversion[i, k] * deltat
+                ctmp = ctmp - qc_autoconversion[i, k] * deltat
+                ntmp = ntmp - nr_autoconversion[i, k] * deltat
             end
-            rate = accretion(parameters, rtmp, ctmp, ntmp, relvar[i, k], accre_enhan[i, k])
-            pra[i, k], npra[i, k] = rate.mass, rate.droplet_number
+            rate = accretion(parameters, rtmp, ctmp, ntmp, relative_variance[i, k], accretion_enhancement[i, k])
+            qc_accretion[i, k], nc_accretion[i, k] = rate.mass, rate.droplet_number
         end
         for k in 1:levels, i in 1:columns
-            nctend_KK2000[i, k] = nctend_KK2000[i, k] + npra[i, k]
-            qctend_KK2000[i, k] = qctend_KK2000[i, k] + pra[i, k]
-            nrtend_KK2000[i, k] = nrtend_KK2000[i, k] + npra[i, k]
-            qrtend_KK2000[i, k] = qrtend_KK2000[i, k] - pra[i, k]
+            nc_kk2000[i, k] = nc_kk2000[i, k] + nc_accretion[i, k]
+            qc_kk2000[i, k] = qc_kk2000[i, k] + qc_accretion[i, k]
+            nr_kk2000[i, k] = nr_kk2000[i, k] + nc_accretion[i, k]
+            qr_kk2000[i, k] = qr_kk2000[i, k] - qc_accretion[i, k]
         end
     end
     for k in 1:levels, i in 1:columns
-        pra[i, k] = pra[i, k] * settings.accretion_enhancement
-        npra[i, k] = npra[i, k] * settings.accretion_enhancement
+        qc_accretion[i, k] = qc_accretion[i, k] * settings.accretion_enhancement
+        nc_accretion[i, k] = nc_accretion[i, k] * settings.accretion_enhancement
     end
     for k in 1:levels, i in 1:columns
-        nragg[i, k] = rain_self_collection(rho[i, k], qric[i, k], nric[i, k])
+        nr_self_collection[i, k] = rain_self_collection(ρ[i, k], qr_precip[i, k], nr_precip[i, k])
     end
 
     # 🧊❄️ accretion of cloud ice by snow
     for k in 1:levels, i in 1:columns
         if settings.prognostic_cloud_ice
-            rate = ice_collection_by_snow(parameters, t[i, k], rho[i, k], asn[i, k],
-                qiic[i, k], niic[i, k], qsic[i, k], lams[i, k], n0s[i, k])
-            prai[i, k], nprai[i, k] = rate.mass, rate.number
+            rate = ice_collection_by_snow(parameters, T[i, k], ρ[i, k], a_snow[i, k],
+                qi_cloud[i, k], ni_cloud[i, k], qs_precip[i, k], λs[i, k], N₀s[i, k])
+            qi_accretion_snow[i, k], ni_accretion_snow[i, k] = rate.mass, rate.number
         else
-            prai[i, k] = 0.0
-            nprai[i, k] = 0.0
+            qi_accretion_snow[i, k] = 0.0
+            ni_accretion_snow[i, k] = 0.0
         end
     end
 
     # 🌫️ Bergeron process and vapor deposition onto snow and ice
     berg_eff = settings.bergeron_efficiency
     for k in 1:levels, i in 1:columns
-        bergs[i, k] = bergeron_to_snow(parameters, air_at(F, i, k), asn[i, k], qcic[i, k],
-            qsic[i, k], lams[i, k], n0s[i, k])
+        qc_bergeron_snow[i, k] = bergeron_to_snow(parameters, air_at(work, i, k), a_snow[i, k], qc_cloud[i, k],
+            qs_precip[i, k], λs[i, k], N₀s[i, k])
     end
     for k in 1:levels, i in 1:columns
-        bergs[i, k] = bergs[i, k] * berg_eff
+        qc_bergeron_snow[i, k] = qc_bergeron_snow[i, k] * berg_eff
     end
     for k in 1:levels, i in 1:columns
-        vap_deps[i, k] = snow_deposition(parameters, air_at(F, i, k), qs[i, k], ns[i, k],
-            precip_frac[i, k], asn[i, k])
+        qs_deposition[i, k] = snow_deposition(parameters, air_at(work, i, k), qs[i, k], ns[i, k],
+            precip_fraction[i, k], a_snow[i, k])
     end
     if settings.prognostic_cloud_ice
         for k in 1:levels, i in 1:columns
-            rate = ice_deposition(parameters, air_at(F, i, k), qi[i, k], ni[i, k],
-                icldm[i, k])
-            berg[i, k], vap_dep[i, k] = rate.bergeron, rate.deposition
-            ice_sublim[i, k] = rate.sublimation
+            rate = ice_deposition(parameters, air_at(work, i, k), qi[i, k], ni[i, k],
+                ice_fraction[i, k])
+            qc_bergeron_ice[i, k], qi_deposition[i, k] = rate.bergeron, rate.deposition
+            qi_sublimation[i, k] = rate.sublimation
         end
         for k in 1:levels, i in 1:columns
-            berg[i, k] = berg[i, k] * berg_eff
-            if ice_sublim[i, k] < 0.0 && qi[i, k] > qsmall && icldm[i, k] > mincld
-                nsubi[i, k] = sublim_factor * ice_sublim[i, k] / qi[i, k] * ni[i, k] /
-                              icldm[i, k]
+            qc_bergeron_ice[i, k] = qc_bergeron_ice[i, k] * berg_eff
+            if qi_sublimation[i, k] < 0.0 && qi[i, k] > qsmall && ice_fraction[i, k] > mincld
+                ni_sublimation[i, k] = sublim_factor * qi_sublimation[i, k] / qi[i, k] * ni[i, k] /
+                              ice_fraction[i, k]
             else
-                nsubi[i, k] = 0.0
+                ni_sublimation[i, k] = 0.0
             end
-            nsubc[i, k] = 0.0
+            nc_evaporation[i, k] = 0.0
         end
     end
     return nothing

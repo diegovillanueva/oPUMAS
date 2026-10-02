@@ -45,15 +45,16 @@ call leaves them out.
 function sediment_implicit!(tendency, amount, speed, work, parameters, check_qsmall;
     flux = nothing, sedimentation = nothing, surface = nothing, surface_ice = nothing)
     (; g) = host_short_names(parameters)
-    F = work.fortran
-    (; zint, pdel) = F
+    (; inputs, scratch) = work
+    z_interface = scratch.interface_height  # zint
+    Δp = inputs.pressure_thickness  # pdel
     deltat = work.inputs.time_step
     columns, levels = grid_size(work)
     after = copy(amount)
     falling = similar(amount)
     precipitation = Vector{Float64}(undef, columns)
     for i in 1:columns
-        precipitation[i] = implicit_fall!(after, falling, deltat, i, zint, speed, pdel,
+        precipitation[i] = implicit_fall!(after, falling, deltat, i, z_interface, speed, Δp,
             levels)
     end
     for k in 1:levels, i in 1:columns
@@ -89,14 +90,15 @@ end
 its content in one sub-step.
 """
 function sub_steps(mass_speed, number_speed, work)
-    pdel_inv = work.fortran.pdel_inv
+    (; scratch) = work
+    inv_Δp = scratch.inverse_pressure_thickness  # pdel_inv
     deltat = work.inputs.time_step
     columns, levels = grid_size(work)
     nstep = Vector{Int}(undef, columns)
     rnstep = Vector{Float64}(undef, columns)
     for i in 1:columns
-        mass_max = maximum(mass_speed[i, k] * pdel_inv[i, k] for k in 1:levels)
-        number_max = maximum(number_speed[i, k] * pdel_inv[i, k] for k in 1:levels)
+        mass_max = maximum(mass_speed[i, k] * inv_Δp[i, k] for k in 1:levels)
+        number_max = maximum(number_speed[i, k] * inv_Δp[i, k] for k in 1:levels)
         nstep[i] = 1 + trunc(Int, max(mass_max, number_max) * deltat)
         rnstep[i] = 1.0 / Float64(Float32(nstep[i]))
     end
@@ -116,7 +118,8 @@ function sediment_explicit!(tendency, amount, speed, nstep, rnstep, work, parame
     latent_heat = nothing, evaporation = nothing, heating = nothing, vapor = nothing,
     fraction = nothing, surface_ice = nothing)
     (; g) = host_short_names(parameters)
-    pdel_inv = work.fortran.pdel_inv
+    (; scratch) = work
+    inv_Δp = scratch.inverse_pressure_thickness  # pdel_inv
     deltat = work.inputs.time_step
     columns, levels = grid_size(work)
     dum1 = Vector{Float64}(undef, levels)
@@ -141,7 +144,7 @@ function sediment_explicit!(tendency, amount, speed, nstep, rnstep, work, parame
                 fallout[k+1] = falls ? speed[i, k] * amount[i, k] : 0.0
             end
             for k in 1:levels
-                faltndx = (fallout[k+1] - dum1[k] * fallout[k]) * pdel_inv[i, k]
+                faltndx = (fallout[k+1] - dum1[k] * fallout[k]) * inv_Δp[i, k]
                 tendency[i, k] = tendency[i, k] - faltndx * rnstepmax
                 if sedimentation !== nothing
                     sedimentation[i, k] = sedimentation[i, k] - faltndx * rnstepmax
@@ -149,7 +152,7 @@ function sediment_explicit!(tendency, amount, speed, nstep, rnstep, work, parame
                 amount[i, k] = amount[i, k] - faltndx * deltat * rnstepmax
                 if k > 1 && (evaporation !== nothing || vapor !== nothing ||
                              heating !== nothing)
-                    faltndqxe = (fallout[k+1] - fallout[k]) * pdel_inv[i, k]
+                    faltndqxe = (fallout[k+1] - fallout[k]) * inv_Δp[i, k]
                     if evaporation !== nothing
                         evaporation[i, k] = evaporation[i, k] -
                                             (faltndqxe - faltndx) * rnstepmax
@@ -186,86 +189,146 @@ evaporation terms into `tlat`/`qvlat` and the surface rates into `prect`/`preci`
 function sedimentation!(work, parameters)
     (; settings) = parameters
     (; g, xxlv, xxls) = host_short_names(parameters)
-    F = work.fortran
-    (; rho, lcldm, icldm, tlat, qvlat, prect, preci) = F
-    (; qctend, nctend, qitend, nitend, qrtend, nrtend, qstend, nstend, qgtend, ngtend) = F
-    (; dumc, dumnc, dumi, dumni, dumr, dumnr, dums, dumns, dumg, dumng) = F
-    (; fc, fnc, fi, fni, fr, fnr, fs, fns, fg, fng) = F
-    (; lflx, iflx, rflx, sflx, gflx, tlat_i, tlat_l, qvlat_i, qvlat_l) = F
-    (; prect_l, prect_i, prect_r, prect_s, prect_g, preci_i, preci_s, preci_g) = F
+    (; state, incloud, process_rates, tendencies, diagnostics, scratch) = work
+    qc_sedimentation = process_rates.cloud_liquid.sedimentation.mass  # qcsedten
+    nc_sedimentation = process_rates.cloud_liquid.sedimentation.number  # ncsedten
+    qi_sedimentation = process_rates.cloud_ice.sedimentation.mass  # qisedten
+    ni_sedimentation = process_rates.cloud_ice.sedimentation.number  # nisedten
+    qr_sedimentation = process_rates.rain.sedimentation.mass  # qrsedten
+    nr_sedimentation = process_rates.rain.sedimentation.number  # nrsedten
+    qs_sedimentation = process_rates.snow.sedimentation.mass  # qssedten
+    ns_sedimentation = process_rates.snow.sedimentation.number  # nssedten
+    qg_sedimentation = process_rates.graupel.sedimentation.mass  # qgsedten
+    ng_sedimentation = process_rates.graupel.sedimentation.number  # ngsedten
+    qi_sedimentation_sublimation = process_rates.cloud_ice.sedimentation_sublimation.mass  # qisevap
+    qc_sedimentation_evaporation = process_rates.cloud_liquid.sedimentation_evaporation.mass  # qcsevap
+    ρ = state.air.density  # rho
+    liquid_fraction = incloud.liquid_fraction  # lcldm
+    ice_fraction = incloud.ice_fraction  # icldm
+    heating = tendencies.heating  # tlat
+    qv_tendency = tendencies.vapor  # qvlat
+    precip_surface = diagnostics.surface.total  # prect
+    precip_surface_ice = diagnostics.surface.ice  # preci
+    qc_tendency = tendencies.cloud_liquid.q  # qctend
+    nc_tendency = tendencies.cloud_liquid.N  # nctend
+    qi_tendency = tendencies.cloud_ice.q  # qitend
+    ni_tendency = tendencies.cloud_ice.N  # nitend
+    qr_tendency = tendencies.rain.q  # qrtend
+    nr_tendency = tendencies.rain.N  # nrtend
+    qs_tendency = tendencies.snow.q  # qstend
+    ns_tendency = tendencies.snow.N  # nstend
+    qg_tendency = tendencies.graupel.q  # qgtend
+    ng_tendency = tendencies.graupel.N  # ngtend
+    qc_sed = scratch.sedimenting.cloud_liquid.q  # dumc
+    nc_sed = scratch.sedimenting.cloud_liquid.N  # dumnc
+    qi_sed = scratch.sedimenting.cloud_ice.q  # dumi
+    ni_sed = scratch.sedimenting.cloud_ice.N  # dumni
+    qr_sed = scratch.sedimenting.rain.q  # dumr
+    nr_sed = scratch.sedimenting.rain.N  # dumnr
+    qs_sed = scratch.sedimenting.snow.q  # dums
+    ns_sed = scratch.sedimenting.snow.N  # dumns
+    qg_sed = scratch.sedimenting.graupel.q  # dumg
+    ng_sed = scratch.sedimenting.graupel.N  # dumng
+    fall_qc = scratch.pressure_fall_speed.cloud_liquid.q  # fc
+    fall_nc = scratch.pressure_fall_speed.cloud_liquid.N  # fnc
+    fall_qi = scratch.pressure_fall_speed.cloud_ice.q  # fi
+    fall_ni = scratch.pressure_fall_speed.cloud_ice.N  # fni
+    fall_qr = scratch.pressure_fall_speed.rain.q  # fr
+    fall_nr = scratch.pressure_fall_speed.rain.N  # fnr
+    fall_qs = scratch.pressure_fall_speed.snow.q  # fs
+    fall_ns = scratch.pressure_fall_speed.snow.N  # fns
+    fall_qg = scratch.pressure_fall_speed.graupel.q  # fg
+    fall_ng = scratch.pressure_fall_speed.graupel.N  # fng
+    flux_cloud_liquid = diagnostics.flux.cloud_liquid  # lflx
+    flux_cloud_ice = diagnostics.flux.cloud_ice  # iflx
+    flux_rain = diagnostics.flux.rain  # rflx
+    flux_snow = diagnostics.flux.snow  # sflx
+    flux_graupel = diagnostics.flux.graupel  # gflx
+    heating_sed_ice = scratch.sedimentation_heating.cloud_ice  # tlat_i
+    heating_sed_liquid = scratch.sedimentation_heating.cloud_liquid  # tlat_l
+    qv_sed_ice = scratch.sedimentation_vapor.cloud_ice  # qvlat_i
+    qv_sed_liquid = scratch.sedimentation_vapor.cloud_liquid  # qvlat_l
+    surface_cloud_liquid = scratch.surface_precipitation.cloud_liquid  # prect_l
+    surface_cloud_ice = scratch.surface_precipitation.cloud_ice  # prect_i
+    surface_rain = scratch.surface_precipitation.rain  # prect_r
+    surface_snow = scratch.surface_precipitation.snow  # prect_s
+    surface_graupel = scratch.surface_precipitation.graupel  # prect_g
+    surface_frozen_cloud_ice = scratch.surface_ice.cloud_ice  # preci_i
+    surface_frozen_snow = scratch.surface_ice.snow  # preci_s
+    surface_frozen_graupel = scratch.surface_ice.graupel  # preci_g
     columns, levels = grid_size(work)
 
     if settings.implicit_sedimentation
         vfactor, vfac_drop, vfac_ice = 1.0, 1.0, 1.0
-        for (factor, speeds) in ((vfac_drop, (fc, fnc)), (vfac_ice, (fi, fni)),
-            (vfactor, (fr, fnr)), (vfactor, (fs, fns)), (vfactor, (fg, fng)))
+        for (factor, speeds) in ((vfac_drop, (fall_qc, fall_nc)), (vfac_ice, (fall_qi, fall_ni)),
+            (vfactor, (fall_qr, fall_nr)), (vfactor, (fall_qs, fall_ns)), (vfactor, (fall_qg, fall_ng)))
             for speed in speeds, k in 1:levels, i in 1:columns
-                speed[i, k] = factor * speed[i, k] / g / rho[i, k]
+                speed[i, k] = factor * speed[i, k] / g / ρ[i, k]
             end
         end
-        sediment_implicit!(qctend, dumc, fc, work, parameters, false; flux = lflx,
-            sedimentation = F.qcsedten, surface = prect_l)
-        sediment_implicit!(nctend, dumnc, fnc, work, parameters, false;
-            sedimentation = F.ncsedten)
-        sediment_implicit!(qitend, dumi, fi, work, parameters, false; flux = iflx,
-            sedimentation = F.qisedten, surface = prect_i, surface_ice = preci_i)
-        sediment_implicit!(nitend, dumni, fni, work, parameters, false;
-            sedimentation = F.nisedten)
-        sediment_implicit!(qrtend, dumr, fr, work, parameters, true; flux = rflx,
-            sedimentation = F.qrsedten, surface = prect_r)
-        sediment_implicit!(nrtend, dumnr, fnr, work, parameters, true;
-            sedimentation = F.nrsedten)
-        sediment_implicit!(qstend, dums, fs, work, parameters, true; flux = sflx,
-            sedimentation = F.qssedten, surface = prect_s, surface_ice = preci_s)
-        sediment_implicit!(nstend, dumns, fns, work, parameters, true;
-            sedimentation = F.nssedten)
-        sediment_implicit!(qgtend, dumg, fg, work, parameters, true; flux = gflx,
-            sedimentation = F.qgsedten, surface = prect_g, surface_ice = preci_g)
-        sediment_implicit!(ngtend, dumng, fng, work, parameters, true;
-            sedimentation = F.ngsedten)
+        sediment_implicit!(qc_tendency, qc_sed, fall_qc, work, parameters, false; flux = flux_cloud_liquid,
+            sedimentation = qc_sedimentation, surface = surface_cloud_liquid)
+        sediment_implicit!(nc_tendency, nc_sed, fall_nc, work, parameters, false;
+            sedimentation = nc_sedimentation)
+        sediment_implicit!(qi_tendency, qi_sed, fall_qi, work, parameters, false; flux = flux_cloud_ice,
+            sedimentation = qi_sedimentation, surface = surface_cloud_ice, surface_ice = surface_frozen_cloud_ice)
+        sediment_implicit!(ni_tendency, ni_sed, fall_ni, work, parameters, false;
+            sedimentation = ni_sedimentation)
+        sediment_implicit!(qr_tendency, qr_sed, fall_qr, work, parameters, true; flux = flux_rain,
+            sedimentation = qr_sedimentation, surface = surface_rain)
+        sediment_implicit!(nr_tendency, nr_sed, fall_nr, work, parameters, true;
+            sedimentation = nr_sedimentation)
+        sediment_implicit!(qs_tendency, qs_sed, fall_qs, work, parameters, true; flux = flux_snow,
+            sedimentation = qs_sedimentation, surface = surface_snow, surface_ice = surface_frozen_snow)
+        sediment_implicit!(ns_tendency, ns_sed, fall_ns, work, parameters, true;
+            sedimentation = ns_sedimentation)
+        sediment_implicit!(qg_tendency, qg_sed, fall_qg, work, parameters, true; flux = flux_graupel,
+            sedimentation = qg_sedimentation, surface = surface_graupel, surface_ice = surface_frozen_graupel)
+        sediment_implicit!(ng_tendency, ng_sed, fall_ng, work, parameters, true;
+            sedimentation = ng_sedimentation)
     else
         ice_on = settings.prognostic_cloud_ice
-        nstep, rnstep = sub_steps(fi, fni, work)
-        sediment_explicit!(qitend, dumi, fi, nstep, rnstep, work, parameters, ice_on;
-            sedimentation = F.qisedten, surface = prect_i, flux = iflx,
-            latent_heat = xxls, evaporation = F.qisevap, heating = tlat_i,
-            vapor = qvlat_i, fraction = icldm, surface_ice = preci_i)
-        sediment_explicit!(nitend, dumni, fni, nstep, rnstep, work, parameters, ice_on;
-            fraction = icldm, sedimentation = F.nisedten)
-        nstep, rnstep = sub_steps(fc, fnc, work)
-        sediment_explicit!(qctend, dumc, fc, nstep, rnstep, work, parameters, true;
-            sedimentation = F.qcsedten, surface = prect_l, flux = lflx,
-            latent_heat = xxlv, evaporation = F.qcsevap, heating = tlat_l,
-            vapor = qvlat_l, fraction = lcldm)
-        sediment_explicit!(nctend, dumnc, fnc, nstep, rnstep, work, parameters, true;
-            fraction = lcldm, sedimentation = F.ncsedten)
-        nstep, rnstep = sub_steps(fr, fnr, work)
-        sediment_explicit!(qrtend, dumr, fr, nstep, rnstep, work, parameters, true;
-            sedimentation = F.qrsedten, surface = prect_r, flux = rflx)
-        sediment_explicit!(nrtend, dumnr, fnr, nstep, rnstep, work, parameters, true;
-            sedimentation = F.nrsedten)
-        nstep, rnstep = sub_steps(fs, fns, work)
-        sediment_explicit!(qstend, dums, fs, nstep, rnstep, work, parameters, true;
-            sedimentation = F.qssedten, surface = prect_s, flux = sflx,
-            surface_ice = preci_s)
-        sediment_explicit!(nstend, dumns, fns, nstep, rnstep, work, parameters, true;
-            sedimentation = F.nssedten)
-        nstep, rnstep = sub_steps(fg, fng, work)
-        sediment_explicit!(qgtend, dumg, fg, nstep, rnstep, work, parameters, true;
-            sedimentation = F.qgsedten, surface = prect_g, flux = gflx,
-            surface_ice = preci_g)
-        sediment_explicit!(ngtend, dumng, fng, nstep, rnstep, work, parameters, true;
-            sedimentation = F.ngsedten)
+        nstep, rnstep = sub_steps(fall_qi, fall_ni, work)
+        sediment_explicit!(qi_tendency, qi_sed, fall_qi, nstep, rnstep, work, parameters, ice_on;
+            sedimentation = qi_sedimentation, surface = surface_cloud_ice, flux = flux_cloud_ice,
+            latent_heat = xxls, evaporation = qi_sedimentation_sublimation, heating = heating_sed_ice,
+            vapor = qv_sed_ice, fraction = ice_fraction, surface_ice = surface_frozen_cloud_ice)
+        sediment_explicit!(ni_tendency, ni_sed, fall_ni, nstep, rnstep, work, parameters, ice_on;
+            fraction = ice_fraction, sedimentation = ni_sedimentation)
+        nstep, rnstep = sub_steps(fall_qc, fall_nc, work)
+        sediment_explicit!(qc_tendency, qc_sed, fall_qc, nstep, rnstep, work, parameters, true;
+            sedimentation = qc_sedimentation, surface = surface_cloud_liquid, flux = flux_cloud_liquid,
+            latent_heat = xxlv, evaporation = qc_sedimentation_evaporation, heating = heating_sed_liquid,
+            vapor = qv_sed_liquid, fraction = liquid_fraction)
+        sediment_explicit!(nc_tendency, nc_sed, fall_nc, nstep, rnstep, work, parameters, true;
+            fraction = liquid_fraction, sedimentation = nc_sedimentation)
+        nstep, rnstep = sub_steps(fall_qr, fall_nr, work)
+        sediment_explicit!(qr_tendency, qr_sed, fall_qr, nstep, rnstep, work, parameters, true;
+            sedimentation = qr_sedimentation, surface = surface_rain, flux = flux_rain)
+        sediment_explicit!(nr_tendency, nr_sed, fall_nr, nstep, rnstep, work, parameters, true;
+            sedimentation = nr_sedimentation)
+        nstep, rnstep = sub_steps(fall_qs, fall_ns, work)
+        sediment_explicit!(qs_tendency, qs_sed, fall_qs, nstep, rnstep, work, parameters, true;
+            sedimentation = qs_sedimentation, surface = surface_snow, flux = flux_snow,
+            surface_ice = surface_frozen_snow)
+        sediment_explicit!(ns_tendency, ns_sed, fall_ns, nstep, rnstep, work, parameters, true;
+            sedimentation = ns_sedimentation)
+        nstep, rnstep = sub_steps(fall_qg, fall_ng, work)
+        sediment_explicit!(qg_tendency, qg_sed, fall_qg, nstep, rnstep, work, parameters, true;
+            sedimentation = qg_sedimentation, surface = surface_graupel, flux = flux_graupel,
+            surface_ice = surface_frozen_graupel)
+        sediment_explicit!(ng_tendency, ng_sed, fall_ng, nstep, rnstep, work, parameters, true;
+            sedimentation = ng_sedimentation)
     end
 
     for k in 1:levels, i in 1:columns
-        tlat[i, k] = tlat[i, k] + tlat_i[i, k] + tlat_l[i, k]
-        qvlat[i, k] = qvlat[i, k] + qvlat_i[i, k] + qvlat_l[i, k]
+        heating[i, k] = heating[i, k] + heating_sed_ice[i, k] + heating_sed_liquid[i, k]
+        qv_tendency[i, k] = qv_tendency[i, k] + qv_sed_ice[i, k] + qv_sed_liquid[i, k]
     end
     for i in 1:columns
-        prect[i] = prect[i] + prect_i[i] + prect_l[i] + prect_r[i] + prect_s[i] +
-                   prect_g[i]
-        preci[i] = preci[i] + preci_i[i] + preci_s[i] + preci_g[i]
+        precip_surface[i] = precip_surface[i] + surface_cloud_ice[i] + surface_cloud_liquid[i] + surface_rain[i] + surface_snow[i] +
+                   surface_graupel[i]
+        precip_surface_ice[i] = precip_surface_ice[i] + surface_frozen_cloud_ice[i] + surface_frozen_snow[i] + surface_frozen_graupel[i]
     end
     return nothing
 end
