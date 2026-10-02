@@ -1,5 +1,6 @@
 # 🔁🧪 M4/M5: one full microphysics_step! against the Fortran outputs of every switch row
-#    of tests/switches.csv that has a golden file (tau and wsub_default have none).
+#    of tests/switches.csv and tests/column/switches_sppe.csv that has a golden file
+#    (wsub_default has none).
 
 """
     compare_step(work, ds) -> Vector of (name, error, column, level, identical)

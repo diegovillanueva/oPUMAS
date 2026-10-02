@@ -74,8 +74,10 @@ Base.@kwdef struct Settings
     its namelist variable `allow_sed_supersat` here unchanged: see FINDINGS.md.
     """
     remove_supersaturation::Bool = false
-    "Warm rain scheme: `:kk2000` or `:sb2001` (`micro_pumas_warm_rain`)."
+    "Warm rain scheme: `:kk2000`, `:sb2001` or `:tau` (`micro_pumas_warm_rain`)."
     warm_rain::Symbol = :kk2000
+    "🌧️📄 TAU collection kernel file, for `warm_rain = :tau` (`micro_pumas_kernel_file`)."
+    tau_kernel_file::String = ""
     "No evaporation of sedimenting condensate by cloud fraction (`micro_mg_evap_sed_off`)."
     no_sedimentation_evaporation::Bool = false
     "Ice nucleation without the humidity condition (`micro_mg_icenuc_rh_off`)."
@@ -145,6 +147,8 @@ Everything `micro_pumas_init` and `micro_pumas_utils_init` store, built by [`set
 - `ice_nucleation_temperature`, `snow_melting_temperature`, `rain_freezing_temperature`:
   K (`icenuct`, `snowmelt`, `rainfrze`)
 - `gamma`: Γ values of the fall speed exponents (`gamma_b*_plus*`, `gamma_*bs*`)
+- `tau_bins`: bin grid and kernel of the TAU bin code ([`tau_bins`](@ref)), or `nothing`
+  unless `warm_rain = :tau`
 """
 struct Parameters
     settings::Settings
@@ -157,6 +161,7 @@ struct Parameters
     snow_melting_temperature::Float64
     rain_freezing_temperature::Float64
     gamma::NamedTuple
+    tau_bins::Union{Nothing, NamedTuple}
 end
 
 """
@@ -209,7 +214,8 @@ function setup(settings::Settings, host::HostConstants = HostConstants())
         T₀ - 5.0,
         T₀ + 2.0,
         rain_freezing_temperature,
-        gamma
+        gamma,
+        settings.warm_rain == :tau ? tau_bins(settings.tau_kernel_file) : nothing
     )
 end
 
@@ -228,8 +234,11 @@ function check_scope(settings::Settings)
     if settings.do_hail && settings.do_graupel
         error("do_hail and do_graupel cannot both be true")
     end
-    if settings.warm_rain ∉ (:kk2000, :sb2001)
+    if settings.warm_rain ∉ (:kk2000, :sb2001, :tau)
         error("warm_rain = :$(settings.warm_rain) is not translated yet")
+    end
+    if settings.warm_rain == :tau && !isfile(settings.tau_kernel_file)
+        error("warm_rain = :tau needs tau_kernel_file (micro_pumas_kernel_file)")
     end
     if settings.precipitation_fraction_method ∉ (:in_cloud, :max_overlap)
         method = settings.precipitation_fraction_method

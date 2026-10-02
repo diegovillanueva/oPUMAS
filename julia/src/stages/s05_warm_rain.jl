@@ -4,7 +4,8 @@
 """
     autoconversion!(work, parameters)
 
-🌧️ Stage 5. Autoconversion by `kk2000` or `sb2001`, chosen by `warm_rain`.
+🌧️ Stage 5. Autoconversion by `kk2000`, `sb2001` or the TAU bin code, chosen by
+`warm_rain`.
 """
 function autoconversion!(work, parameters)
     (; settings) = parameters
@@ -57,6 +58,7 @@ function autoconversion!(work, parameters)
             qr_sb2001[i, k] = -qc_sb2001[i, k]
         end
     end
+    settings.warm_rain == :tau && tau_warm_rain!(work, parameters)
     # 🧊🎛️ Sppe: scale the liquid autoconversion of kk2000 and sb2001
     factor = settings.autoconversion_factor
     if factor != 1.0 && settings.warm_rain in (:kk2000, :sb2001)
@@ -64,6 +66,71 @@ function autoconversion!(work, parameters)
             qc_autoconversion[i, k] = qc_autoconversion[i, k] * factor
             nr_autoconversion[i, k] = nr_autoconversion[i, k] * factor
             nc_autoconversion[i, k] = nc_autoconversion[i, k] * factor
+        end
+    end
+    return nothing
+end
+
+"""
+    tau_warm_rain!(work, parameters)
+
+🌧️🧮 All warm rain (autoconversion, accretion, self-collection) by the TAU bin code
+([`tau_collection`](@ref)). Cloud losses become `prc` and `nprc1`; a rain number gain
+becomes `nprc`, a loss (self-collection) `nragg`.
+"""
+function tau_warm_rain!(work, parameters)
+    (; inputs, state, incloud, rates, process_rates) = work
+    bins = parameters.tau_bins
+    scratch = tau_scratch()
+    Δt = inputs.time_step  # deltatin
+    qc_grid = inputs.cloud_liquid.q  # qcn
+    qr_grid = inputs.rain.q  # qrn
+    qc_cloud = incloud.cloud_liquid.q  # qcic
+    nc_cloud = incloud.cloud_liquid.N  # ncic
+    qr_precip = incloud.rain.q  # qric
+    nr_precip = incloud.rain.N  # nric
+    μc = incloud.cloud_liquid.μ  # pgam
+    λc = incloud.cloud_liquid.λ  # lamc
+    λr = incloud.rain.λ  # lamr
+    N₀r = incloud.rain.N₀  # n0r
+    liquid_fraction = incloud.liquid_fraction  # lcldm
+    precip_fraction = incloud.precipitation_fraction  # precip_frac
+    ρ = state.air.density  # rho
+    qc_autoconversion = rates.cloud_liquid.autoconversion_to_rain.mass  # prc
+    nr_autoconversion = rates.rain.autoconversion_from_cloud_liquid.number  # nprc
+    nc_autoconversion = rates.cloud_liquid.autoconversion_to_rain.number  # nprc1
+    nr_self_collection = rates.rain.self_collection.number  # nragg
+    cloud = process_rates.cloud_liquid.warm_rain_tau
+    rain = process_rates.rain.warm_rain_tau
+    net_bin_gain = process_rates.liquid.warm_rain_tau.net_bin_gain  # gmnnn_lmnnn_TAU
+    columns, levels = grid_size(work)
+    for k in 1:levels, i in 1:columns
+        tau = tau_collection(scratch, bins, Δt, ρ[i, k], qc_grid[i, k], qr_grid[i, k],
+            qc_cloud[i, k], nc_cloud[i, k], qr_precip[i, k], nr_precip[i, k], μc[i, k],
+            λc[i, k], λr[i, k], N₀r[i, k], liquid_fraction[i, k], precip_fraction[i, k])
+        cloud.mass[i, k] = tau.tendency.cloud_mass  # qctend_TAU
+        cloud.number[i, k] = tau.tendency.cloud_number  # nctend_TAU
+        rain.mass[i, k] = tau.tendency.rain_mass  # qrtend_TAU
+        rain.number[i, k] = tau.tendency.rain_number  # nrtend_TAU
+        cloud.mass_after[i, k] = tau.after.cloud_mass  # qc_out_TAU
+        cloud.number_after[i, k] = tau.after.cloud_number  # nc_out_TAU
+        rain.mass_after[i, k] = tau.after.rain_mass  # qr_out_TAU
+        rain.number_after[i, k] = tau.after.rain_number  # nr_out_TAU
+        cloud.mass_scale[i, k] = tau.scale.cloud_mass  # scale_qc
+        cloud.number_scale[i, k] = tau.scale.cloud_number  # scale_nc
+        rain.mass_scale[i, k] = tau.scale.rain_mass  # scale_qr
+        rain.number_scale[i, k] = tau.scale.rain_number  # scale_nr
+        net_bin_gain[i, k] = tau.net_bin_gain
+        cloud.mass_before[i, k] = qc_cloud[i, k]  # qc_in_TAU
+        cloud.number_before[i, k] = nc_cloud[i, k]  # nc_in_TAU
+        rain.mass_before[i, k] = qr_precip[i, k]  # qr_in_TAU
+        rain.number_before[i, k] = nr_precip[i, k]  # nr_in_TAU
+        qc_autoconversion[i, k] = -cloud.mass[i, k]
+        nc_autoconversion[i, k] = -cloud.number[i, k]
+        if rain.number[i, k] > 0.0
+            nr_autoconversion[i, k] = rain.number[i, k]
+        else
+            nr_self_collection[i, k] = rain.number[i, k]
         end
     end
     return nothing

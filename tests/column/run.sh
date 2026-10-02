@@ -8,8 +8,9 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE="${SOURCE:-/cluster/work/climate/${USER}/opumas_column/source}"
 DATA="${DATA:-${here}/data}"
 SELF_RTOL="${SELF_RTOL:-1e-12}"
-# 🎛️🚫 Rows not translated to Julia, or not PUMAS switches at all.
-SKIP="${SKIP:-tau wsub_default}"
+# 🎛️🚫 Rows that are not PUMAS switches at all.
+SKIP="${SKIP:-wsub_default}"
+REPO="$(cd "${here}/../.." && pwd)"
 
 source ~/conda >/dev/null 2>&1 || true
 
@@ -50,7 +51,7 @@ golden_rows() {
 		[[ "${label}" == label ]] && continue
 		[[ " ${SKIP} " == *" ${label} "* ]] && { echo "skip ${label}"; continue; }
 		sed '$d' "${SOURCE}/settings.nml" >"settings_${label}.nml"
-		[[ -n "${nl}" ]] && tr ';' '\n' <<<"${nl}" >>"settings_${label}.nml"
+		[[ -n "${nl}" ]] && tr ';' '\n' <<<"${nl//@REPO@/${REPO}}" >>"settings_${label}.nml"
 		echo "/" >>"settings_${label}.nml"
 		"${driver}" "settings_${label}.nml" golden_inputs.nc "golden_${label}.nc" >/dev/null
 		echo "${DATA}/golden_${label}.nc"

@@ -158,7 +158,25 @@ const PROCESS_RATE_PATHS = (
     qctend_SB2001 = (:cloud_liquid, :warm_rain_sb2001, :mass),
     nctend_SB2001 = (:cloud_liquid, :warm_rain_sb2001, :number),
     qrtend_SB2001 = (:rain, :warm_rain_sb2001, :mass),
-    nrtend_SB2001 = (:rain, :warm_rain_sb2001, :number)
+    nrtend_SB2001 = (:rain, :warm_rain_sb2001, :number),
+    # 🌧️🧮 TAU bin code, in-cloud values (only with warm_rain = :tau)
+    qctend_TAU = (:cloud_liquid, :warm_rain_tau, :mass),
+    nctend_TAU = (:cloud_liquid, :warm_rain_tau, :number),
+    qrtend_TAU = (:rain, :warm_rain_tau, :mass),
+    nrtend_TAU = (:rain, :warm_rain_tau, :number),
+    qc_in_TAU = (:cloud_liquid, :warm_rain_tau, :mass_before),
+    nc_in_TAU = (:cloud_liquid, :warm_rain_tau, :number_before),
+    qr_in_TAU = (:rain, :warm_rain_tau, :mass_before),
+    nr_in_TAU = (:rain, :warm_rain_tau, :number_before),
+    qc_out_TAU = (:cloud_liquid, :warm_rain_tau, :mass_after),
+    nc_out_TAU = (:cloud_liquid, :warm_rain_tau, :number_after),
+    qr_out_TAU = (:rain, :warm_rain_tau, :mass_after),
+    nr_out_TAU = (:rain, :warm_rain_tau, :number_after),
+    scale_qc = (:cloud_liquid, :warm_rain_tau, :mass_scale),
+    scale_nc = (:cloud_liquid, :warm_rain_tau, :number_scale),
+    scale_qr = (:rain, :warm_rain_tau, :mass_scale),
+    scale_nr = (:rain, :warm_rain_tau, :number_scale),
+    gmnnn_lmnnn_TAU = (:liquid, :warm_rain_tau, :net_bin_gain)
 )
 
 "Tendencies returned to the host (`intent(out)` of micro_pumas_tend)."

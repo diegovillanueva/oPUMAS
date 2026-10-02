@@ -21,6 +21,7 @@
 ## 🔢🧊 One constant is folded with higher precision by the compiler
 - 📍 `micro_pumas_utils.F90`: `droplet_mass_25um = 4._r8/3._r8*pi*rhow*(25.e-6_r8)**3` is a parameter, so gfortran folds it with exact arithmetic (MPFR) and rounds once.
 - 🟣 Julia computes the same expression at run time with rounding after each operation and lands one unit in the last place lower. The twin writes the folded value as a literal; every other folded constant (`aj`, `mi0`, `mmult`, `mi0l_min`, `droplet_mass_40um`) matches bit for bit when computed.
+- 🌧️ The TAU bin code has a second one: `m1 = 4._r8/3._r8*pi*rhow*(6.e-6_r8)**3` (a 6 μm drop) folds one unit in the last place below the run-time value, so `tau_new_drop_mass` is a literal too.
 
 ## 🔁💧 CAM passes `allow_sed_supersat` as `remove_supersat`
 - 📍 `interface/cesm215/micro_mg_cam.F90` calls `micro_pumas_init(..., allow_sed_supersat, micro_pumas_warm_rain, ...)`, and the dummy argument at that position is `remove_supersat_in`.
@@ -58,3 +59,8 @@
 - 🟤 `do_hail .or. do_graupel .and. lamg > 0` binds as `do_hail .or. (do_graupel .and. lamg > 0)`; with hail on, graupel reflectivity is added even when `lamg` is 0.
 - 🔢 The explicit sedimentation step `rnstep = 1._r8/real(nstep)` divides by a default-kind (single precision) real; exact for every realistic `nstep`, kept as `Float64(Float32(nstep))`.
 - 🚫 `nrcons` and `nscons` (constant rain and snow number) are not settings of oPUMAS, so their branches are left out; they are false in all CAM namelists.
+
+## 🌧️🧮 TAU cloud-rain cut: a condition that is always true
+- 📍 `pumas_stochastic_collect_tau.F90`, `cam_bin_distribute`: the bin of least mass between the cloud and rain peaks is only searched if `(max_qc/max_qr < 10._r8) .or. (max_qc/max_qr > 0.1_r8)`, which holds for every positive ratio.
+- 🐛🤔 An `.and.` (peaks within a factor 10 of each other) was probably meant. The search loop also runs from the cloud peak to the rain peak only, so when the rain peak lies below the cloud peak the cut stays at 40 μm.
+- 🟣 The twin keeps the `.or.` and says so in a comment.

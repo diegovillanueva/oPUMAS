@@ -339,9 +339,11 @@ function ice_snow_processes!(work, parameters)
         qc_accretion[i, k] = qc_accretion[i, k] * settings.accretion_enhancement
         nc_accretion[i, k] = nc_accretion[i, k] * settings.accretion_enhancement
     end
-    for k in 1:levels, i in 1:columns
-        nr_self_collection[i, k] = rain_self_collection(
-            ρ[i, k], qr_precip[i, k], nr_precip[i, k])
+    if settings.warm_rain in (:kk2000, :sb2001)  # 🌧️ the TAU bin code already did it
+        for k in 1:levels, i in 1:columns
+            nr_self_collection[i, k] = rain_self_collection(
+                ρ[i, k], qr_precip[i, k], nr_precip[i, k])
+        end
     end
 
     # 🧊❄️ accretion of cloud ice by snow

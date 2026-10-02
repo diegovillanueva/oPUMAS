@@ -143,7 +143,7 @@
 | `λi` | `incloud.cloud_ice.λ` | lami | s06, s11, s14, s15 |
 | `nc_cloud` | `incloud.cloud_liquid.N` | ncic | s04, s05, s06, s07, s09 |
 | `qc_cloud` | `incloud.cloud_liquid.q` | qcic | s04, s05, s06, s07, s09 |
-| `λc` | `incloud.cloud_liquid.λ` | lamc | s04, s06, s09, s11, s14 |
+| `λc` | `incloud.cloud_liquid.λ` | lamc | s04, s05, s06, s09, s11, s14 |
 | `μc` | `incloud.cloud_liquid.μ` | pgam | s04, s05, s06, s09, s11, s14 |
 | `ng_precip` | `incloud.graupel.N` | ngic | s06 |
 | `N₀g` | `incloud.graupel.N₀` | n0g | s06, s07, s15 |
@@ -151,13 +151,13 @@
 | `qg_precip` | `incloud.graupel.q` | qgic | s06, s07 |
 | `λg` | `incloud.graupel.λ` | lamg | s06, s07, s11, s14, s15 |
 | `ice_fraction` | `incloud.ice_fraction` | icldm | s01, s02, s04, s06, s08, s09, s11, s12, s13, s14, s15 |
-| `liquid_fraction` | `incloud.liquid_fraction` | lcldm | s01, s04, s06, s07, s08, s09, s11, s12, s13, s14, s15 |
-| `precip_fraction` | `incloud.precipitation_fraction` | precip_frac | s01, s04, s06, s07, s08, s09, s11, s13, s14, s15 |
-| `nr_precip` | `incloud.rain.N` | nric | s04, s06, s07, s09 |
-| `N₀r` | `incloud.rain.N₀` | n0r | s04, s06, s07, s09, s14, s15 |
+| `liquid_fraction` | `incloud.liquid_fraction` | lcldm | s01, s04, s05, s06, s07, s08, s09, s11, s12, s13, s14, s15 |
+| `precip_fraction` | `incloud.precipitation_fraction` | precip_frac | s01, s04, s05, s06, s07, s08, s09, s11, s13, s14, s15 |
+| `nr_precip` | `incloud.rain.N` | nric | s04, s05, s06, s07, s09 |
+| `N₀r` | `incloud.rain.N₀` | n0r | s04, s05, s06, s07, s09, s14, s15 |
 | `vr_number` | `incloud.rain.fall_speed_number` | unr | s06, s07, s11 |
 | `qr_precip` | `incloud.rain.q` | qric | s04, s05, s06, s07, s09 |
-| `λr` | `incloud.rain.λ` | lamr | s04, s06, s07, s08, s09, s11, s13, s14, s15 |
+| `λr` | `incloud.rain.λ` | lamr | s04, s05, s06, s07, s08, s09, s11, s13, s14, s15 |
 | `qsat_factor` | `incloud.saturation_scaling` | qsfm | s01 |
 | `ns_precip` | `incloud.snow.N` | nsic | s06, s07 |
 | `N₀s` | `incloud.snow.N₀` | n0s | s06, s07 |
@@ -173,6 +173,7 @@
 | `qi_in` | `inputs.cloud_ice.q` | qin | s01 |
 | `nc_in` | `inputs.cloud_liquid.N` | ncn | s01, s10 |
 | `qc_in` | `inputs.cloud_liquid.q` | qcn | s01 |
+| `qc_grid` | `inputs.cloud_liquid.q` | qcn | s05 |
 | `ng_in` | `inputs.graupel.N` | ngr | s01, s10 |
 | `qg_in` | `inputs.graupel.q` | qgr | s01, s10 |
 | `contact_freezing_host` | `inputs.host_freezing.contact` | frzcnt | s06 |
@@ -187,13 +188,14 @@
 | `qv` | `inputs.q_vapor` | q | s01, s06, s08, s13 |
 | `nr_in` | `inputs.rain.N` | nrn | s01, s10 |
 | `qr_in` | `inputs.rain.q` | qrn | s01, s10 |
+| `qr_grid` | `inputs.rain.q` | qrn | s05 |
 | `relative_variance` | `inputs.relative_variance` | relvar | s05, s06 |
 | `qsat_factor_in` | `inputs.saturation_scaling` | qsatfac | s01 |
 | `ns_in` | `inputs.snow.N` | nsn | s01, s10 |
 | `qs_in` | `inputs.snow.q` | qsn | s01, s10 |
 | `ns_from_host` | `inputs.snow_from_host.N` | tnd_nsnow | s06 |
 | `qs_from_host` | `inputs.snow_from_host.q` | tnd_qsnow | s06 |
-| `Δt` | `inputs.time_step` | deltat | s02, s06, s07, s09, s11, s12, s13, s14, s15 |
+| `Δt` | `inputs.time_step` | deltat | s02, s05, s06, s07, s09, s11, s12, s13, s14, s15 |
 | `qi_accretion_snow_mean` | `process_rates.cloud_ice.accretion_by_snow.mass` | praitot | s09 |
 | `ni_accretion_snow_mean` | `process_rates.cloud_ice.accretion_by_snow.number` | npraitot | s09 |
 | `qi_autoconversion_mean` | `process_rates.cloud_ice.autoconversion_to_snow.mass` | prcitot | s09 |
@@ -242,6 +244,7 @@
 | `nc_kk2000` | `process_rates.cloud_liquid.warm_rain_kk2000.number` | nctend_KK2000 | s05, s06 |
 | `qc_sb2001` | `process_rates.cloud_liquid.warm_rain_sb2001.mass` | qctend_SB2001 | s05, s06 |
 | `nc_sb2001` | `process_rates.cloud_liquid.warm_rain_sb2001.number` | nctend_SB2001 | s05, s06 |
+| `cloud` | `process_rates.cloud_liquid.warm_rain_tau` | qctend_TAU, nctend_TAU, qc_in_TAU, qc_out_TAU, scale_qc, … | s05 |
 | `qg_deposition_mean` | `process_rates.graupel.deposition.mass` | prdgtot | s09 |
 | `vg_mass` | `process_rates.graupel.fall_speed.mass` | umg | s06, s07, s11 |
 | `qg_rimed_snow_mean` | `process_rates.graupel.from_snow_riming.mass` | pgsacwtot | s09 |
@@ -254,6 +257,7 @@
 | `ng_sedimentation` | `process_rates.graupel.sedimentation.number` | ngsedten | s12 |
 | `heating_rain_freezing` | `process_rates.heating.rain_freezing` | frzrdttot | s03, s13 |
 | `heating_snow_melting` | `process_rates.heating.snow_melting` | meltsdttot | s03, s13 |
+| `net_bin_gain` | `process_rates.liquid.warm_rain_tau.net_bin_gain` | gmnnn_lmnnn_TAU | s05 |
 | `qr_accretion_graupel_mean` | `process_rates.rain.accretion_by_graupel.mass` | pracgtot | s09 |
 | `nr_accretion_graupel_mean` | `process_rates.rain.accretion_by_graupel.number` | npracgtot | s09 |
 | `qr_accretion_snow_mean` | `process_rates.rain.accretion_by_snow.mass` | pracstot | s09 |
@@ -273,6 +277,7 @@
 | `nr_kk2000` | `process_rates.rain.warm_rain_kk2000.number` | nrtend_KK2000 | s05, s06 |
 | `qr_sb2001` | `process_rates.rain.warm_rain_sb2001.mass` | qrtend_SB2001 | s05, s06 |
 | `nr_sb2001` | `process_rates.rain.warm_rain_sb2001.number` | nrtend_SB2001 | s05, s06 |
+| `rain` | `process_rates.rain.warm_rain_tau` | qrtend_TAU, nrtend_TAU, qr_in_TAU, qr_out_TAU, scale_qr, … | s05 |
 | `qs_collection_rain_mean` | `process_rates.snow.collection_by_rain.mass` | psacrtot | s09 |
 | `qs_deposition_mean` | `process_rates.snow.deposition.mass` | vapdepstot | s09 |
 | `vs_mass` | `process_rates.snow.fall_speed.mass` | ums | s06, s07, s11 |
@@ -335,7 +340,7 @@
 | `nr_freezing_snow` | `rates.rain.freezing_to_snow.number` | nnuccr | s06, s08, s09 |
 | `qr_instant_freezing` | `rates.rain.instant_freezing.mass` | minstrf | s03 |
 | `nr_instant_freezing` | `rates.rain.instant_freezing.number` | ninstrf | s03 |
-| `nr_self_collection` | `rates.rain.self_collection.number` | nragg | s06, s08, s09 |
+| `nr_self_collection` | `rates.rain.self_collection.number` | nragg | s05, s06, s08, s09 |
 | `ns_aggregation` | `rates.snow.aggregation.number` | nsagg | s06, s08, s09 |
 | `qs_collection_rain` | `rates.snow.collection_by_rain.mass` | psacr | s07, s08, s09 |
 | `qs_deposition` | `rates.snow.deposition.mass` | vap_deps | s06, s08, s09 |
