@@ -120,7 +120,7 @@ end
 """
     rain_self_collection(ρ_air, q_rain, N_rain)
 
-Loss of raindrop number by raindrops merging, -8 N_r q_r ρ_air (kg⁻¹ s⁻¹), as in
+Loss of raindrop number by raindrops merging, `-8 N_r q_r ρ_air` (kg⁻¹ s⁻¹), as in
 Beheng (1994). Fortran twin: `self_collection_rain` (`nragg`).
 """
 function rain_self_collection(ρ_air, q_rain, N_rain)

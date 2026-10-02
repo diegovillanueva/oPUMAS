@@ -33,7 +33,8 @@ end
     hydrometeor_properties(ice_to_snow_size)
 
 Properties of the six categories, as set by `micro_pumas_utils_init`.
-`ice_to_snow_size` is the cloud ice to snow autoconversion diameter (m, `dcs`).
+`ice_to_snow_size` is the cloud ice to snow autoconversion diameter (m, `dcs`). Fortran
+twin: the `NewMGHydrometeorProps` calls in `micro_pumas_utils_init`.
 """
 function hydrometeor_properties(ice_to_snow_size)
     d = sphere_mass_exponent

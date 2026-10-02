@@ -103,8 +103,8 @@ end
 Evaporation of rain and sublimation of snow and graupel in the clear-air part of the
 precipitation area. `rain`, `snow`, `graupel` are NamedTuples `(; q, λ, N₀, a)` of
 in-precipitation values (graupel also `b`). Precipitation under cloud (`liquid_fraction`,
-ignored if q_cloud + q_ice < 10⁻⁶) does not evaporate; vapor in the clear part is
-q_clear = (q_vapor - f_cloud q_sat_liquid) / (1 - f_cloud).
+ignored if `q_cloud + q_ice < 10⁻⁶`) does not evaporate; vapor in the clear part is
+`q_clear = (q_vapor - f_cloud q_sat_liquid) / (1 - f_cloud)`.
 
 Returns in-precipitation rates ≤ 0 (kg kg⁻¹ s⁻¹) `rain`, `snow`, `graupel`, and
 `area`, the precipitation fraction outside cloud (`am_evp_st`).

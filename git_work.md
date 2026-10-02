@@ -16,6 +16,7 @@ git log --oneline main_cam_interface..upstream/main_cam
 - 🔔🟡 Non-empty: tell Diego which upstream commits are new, then run the daily sync below.
 - 🛑⚠️ If the merge into `main_cam_interface` conflicts, stop, show the conflicting files, and ask Diego before resolving.
 - 🟣🔁 After a merge, run `julia/tools/check_twins.sh <old>..<new>` (from a checkout that has `julia/`). Each printed line names a Fortran routine that changed and its oPUMAS.jl twin to update and re-test.
+- 🔤🟣 After a dictionary edit, run `julia/tools/julia.sh --project=julia julia/tools/check_names.jl` (on herdr-compute): every `Julia` path must exist in oPUMAS.jl.
 
 ## 🔄📅 Daily sync
 

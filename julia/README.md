@@ -25,7 +25,7 @@ julia/tools/julia.sh -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
 - 📋 `TWINS.csv`: Julia function, Fortran file and routine, upstream commit translated.
 - 🔣 `SYMBOLS.md`: every short symbol used inside functions, every stage local with its container path and PUMAS name.
 - 🐛 `FINDINGS.md`: oddities of the Fortran met while translating.
-- 🛠️ `tools/`: the `julia.sh` wrapper, `format.sh`, and `check_twins.sh <old>..<new>`, which lists the twins whose Fortran routines changed between two commits.
+- 🛠️ `tools/`: the `julia.sh` wrapper, `format.sh`, `check_twins.sh <old>..<new>`, which lists the twins whose Fortran routines changed between two commits, and `check_names.jl` (`julia/tools/julia.sh --project=julia julia/tools/check_names.jl`), which checks that every `Julia` path of `translation/dictionary.csv` exists and every exported twin names its Fortran routine in a `Fortran twin:` docstring line.
 - 📐🧱 `DESIGN.md`: the container design of the time step and how it was built.
 - 🗺️ Plan and milestones: [`../handoffs/julia.plan.md`](../handoffs/julia.plan.md).
 
