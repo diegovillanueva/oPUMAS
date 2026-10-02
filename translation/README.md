@@ -65,6 +65,7 @@ fall speeds  <species>_<mass|number>_weighted_fall_speed
 ## ➕🌐 Add a language
 
 1. 📖 Add a column to `dictionary.csv` (any header that is not a metadata column). Empty cells mean "keep the PUMAS name".
+   ⚠️🧾 Every column that is not in `META_COLUMNS` of `translate.py` counts as a language and must hold legal Fortran names. A column of other data (such as `Julia`, which holds dotted paths) goes into `META_COLUMNS` instead, with no `languages.csv` row.
 2. 🌿 Add a row to `languages.csv` with the branch name.
 3. 🔁 Run `translation/sync.sh`; it creates the branch.
 
