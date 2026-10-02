@@ -36,9 +36,12 @@ python3 tests/cmp_restart.py a.cam.r.nc b.cam.r.nc   # compare any two restarts,
 - ➕📄 **A new switch adds one row** to `switches.csv` (`label,expect,namelist`; several settings are separated by `;`, and `@REPO@` expands to the repo root). Settings are appended to the case's `user_nl_cam` for one run and removed afterwards.
 - 🚦🔢 **Throttle.** One case runs one switch at a time; the 18 rows take about 1.5 hours in sequence and never exceed one running job.
 
+## 🧪⚡ Column driver
+
+- 📦🔬 [`column/`](column/README.md) holds a standalone driver that runs `micro_pumas_tend` on 200 stored CAM columns in seconds. It reproduces CAM to 2.4e-16, writes one golden file per switch row, and records every process call for the Julia twin.
+
 ## 🚧📝 Not covered yet
 
 - 🧊🚫 Switches that change the tracer count (graupel off) need a second reference case built without `-nadv 35`.
 - 🤖🚫 `emulated` warm rain is not wired in the interface.
-- 🧪⚡ A standalone single-column driver that calls `micro_pumas_init`/`micro_pumas_tend` on a saved input column would bring level 1 and 2 down to seconds without CESM. It is the natural next step if the 15-minute loop becomes the bottleneck.
 - 📋⏳ Only `base` has been run so far; the other rows of `switches.csv` are untested and the first run of each stores its baseline.
