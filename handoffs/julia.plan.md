@@ -149,6 +149,7 @@ tests/column/
 
 ### M8 ⏳🧩 Later, only on Diego's request
 - 🧊 Sppe controls from `dev/Sppe`; TAU bin warm rain; MG4 lookup tables; an offline single-column time loop with plots; a `CF-CCPP`-names Fortran driver.
+- 📌 Status (2026-10-02): 🧊 Sppe done. The 11 controls are `Settings` fields (off-by-default values = upstream), read from the same namelist names as `dev/Sppe`; the golden files come from `dev/Sppe`'s Fortran via `SPPE=1 tests/column/build.sh` without merging that branch. All 18 rows of `tests/column/switches_sppe.csv` are bit-for-bit (5617 tests). TAU, MG4, time loop and CF-CCPP driver remain.
 
 ## 5. ⚠️🕳️ Known pitfalls
 

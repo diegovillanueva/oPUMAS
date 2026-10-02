@@ -57,5 +57,14 @@ function autoconversion!(work, parameters)
             qr_sb2001[i, k] = -qc_sb2001[i, k]
         end
     end
+    # 🧊🎛️ Sppe: scale the liquid autoconversion of kk2000 and sb2001
+    factor = settings.autoconversion_factor
+    if factor != 1.0 && settings.warm_rain in (:kk2000, :sb2001)
+        for k in 1:levels, i in 1:columns
+            qc_autoconversion[i, k] = qc_autoconversion[i, k] * factor
+            nr_autoconversion[i, k] = nr_autoconversion[i, k] * factor
+            nc_autoconversion[i, k] = nc_autoconversion[i, k] * factor
+        end
+    end
     return nothing
 end

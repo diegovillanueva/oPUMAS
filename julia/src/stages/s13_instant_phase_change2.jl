@@ -276,7 +276,7 @@ function instant_phase_change_after_sedimentation!(work, parameters)
         end
 
         # 🔢 ice number limiter
-        if ni_tendency[i, k] > 0.0 &&
+        if settings.cap_ice_number && ni_tendency[i, k] > 0.0 &&
            ni[i, k] + ni_tendency[i, k] * Δt > max_nicons * ice_fraction[i, k] / ρ[i, k]
             ni_tendency[i, k] = max(
                 0.0, (max_nicons * ice_fraction[i, k] / ρ[i, k] - ni[i, k]) / Δt)
@@ -305,6 +305,8 @@ function instant_phase_change_after_sedimentation!(work, parameters)
                 ice_share = 0.0
             elseif T_estimate[i, k] < 238.15
                 ice_share = 1.0
+            elseif settings.supersaturation_to_liquid  # 🧊🎛️ Sppe
+                ice_share = 0.0
             else
                 ice_share = (268.15 - T_estimate[i, k]) / 30.0
             end

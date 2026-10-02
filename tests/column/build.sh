@@ -11,6 +11,8 @@ IFACE="${SRC}/interface/cesm215"
 BUILD="${BUILD:-${HERE}/build}"
 OPT="${OPT:--O0}"
 CAPTURE="${CAPTURE:-0}"   # 🔬 CAPTURE=1 builds pumas_column_capture, which records every process call
+SPPE="${SPPE:-0}"         # 🧊 SPPE=1 builds pumas_column_sppe from the Fortran of branch ${SPPE_REF}
+SPPE_REF="${SPPE_REF:-dev/Sppe}"
 FILES=("${SRC}/pumas_kinds.F90" "${SRC}/pumas_gamma_function.F90" "${IFACE}/wv_sat_methods.F90"
 	"${SRC}/micro_pumas_utils.F90" "${SRC}/micro_pumas_diags.F90"
 	"${SRC}/pumas_stochastic_collect_tau.F90" "${SRC}/module_neural_net.F90"
@@ -37,6 +39,23 @@ if [[ "${CAPTURE}" == 1 ]]; then
 		"${SRC}/micro_pumas_utils.F90")
 			FILES[$i]="${HERE}/capture/pumas_column_capture.F90 ${BUILD}/micro_pumas_utils.F90" ;;
 		"${SRC}/micro_pumas_v1.F90") FILES[$i]="${BUILD}/micro_pumas_v1.F90" ;;
+		esac
+	done
+	read -r -a FILES <<<"${FILES[*]}"
+fi
+if [[ "${SPPE}" == 1 ]]; then
+	# 🧊🌿 dev/Sppe changes only these three files; take them read-only from the branch.
+	BUILD="${BUILD}/sppe"
+	exe=pumas_column_sppe
+	flags+=(-DSPPE)
+	mkdir -p "${BUILD}/src"
+	git -C "${SRC}" archive "${SPPE_REF}" micro_pumas_sppe.F90 micro_pumas_utils.F90 \
+		micro_pumas_v1.F90 | tar -x -C "${BUILD}/src"
+	for i in "${!FILES[@]}"; do
+		case "${FILES[$i]}" in
+		"${SRC}/micro_pumas_utils.F90")
+			FILES[$i]="${BUILD}/src/micro_pumas_sppe.F90 ${BUILD}/src/micro_pumas_utils.F90" ;;
+		"${SRC}/micro_pumas_v1.F90") FILES[$i]="${BUILD}/src/micro_pumas_v1.F90" ;;
 		esac
 	done
 	read -r -a FILES <<<"${FILES[*]}"

@@ -257,9 +257,17 @@ function ice_snow_processes!(work, parameters)
         qc_riming_snow[i, k] = qc_riming_snow[i, k] * iaccr
         nc_riming_snow[i, k] = nc_riming_snow[i, k] * iaccr
     end
+    if settings.riming_factor != 1.0  # 🧊🎛️ Sppe: before splintering, so splinters scale too
+        for k in 1:levels, i in 1:columns
+            qc_riming_snow[i, k] = qc_riming_snow[i, k] * settings.riming_factor
+            nc_riming_snow[i, k] = nc_riming_snow[i, k] * settings.riming_factor
+        end
+    end
     for k in 1:levels, i in 1:columns
         if settings.prognostic_cloud_ice
-            splinters = rime_splintering_by_snow(T[i, k], qc_riming_snow[i, k])
+            splinters = rime_splintering_by_snow(T[i, k], qc_riming_snow[i, k];
+                enabled = settings.rime_splintering,
+                number_factor = settings.splinter_number_factor)
             qi_splintering_snow[i, k], ni_splintering_snow[i, k] = splinters.mass,
             splinters.number
             qc_riming_snow[i, k] = splinters.riming
@@ -279,7 +287,7 @@ function ice_snow_processes!(work, parameters)
     for k in 1:levels, i in 1:columns
         freezing = rain_immersion_freezing(
             parameters, T[i, k], qr_precip[i, k], nr_precip[i, k],
-            λr[i, k])
+            λr[i, k]; enabled = settings.rain_freezing)
         qr_freezing_snow[i, k], nr_freezing_snow[i, k] = freezing.mass, freezing.number
     end
 
@@ -357,6 +365,9 @@ function ice_snow_processes!(work, parameters)
     end
     for k in 1:levels, i in 1:columns
         qc_bergeron_snow[i, k] = qc_bergeron_snow[i, k] * berg_eff
+        if settings.bergeron_snow_factor != 1.0  # 🧊🎛️ Sppe
+            qc_bergeron_snow[i, k] = qc_bergeron_snow[i, k] * settings.bergeron_snow_factor
+        end
     end
     for k in 1:levels, i in 1:columns
         qs_deposition[i, k] = snow_deposition(
@@ -372,6 +383,9 @@ function ice_snow_processes!(work, parameters)
         end
         for k in 1:levels, i in 1:columns
             qc_bergeron_ice[i, k] = qc_bergeron_ice[i, k] * berg_eff
+            if settings.bergeron_ice_factor != 1.0  # 🧊🎛️ Sppe
+                qc_bergeron_ice[i, k] = qc_bergeron_ice[i, k] * settings.bergeron_ice_factor
+            end
             if qi_sublimation[i, k] < 0.0 && qi[i, k] > smallest_mixing_ratio &&
                ice_fraction[i, k] > minimum_cloud_fraction
                 ni_sublimation[i, k] = number_sublimation_factor * qi_sublimation[i, k] /

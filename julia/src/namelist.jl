@@ -39,7 +39,19 @@ const NAMELIST_FIELDS = Dict(
     "micro_mg_ncnst" => :droplet_number,
     "micro_mg_ninst" => :ice_number,
     "micro_mg_ngcons" => :constant_graupel_number,
-    "micro_mg_ngnst" => :graupel_number
+    "micro_mg_ngnst" => :graupel_number,
+    # 🧊🎛️ Sppe controls (dev/Sppe)
+    "naai_het_also_in_mpc" => :nucleation_in_mixed_phase,
+    "enable_nimax" => :cap_ice_number,
+    "detrainment_ramp_liq" => :supersaturation_to_liquid,
+    "onoff_contact_freezing" => :droplet_contact_freezing,
+    "onoff_sip" => :rime_splintering,
+    "rain_freeze" => :rain_freezing,
+    "auto_liq_factor" => :autoconversion_factor,
+    "riming_factor" => :riming_factor,
+    "micro_mg_ice_berg_ice_factor" => :bergeron_ice_factor,
+    "micro_mg_ice_berg_snow_factor" => :bergeron_snow_factor,
+    "factor_hm" => :splinter_number_factor
 )
 
 "Namelist entries that do not change the translated physics."

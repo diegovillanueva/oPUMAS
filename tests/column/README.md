@@ -55,6 +55,8 @@ tests/column/run.sh
 ## 🎛️🚫 Switch rows
 
 🎛️ Every row of `tests/switches.csv` gets `golden_<label>.nc`, made from `settings.nml` plus the row's namelist overrides.
+🧊🎛️ Sppe rows: `switches_sppe.csv` lists the 11 process controls of `dev/Sppe` (`micro_pumas_sppe.F90`). `run.sh` builds a second driver with `SPPE=1 build.sh` (into `build/sppe`), which takes `micro_pumas_sppe.F90`, `micro_pumas_utils.F90` and `micro_pumas_v1.F90` from `git archive dev/Sppe` (`SPPE_REF` to change it) without merging that branch, and checks that `golden_sppe_base.nc` is bit-for-bit with `golden_base.nc`. `SPPE_ROWS=0 run.sh` skips them. `sppe_no_cnt_frz` equals base by design: `onoff_contact_freezing` only acts on the Bigg path used without host freezing, which the Julia twin does not translate.
+
 🚫 Skipped rows: `tau` (TAU bin warm rain, not translated yet, M8) and `wsub_default` (changes `microp_aero`, not PUMAS, so it has no meaning for fixed inputs).
 
 ## 📐🧷 File layout notes

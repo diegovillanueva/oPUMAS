@@ -35,7 +35,9 @@ end
 🎛️ Labels of tests/switches.csv whose golden file and settings exist, in table order.
 """
 function switch_labels()
-    rows = readlines(joinpath(@__DIR__, "..", "..", "tests", "switches.csv"))[2:end]
+    tests = joinpath(@__DIR__, "..", "..", "tests")
+    rows = [readlines(joinpath(tests, "switches.csv"))[2:end];
+            readlines(joinpath(tests, "column", "switches_sppe.csv"))[2:end]]
     labels = [first(split(row, ',')) for row in rows if !isempty(strip(row))]
     return filter(
         l -> isfile(joinpath(GOLDEN, "golden_$l.nc")) &&
