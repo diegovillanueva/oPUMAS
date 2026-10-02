@@ -13,7 +13,8 @@
 | `dump/` | 📥 `make_case.sh` clones `bfb_dev` into `cesm215_pumas.F2000climo.column_dump` with a `-usr_src` copy of `interface/cesm215` whose `micro_mg_cam.F90` is patched by `patch_micro_mg_cam.py`; `run_case.sh` runs one day and dumps chosen steps and chunks. |
 | `select_columns.py` | 🔎 Picks about 200 dumped columns so every process rate is non-zero in at least 5 of them, plus 15 per cloud regime. |
 | `synthetic.py` | 🌦️ Nine hand-made columns for rare processes (supercooled rain, homogeneous freezing, melting, dry evaporation, riming, drizzle, ice supersaturation, warm ice, clear sky). |
-| `compare.py` | ⚖️ Variable-by-variable comparison with `--rtol`/`--atol`; zero tolerances mean bit-for-bit. |
+| `compare.py` | ⚖️ Variable-by-variable comparison with `--rtol`/`--atol`; zero tolerances mean bit-for-bit. Equal values (also equal infinities) and NaN on both sides count as equal. |
+| `cf_ccpp_check.sh` | 🔤 Builds the driver from the `CF-CCPP` translation of the working tree (`build/cf_ccpp`) and checks every switch row and the 48-step loop bit-for-bit (about 1 min, after `run.sh`). The capture build is not translated. |
 | `run.sh` | ▶️ Rebuilds everything below from the stored columns in under a minute. |
 
 ## ▶️🧾 How to run

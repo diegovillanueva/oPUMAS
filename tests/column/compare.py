@@ -26,8 +26,9 @@ def main() -> None:
     shared = [v for v in ref.data_vars if v in new.data_vars and not v.startswith("source_")]
     for v in shared:
         x, y = new[v].values.astype("f8"), ref[v].values.astype("f8")
-        both_nan = np.isnan(x) & np.isnan(y)
-        diff = np.where(both_nan, 0.0, np.abs(x - y))
+        same = (x == y) | (np.isnan(x) & np.isnan(y))  # 🟰 equal infinities count as equal
+        with np.errstate(invalid="ignore"):
+            diff = np.where(same, 0.0, np.abs(x - y))
         rel = np.where(y != 0, diff / np.abs(np.where(y != 0, y, 1)), np.where(diff > 0, np.inf, 0))
         ok = (diff <= a.atol) | (rel <= a.rtol)
         ok &= ~(np.isnan(x) ^ np.isnan(y))

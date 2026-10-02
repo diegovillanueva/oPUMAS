@@ -56,7 +56,7 @@
 - 🟤 In the effective radius stage `dumg` and `dumng` are grid means, not divided by `precip_frac` like rain and snow; the graupel number check then multiplies by `precip_frac` again.
 - 🟤 The 10 cm reflectivity of graupel uses `n0g` from the process stage, which stage 15 never updates.
 - 🌧️ The rain freezing after sedimentation sizes the rain from grid-mean `dumr`, not in-precipitation values.
-- 🟤 `do_hail .or. do_graupel .and. lamg > 0` binds as `do_hail .or. (do_graupel .and. lamg > 0)`; with hail on, graupel reflectivity is added even when `lamg` is 0.
+- 🟤 `do_hail .or. do_graupel .and. lamg > 0` binds as `do_hail .or. (do_graupel .and. lamg > 0)`; with hail on, graupel reflectivity is added even when `lamg` is 0. 📡 In the `hail` switch row this divides by zero: `refl10cm` is NaN at 5448 of 6688 points and +Inf at 303 (`reflz10cm` NaN at the same 5448).
 - 🔢 The explicit sedimentation step `rnstep = 1._r8/real(nstep)` divides by a default-kind (single precision) real; exact for every realistic `nstep`, kept as `Float64(Float32(nstep))`.
 - 🚫 `nrcons` and `nscons` (constant rain and snow number) are not settings of oPUMAS, so their branches are left out; they are false in all CAM namelists.
 
