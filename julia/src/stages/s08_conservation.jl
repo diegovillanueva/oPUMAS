@@ -107,14 +107,22 @@ function conservation_limiters!(work, parameters)
 
     # 💧 conservation of qc, then the deposition limit
     for k in 1:levels, i in 1:columns
-        sink_over_step = ((qc_autoconversion[i, k] + qc_accretion[i, k] + qc_immersion_freezing[i, k] + qc_contact_freezing[i, k] + qi_splintering_snow[i, k] +
-                qc_riming_snow[i, k] + qc_bergeron_snow[i, k] + qi_splintering_graupel[i, k] + qc_riming_graupel[i, k] + qg_rimed_snow[i, k]) *
-               liquid_fraction[i, k] + qc_bergeron_ice[i, k]) * Δt
+        sink_over_step = ((qc_autoconversion[i, k] + qc_accretion[i, k] +
+                           qc_immersion_freezing[i, k] + qc_contact_freezing[i, k] +
+                           qi_splintering_snow[i, k] +
+                           qc_riming_snow[i, k] + qc_bergeron_snow[i, k] +
+                           qi_splintering_graupel[i, k] + qc_riming_graupel[i, k] +
+                           qg_rimed_snow[i, k]) *
+                          liquid_fraction[i, k] + qc_bergeron_ice[i, k]) * Δt
         if sink_over_step > qc[i, k]
             ratio = qc[i, k] * inv_Δt /
-                    ((qc_autoconversion[i, k] + qc_accretion[i, k] + qc_immersion_freezing[i, k] + qc_contact_freezing[i, k] + qi_splintering_snow[i, k] +
-                      qc_riming_snow[i, k] + qc_bergeron_snow[i, k] + qi_splintering_graupel[i, k] + qc_riming_graupel[i, k] +
-                      qg_rimed_snow[i, k]) * liquid_fraction[i, k] + qc_bergeron_ice[i, k]) * one_minus_small
+                    ((qc_autoconversion[i, k] + qc_accretion[i, k] +
+                      qc_immersion_freezing[i, k] + qc_contact_freezing[i, k] +
+                      qi_splintering_snow[i, k] +
+                      qc_riming_snow[i, k] + qc_bergeron_snow[i, k] +
+                      qi_splintering_graupel[i, k] + qc_riming_graupel[i, k] +
+                      qg_rimed_snow[i, k]) * liquid_fraction[i, k] +
+                     qc_bergeron_ice[i, k]) * one_minus_small
             qi_splintering_graupel[i, k] = qi_splintering_graupel[i, k] * ratio
             qc_riming_graupel[i, k] = qc_riming_graupel[i, k] * ratio
             qg_rimed_snow[i, k] = qg_rimed_snow[i, k] * ratio
@@ -140,25 +148,35 @@ function conservation_limiters!(work, parameters)
         deposition_total = qi_deposition[i, k] + qi_nucleation[i, k] + qs_deposition[i, k]
         if deposition_total > 1.0e-20
             deposition_max = (qv[i, k] - qsat_ice[i, k]) /
-                  (1.0 + Ls_squared * qsat_ice[i, k] / (cp * Rv * (T[i, k] * T[i, k]))) *
-                  inv_Δt
+                             (1.0 +
+                              Ls_squared * qsat_ice[i, k] /
+                              (cp * Rv * (T[i, k] * T[i, k]))) *
+                             inv_Δt
             deposition_max = max(deposition_max, 0.0)
             if deposition_total > deposition_max
-                qi_nucleation[i, k] = deposition_max * qi_nucleation[i, k] / deposition_total
-                qi_deposition[i, k] = deposition_max * qi_deposition[i, k] / deposition_total
-                qs_deposition[i, k] = deposition_max * qs_deposition[i, k] / deposition_total
+                qi_nucleation[i, k] = deposition_max * qi_nucleation[i, k] /
+                                      deposition_total
+                qi_deposition[i, k] = deposition_max * qi_deposition[i, k] /
+                                      deposition_total
+                qs_deposition[i, k] = deposition_max * qs_deposition[i, k] /
+                                      deposition_total
             end
         end
     end
 
     # 💧🔢 conservation of nc; small raindrops freeze to cloud ice
     for k in 1:levels, i in 1:columns
-        sink_over_step = (nc_autoconversion[i, k] + nc_accretion[i, k] + nc_immersion_freezing[i, k] + nc_contact_freezing[i, k] + nc_riming_snow[i, k] -
-               nc_evaporation[i, k] + nc_riming_graupel[i, k]) * liquid_fraction[i, k] * Δt
+        sink_over_step = (nc_autoconversion[i, k] + nc_accretion[i, k] +
+                          nc_immersion_freezing[i, k] + nc_contact_freezing[i, k] +
+                          nc_riming_snow[i, k] -
+                          nc_evaporation[i, k] + nc_riming_graupel[i, k]) *
+                         liquid_fraction[i, k] * Δt
         if sink_over_step > nc[i, k]
             ratio = nc[i, k] * inv_Δt /
-                    ((nc_autoconversion[i, k] + nc_accretion[i, k] + nc_immersion_freezing[i, k] + nc_contact_freezing[i, k] +
-                      nc_riming_snow[i, k] - nc_evaporation[i, k] + nc_riming_graupel[i, k]) * liquid_fraction[i, k]) * one_minus_small
+                    ((nc_autoconversion[i, k] + nc_accretion[i, k] +
+                      nc_immersion_freezing[i, k] + nc_contact_freezing[i, k] +
+                      nc_riming_snow[i, k] - nc_evaporation[i, k] +
+                      nc_riming_graupel[i, k]) * liquid_fraction[i, k]) * one_minus_small
             nc_riming_graupel[i, k] = nc_riming_graupel[i, k] * ratio
             nc_autoconversion[i, k] = nc_autoconversion[i, k] * ratio
             nc_accretion[i, k] = nc_accretion[i, k] * ratio
@@ -180,13 +198,20 @@ function conservation_limiters!(work, parameters)
 
     # 🌧️ conservation of rain mass and number
     for k in 1:levels, i in 1:columns
-        sink_over_step = ((-qr_evaporation[i, k] + qr_accretion_snow[i, k] + qr_freezing_snow[i, k] + qr_freezing_ice[i, k] + qi_splintering_rain[i, k] +
-                qr_accretion_graupel[i, k] + qg_rain_snow[i, k]) * precip_fraction[i, k] -
-               (qc_accretion[i, k] + qc_autoconversion[i, k]) * liquid_fraction[i, k]) * Δt
-        sinks = -qr_evaporation[i, k] + qr_accretion_snow[i, k] + qr_freezing_snow[i, k] + qr_freezing_ice[i, k] + qi_splintering_rain[i, k] +
+        sink_over_step = ((-qr_evaporation[i, k] + qr_accretion_snow[i, k] +
+                           qr_freezing_snow[i, k] + qr_freezing_ice[i, k] +
+                           qi_splintering_rain[i, k] +
+                           qr_accretion_graupel[i, k] + qg_rain_snow[i, k]) *
+                          precip_fraction[i, k] -
+                          (qc_accretion[i, k] + qc_autoconversion[i, k]) *
+                          liquid_fraction[i, k]) * Δt
+        sinks = -qr_evaporation[i, k] + qr_accretion_snow[i, k] + qr_freezing_snow[i, k] +
+                qr_freezing_ice[i, k] + qi_splintering_rain[i, k] +
                 qr_accretion_graupel[i, k] + qg_rain_snow[i, k]
         if sink_over_step > qr[i, k] && sinks >= smallest_mixing_ratio
-            ratio = (qr[i, k] * inv_Δt + (qc_accretion[i, k] + qc_autoconversion[i, k]) * liquid_fraction[i, k]) /
+            ratio = (qr[i, k] * inv_Δt +
+                     (qc_accretion[i, k] + qc_autoconversion[i, k]) *
+                     liquid_fraction[i, k]) /
                     precip_fraction[i, k] / sinks * one_minus_small
             qi_splintering_rain[i, k] = qi_splintering_rain[i, k] * ratio
             qr_accretion_graupel[i, k] = qr_accretion_graupel[i, k] * ratio
@@ -201,12 +226,17 @@ function conservation_limiters!(work, parameters)
         else
             nr_evaporation[i, k] = 0.0
         end
-        nr_sinks = -nr_evaporation[i, k] + nr_accretion_snow[i, k] + nr_freezing_snow[i, k] + nr_freezing_ice[i, k] - nr_self_collection[i, k] +
-                nr_accretion_graupel[i, k] + ng_rain_snow[i, k]
-        sink_over_step = (nr_sinks * precip_fraction[i, k] - nr_autoconversion[i, k] * liquid_fraction[i, k]) * Δt
+        nr_sinks = -nr_evaporation[i, k] + nr_accretion_snow[i, k] +
+                   nr_freezing_snow[i, k] + nr_freezing_ice[i, k] -
+                   nr_self_collection[i, k] +
+                   nr_accretion_graupel[i, k] + ng_rain_snow[i, k]
+        sink_over_step = (nr_sinks * precip_fraction[i, k] -
+                          nr_autoconversion[i, k] * liquid_fraction[i, k]) * Δt
         nr_sources = nr[i, k] * inv_Δt + nr_autoconversion[i, k] * liquid_fraction[i, k]
-        if sink_over_step > nr[i, k] && nr_sinks > 0.0 && nr_sources > 0.0 && precip_fraction[i, k] > 0.0
-            ratio = (nr[i, k] * inv_Δt + nr_autoconversion[i, k] * liquid_fraction[i, k]) / precip_fraction[i, k] /
+        if sink_over_step > nr[i, k] && nr_sinks > 0.0 && nr_sources > 0.0 &&
+           precip_fraction[i, k] > 0.0
+            ratio = (nr[i, k] * inv_Δt + nr_autoconversion[i, k] * liquid_fraction[i, k]) /
+                    precip_fraction[i, k] /
                     nr_sinks * one_minus_small
             nr_accretion_graupel[i, k] = nr_accretion_graupel[i, k] * ratio
             ng_rain_snow[i, k] = ng_rain_snow[i, k] * ratio
@@ -221,31 +251,49 @@ function conservation_limiters!(work, parameters)
     # 🧊 conservation of cloud ice mass and number
     if settings.prognostic_cloud_ice
         for k in 1:levels, i in 1:columns
-            sink_over_step = ((-qc_immersion_freezing[i, k] - qc_contact_freezing[i, k] - qc_deposition_nucleation[i, k] - qi_splintering_snow[i, k] -
-                    qi_splintering_graupel[i, k]) * liquid_fraction[i, k] + (qi_autoconversion[i, k] + qi_accretion_snow[i, k]) * ice_fraction[i, k] +
-                   (-qi_splintering_rain[i, k] - qr_freezing_ice[i, k]) * precip_fraction[i, k] - qi_sublimation[i, k] -
-                   qi_deposition[i, k] - qc_bergeron_ice[i, k] - qi_nucleation[i, k]) * Δt
+            sink_over_step = ((-qc_immersion_freezing[i, k] - qc_contact_freezing[i, k] -
+                               qc_deposition_nucleation[i, k] - qi_splintering_snow[i, k] -
+                               qi_splintering_graupel[i, k]) * liquid_fraction[i, k] +
+                              (qi_autoconversion[i, k] + qi_accretion_snow[i, k]) *
+                              ice_fraction[i, k] +
+                              (-qi_splintering_rain[i, k] - qr_freezing_ice[i, k]) *
+                              precip_fraction[i, k] - qi_sublimation[i, k] -
+                              qi_deposition[i, k] - qc_bergeron_ice[i, k] -
+                              qi_nucleation[i, k]) * Δt
             if sink_over_step > qi[i, k]
-                ratio = (qi[i, k] * inv_Δt + qi_deposition[i, k] + qc_bergeron_ice[i, k] + qi_nucleation[i, k] +
-                         (qc_immersion_freezing[i, k] + qc_contact_freezing[i, k] + qc_deposition_nucleation[i, k] + qi_splintering_snow[i, k] +
+                ratio = (qi[i, k] * inv_Δt + qi_deposition[i, k] + qc_bergeron_ice[i, k] +
+                         qi_nucleation[i, k] +
+                         (qc_immersion_freezing[i, k] + qc_contact_freezing[i, k] +
+                          qc_deposition_nucleation[i, k] + qi_splintering_snow[i, k] +
                           qi_splintering_graupel[i, k]) * liquid_fraction[i, k] +
-                         (qi_splintering_rain[i, k] + qr_freezing_ice[i, k]) * precip_fraction[i, k]) /
-                        ((qi_autoconversion[i, k] + qi_accretion_snow[i, k]) * ice_fraction[i, k] - qi_sublimation[i, k]) * one_minus_small
+                         (qi_splintering_rain[i, k] + qr_freezing_ice[i, k]) *
+                         precip_fraction[i, k]) /
+                        ((qi_autoconversion[i, k] + qi_accretion_snow[i, k]) *
+                         ice_fraction[i, k] - qi_sublimation[i, k]) * one_minus_small
                 qi_autoconversion[i, k] = qi_autoconversion[i, k] * ratio
                 qi_accretion_snow[i, k] = qi_accretion_snow[i, k] * ratio
                 qi_sublimation[i, k] = qi_sublimation[i, k] * ratio
             end
-            nc_immersion_counted = settings.host_heterogeneous_freezing ? nc_immersion_freezing[i, k] : 0.0
-            sink_over_step = ((-nc_contact_freezing[i, k] - nc_immersion_counted - nc_deposition_nucleation[i, k] - ni_splintering_snow[i, k] - ni_splintering_graupel[i, k]) *
-                   liquid_fraction[i, k] + (ni_autoconversion[i, k] + ni_accretion_snow[i, k] - ni_sublimation[i, k]) * ice_fraction[i, k] +
-                   (-ni_splintering_rain[i, k] - nr_freezing_ice[i, k]) * precip_fraction[i, k] - ni_nucleation[i, k]) *
-                  Δt
+            nc_immersion_counted = settings.host_heterogeneous_freezing ?
+                                   nc_immersion_freezing[i, k] : 0.0
+            sink_over_step = ((-nc_contact_freezing[i, k] - nc_immersion_counted -
+                               nc_deposition_nucleation[i, k] - ni_splintering_snow[i, k] -
+                               ni_splintering_graupel[i, k]) *
+                              liquid_fraction[i, k] +
+                              (ni_autoconversion[i, k] + ni_accretion_snow[i, k] -
+                               ni_sublimation[i, k]) * ice_fraction[i, k] +
+                              (-ni_splintering_rain[i, k] - nr_freezing_ice[i, k]) *
+                              precip_fraction[i, k] - ni_nucleation[i, k]) *
+                             Δt
             if sink_over_step > ni[i, k]
                 ratio = (ni[i, k] * inv_Δt + ni_nucleation[i, k] +
-                         (nc_contact_freezing[i, k] + nc_immersion_counted + nc_deposition_nucleation[i, k] + ni_splintering_snow[i, k] +
+                         (nc_contact_freezing[i, k] + nc_immersion_counted +
+                          nc_deposition_nucleation[i, k] + ni_splintering_snow[i, k] +
                           ni_splintering_graupel[i, k]) * liquid_fraction[i, k] +
-                         (nr_freezing_ice[i, k] + ni_splintering_rain[i, k]) * precip_fraction[i, k]) /
-                        ((ni_autoconversion[i, k] + ni_accretion_snow[i, k] - ni_sublimation[i, k]) * ice_fraction[i, k]) * one_minus_small
+                         (nr_freezing_ice[i, k] + ni_splintering_rain[i, k]) *
+                         precip_fraction[i, k]) /
+                        ((ni_autoconversion[i, k] + ni_accretion_snow[i, k] -
+                          ni_sublimation[i, k]) * ice_fraction[i, k]) * one_minus_small
                 ni_autoconversion[i, k] = ni_autoconversion[i, k] * ratio
                 ni_accretion_snow[i, k] = ni_accretion_snow[i, k] * ratio
                 ni_sublimation[i, k] = ni_sublimation[i, k] * ratio
@@ -256,48 +304,70 @@ function conservation_limiters!(work, parameters)
     # ❄️ conservation of snow mass and number
     for k in 1:levels, i in 1:columns
         if graupel_on
-            sink_over_step = (-(qs_sublimation[i, k] + qr_accretion_snow[i, k] - qs_collection_rain[i, k]) * precip_fraction[i, k] -
-                   (qi_accretion_snow[i, k] + qi_autoconversion[i, k]) * ice_fraction[i, k] -
-                   (qc_bergeron_snow[i, k] + qc_riming_snow[i, k]) * liquid_fraction[i, k] - qs_deposition[i, k]) * Δt
+            sink_over_step = (-(qs_sublimation[i, k] + qr_accretion_snow[i, k] -
+                                qs_collection_rain[i, k]) * precip_fraction[i, k] -
+                              (qi_accretion_snow[i, k] + qi_autoconversion[i, k]) *
+                              ice_fraction[i, k] -
+                              (qc_bergeron_snow[i, k] + qc_riming_snow[i, k]) *
+                              liquid_fraction[i, k] - qs_deposition[i, k]) * Δt
         else
-            sink_over_step = (-(qs_sublimation[i, k] + qr_accretion_snow[i, k] + qr_freezing_snow[i, k]) * precip_fraction[i, k] -
-                   (qi_accretion_snow[i, k] + qi_autoconversion[i, k]) * ice_fraction[i, k] -
-                   (qc_bergeron_snow[i, k] + qc_riming_snow[i, k]) * liquid_fraction[i, k] - qs_deposition[i, k]) * Δt
+            sink_over_step = (-(qs_sublimation[i, k] + qr_accretion_snow[i, k] +
+                                qr_freezing_snow[i, k]) * precip_fraction[i, k] -
+                              (qi_accretion_snow[i, k] + qi_autoconversion[i, k]) *
+                              ice_fraction[i, k] -
+                              (qc_bergeron_snow[i, k] + qc_riming_snow[i, k]) *
+                              liquid_fraction[i, k] - qs_deposition[i, k]) * Δt
         end
-        if sink_over_step > qs[i, k] && (qs_collection_rain[i, k] - qs_sublimation[i, k]) >= smallest_mixing_ratio
+        if sink_over_step > qs[i, k] &&
+           (qs_collection_rain[i, k] - qs_sublimation[i, k]) >= smallest_mixing_ratio
             if graupel_on
-                ratio = (qs[i, k] * inv_Δt + (qi_accretion_snow[i, k] + qi_autoconversion[i, k]) * ice_fraction[i, k] +
-                         (qc_bergeron_snow[i, k] + qc_riming_snow[i, k]) * liquid_fraction[i, k] + qs_deposition[i, k] +
+                ratio = (qs[i, k] * inv_Δt +
+                         (qi_accretion_snow[i, k] + qi_autoconversion[i, k]) *
+                         ice_fraction[i, k] +
+                         (qc_bergeron_snow[i, k] + qc_riming_snow[i, k]) *
+                         liquid_fraction[i, k] + qs_deposition[i, k] +
                          qr_accretion_snow[i, k] * precip_fraction[i, k]) /
-                        precip_fraction[i, k] / (qs_collection_rain[i, k] - qs_sublimation[i, k]) * one_minus_small
+                        precip_fraction[i, k] /
+                        (qs_collection_rain[i, k] - qs_sublimation[i, k]) * one_minus_small
                 qs_collection_rain[i, k] = qs_collection_rain[i, k] * ratio
             else
-                ratio = (qs[i, k] * inv_Δt + (qi_accretion_snow[i, k] + qi_autoconversion[i, k]) * ice_fraction[i, k] +
-                         (qc_bergeron_snow[i, k] + qc_riming_snow[i, k]) * liquid_fraction[i, k] + qs_deposition[i, k] +
-                         (qr_accretion_snow[i, k] + qr_freezing_snow[i, k]) * precip_fraction[i, k]) /
+                ratio = (qs[i, k] * inv_Δt +
+                         (qi_accretion_snow[i, k] + qi_autoconversion[i, k]) *
+                         ice_fraction[i, k] +
+                         (qc_bergeron_snow[i, k] + qc_riming_snow[i, k]) *
+                         liquid_fraction[i, k] + qs_deposition[i, k] +
+                         (qr_accretion_snow[i, k] + qr_freezing_snow[i, k]) *
+                         precip_fraction[i, k]) /
                         precip_fraction[i, k] / (-qs_sublimation[i, k]) * one_minus_small
             end
             qs_sublimation[i, k] = qs_sublimation[i, k] * ratio
         end
         ns_sublimation[i, k] = 0.0
         if graupel_on
-            sink_over_step = ((-ns_aggregation[i, k] - ns_sublimation[i, k] + ng_rain_snow[i, k]) * precip_fraction[i, k] -
-                   ni_autoconversion[i, k] * ice_fraction[i, k] + ng_rimed_snow[i, k] * liquid_fraction[i, k]) * Δt
+            sink_over_step = ((-ns_aggregation[i, k] - ns_sublimation[i, k] +
+                               ng_rain_snow[i, k]) * precip_fraction[i, k] -
+                              ni_autoconversion[i, k] * ice_fraction[i, k] +
+                              ng_rimed_snow[i, k] * liquid_fraction[i, k]) * Δt
         else
-            sink_over_step = ((-ns_aggregation[i, k] - ns_sublimation[i, k] - nr_freezing_snow[i, k]) * precip_fraction[i, k] -
-                   ni_autoconversion[i, k] * ice_fraction[i, k]) * Δt
+            sink_over_step = ((-ns_aggregation[i, k] - ns_sublimation[i, k] -
+                               nr_freezing_snow[i, k]) * precip_fraction[i, k] -
+                              ni_autoconversion[i, k] * ice_fraction[i, k]) * Δt
         end
         if sink_over_step > ns[i, k]
             if graupel_on
                 ratio = (ns[i, k] * inv_Δt + ni_autoconversion[i, k] * ice_fraction[i, k]) /
                         precip_fraction[i, k] /
                         (-ns_sublimation[i, k] - ns_aggregation[i, k] + ng_rain_snow[i, k] +
-                         liquid_fraction[i, k] / precip_fraction[i, k] * ng_rimed_snow[i, k]) * one_minus_small
+                         liquid_fraction[i, k] / precip_fraction[i, k] *
+                         ng_rimed_snow[i, k]) *
+                        one_minus_small
                 ng_rimed_snow[i, k] = ng_rimed_snow[i, k] * ratio
                 ng_rain_snow[i, k] = ng_rain_snow[i, k] * ratio
             else
-                ratio = (ns[i, k] * inv_Δt + nr_freezing_snow[i, k] * precip_fraction[i, k] +
-                         ni_autoconversion[i, k] * ice_fraction[i, k]) / precip_fraction[i, k] /
+                ratio = (ns[i, k] * inv_Δt +
+                         nr_freezing_snow[i, k] * precip_fraction[i, k] +
+                         ni_autoconversion[i, k] * ice_fraction[i, k]) /
+                        precip_fraction[i, k] /
                         (-ns_sublimation[i, k] - ns_aggregation[i, k]) * one_minus_small
             end
             ns_sublimation[i, k] = ns_sublimation[i, k] * ratio
@@ -308,12 +378,19 @@ function conservation_limiters!(work, parameters)
     # 🟤 conservation of graupel mass (graupel number has no sinks)
     if graupel_on
         for k in 1:levels, i in 1:columns
-            sink_over_step = ((-qr_accretion_graupel[i, k] - qg_rain_snow[i, k] - qg_deposition[i, k] - qs_collection_rain[i, k] - qr_freezing_snow[i, k]) *
-                   precip_fraction[i, k] + (-qc_riming_graupel[i, k] - qg_rimed_snow[i, k]) * liquid_fraction[i, k]) * Δt
+            sink_over_step = ((-qr_accretion_graupel[i, k] - qg_rain_snow[i, k] -
+                               qg_deposition[i, k] - qs_collection_rain[i, k] -
+                               qr_freezing_snow[i, k]) *
+                              precip_fraction[i, k] +
+                              (-qc_riming_graupel[i, k] - qg_rimed_snow[i, k]) *
+                              liquid_fraction[i, k]) * Δt
             if sink_over_step > qg[i, k]
                 ratio = (qg[i, k] * inv_Δt +
-                         (qr_accretion_graupel[i, k] + qg_rain_snow[i, k] + qs_collection_rain[i, k] + qr_freezing_snow[i, k]) *
-                         precip_fraction[i, k] + (qc_riming_graupel[i, k] + qg_rimed_snow[i, k]) * liquid_fraction[i, k]) /
+                         (qr_accretion_graupel[i, k] + qg_rain_snow[i, k] +
+                          qs_collection_rain[i, k] + qr_freezing_snow[i, k]) *
+                         precip_fraction[i, k] +
+                         (qc_riming_graupel[i, k] + qg_rimed_snow[i, k]) *
+                         liquid_fraction[i, k]) /
                         ((-qg_deposition[i, k]) * precip_fraction[i, k]) * one_minus_small
                 qg_deposition[i, k] = qg_deposition[i, k] * ratio
             end
@@ -322,57 +399,80 @@ function conservation_limiters!(work, parameters)
 
     # 🌫️ limit evaporation and sublimation so that they do not supersaturate the air
     for k in 1:levels, i in 1:columns
-        qv_estimate[i, k] = qv[i, k] - (qi_sublimation[i, k] + qi_deposition[i, k] + qi_nucleation[i, k] +
-                                  qs_deposition[i, k] +
-                                  (qr_evaporation[i, k] + qs_sublimation[i, k] + qg_deposition[i, k]) * precip_fraction[i, k]) *
-                                 Δt
-        T_estimate[i, k] = T[i, k] + ((qr_evaporation[i, k] * precip_fraction[i, k]) * Lv +
-                                 ((qs_sublimation[i, k] + qg_deposition[i, k]) * precip_fraction[i, k] +
-                                  qi_deposition[i, k] + qs_deposition[i, k] + qi_sublimation[i, k] +
-                                  qi_nucleation[i, k]) * Ls) * Δt / cp
+        qv_estimate[i, k] = qv[i, k] -
+                            (qi_sublimation[i, k] + qi_deposition[i, k] +
+                             qi_nucleation[i, k] +
+                             qs_deposition[i, k] +
+                             (qr_evaporation[i, k] + qs_sublimation[i, k] +
+                              qg_deposition[i, k]) * precip_fraction[i, k]) *
+                            Δt
+        T_estimate[i, k] = T[i, k] +
+                           ((qr_evaporation[i, k] * precip_fraction[i, k]) * Lv +
+                            ((qs_sublimation[i, k] + qg_deposition[i, k]) *
+                             precip_fraction[i, k] +
+                             qi_deposition[i, k] + qs_deposition[i, k] +
+                             qi_sublimation[i, k] +
+                             qi_nucleation[i, k]) * Ls) * Δt / cp
     end
     for k in 1:levels, i in 1:columns
-        qsat_estimate[i, k] = saturation_over_water(saturation, T_estimate[i, k], p[i, k]).specific_humidity
+        qsat_estimate[i, k] = saturation_over_water(
+            saturation, T_estimate[i, k], p[i, k]).specific_humidity
     end
-    evaporating(i, k) =
-        (qr_evaporation[i, k] + qs_sublimation[i, k] + qg_deposition[i, k]) * precip_fraction[i, k] + qi_sublimation[i, k] <
+    function evaporating(i, k)
+        (qr_evaporation[i, k] + qs_sublimation[i, k] + qg_deposition[i, k]) *
+        precip_fraction[i, k] + qi_sublimation[i, k] <
         -1.0e-20 && qv_estimate[i, k] > qsat_estimate[i, k]
+    end
     for k in 1:levels, i in 1:columns
         if evaporating(i, k)
-            total = (qr_evaporation[i, k] + qs_sublimation[i, k] + qg_deposition[i, k]) * precip_fraction[i, k] +
+            total = (qr_evaporation[i, k] + qs_sublimation[i, k] + qg_deposition[i, k]) *
+                    precip_fraction[i, k] +
                     qi_sublimation[i, k]
             rain_share[i, k] = qr_evaporation[i, k] * precip_fraction[i, k] / total
             snow_share[i, k] = qs_sublimation[i, k] * precip_fraction[i, k] / total
             graupel_share[i, k] = qg_deposition[i, k] * precip_fraction[i, k] / total
             T_estimate[i, k] = T[i, k] +
-                          ((qi_deposition[i, k] + qs_deposition[i, k] + qi_nucleation[i, k]) * Ls) *
-                          Δt / cp
-            qv_after_deposition[i, k] = qv[i, k] - (qi_deposition[i, k] + qs_deposition[i, k] + qi_nucleation[i, k]) * Δt
+                               ((qi_deposition[i, k] + qs_deposition[i, k] +
+                                 qi_nucleation[i, k]) * Ls) *
+                               Δt / cp
+            qv_after_deposition[i, k] = qv[i, k] -
+                                        (qi_deposition[i, k] + qs_deposition[i, k] +
+                                         qi_nucleation[i, k]) * Δt
         end
     end
     for k in 1:levels, i in 1:columns
-        qsat_adjusted[i, k] = saturation_over_water(saturation, T_estimate[i, k], p[i, k]).specific_humidity
+        qsat_adjusted[i, k] = saturation_over_water(
+            saturation, T_estimate[i, k], p[i, k]).specific_humidity
     end
     for k in 1:levels, i in 1:columns
         if evaporating(i, k)
             vapor_excess = (qv_after_deposition[i, k] - qsat_adjusted[i, k]) /
-                  (1.0 + Lv_squared * qsat_adjusted[i, k] / (cp * Rv * (T_estimate[i, k] * T_estimate[i, k])))
+                           (1.0 +
+                            Lv_squared * qsat_adjusted[i, k] /
+                            (cp * Rv * (T_estimate[i, k] * T_estimate[i, k])))
             vapor_excess = min(vapor_excess, 0.0)
-            qr_evaporation[i, k] = vapor_excess * rain_share[i, k] * inv_Δt / precip_fraction[i, k]
+            qr_evaporation[i, k] = vapor_excess * rain_share[i, k] * inv_Δt /
+                                   precip_fraction[i, k]
         end
     end
     for k in 1:levels, i in 1:columns
-        qsat_adjusted[i, k] = saturation_over_ice(saturation, T_estimate[i, k], p[i, k]).specific_humidity
+        qsat_adjusted[i, k] = saturation_over_ice(
+            saturation, T_estimate[i, k], p[i, k]).specific_humidity
     end
     for k in 1:levels, i in 1:columns
         if evaporating(i, k)
             vapor_excess = (qv_after_deposition[i, k] - qsat_adjusted[i, k]) /
-                  (1.0 + Ls_squared * qsat_adjusted[i, k] / (cp * Rv * (T_estimate[i, k] * T_estimate[i, k])))
+                           (1.0 +
+                            Ls_squared * qsat_adjusted[i, k] /
+                            (cp * Rv * (T_estimate[i, k] * T_estimate[i, k])))
             vapor_excess = min(vapor_excess, 0.0)
-            qs_sublimation[i, k] = vapor_excess * snow_share[i, k] * inv_Δt / precip_fraction[i, k]
-            qg_deposition[i, k] = vapor_excess * graupel_share[i, k] * inv_Δt / precip_fraction[i, k]
+            qs_sublimation[i, k] = vapor_excess * snow_share[i, k] * inv_Δt /
+                                   precip_fraction[i, k]
+            qg_deposition[i, k] = vapor_excess * graupel_share[i, k] * inv_Δt /
+                                  precip_fraction[i, k]
             # 🧊 rain_share (dum1A) is reused for the cloud ice share
-            rain_share[i, k] = (1.0 - rain_share[i, k] - snow_share[i, k] - graupel_share[i, k])
+            rain_share[i, k] = (1.0 - rain_share[i, k] - snow_share[i, k] -
+                                graupel_share[i, k])
             qi_sublimation[i, k] = vapor_excess * rain_share[i, k] * inv_Δt
         end
     end

@@ -69,7 +69,8 @@ function output_diagnostics!(work, parameters)
 
     # 🌧️ rain
     for k in 1:levels, i in 1:columns
-        diameter_rain[i, k] = mean_diameter(qr_out[i, k], nr_per_volume[i, k], ρ[i, k], ρ_water)
+        diameter_rain[i, k] = mean_diameter(
+            qr_out[i, k], nr_per_volume[i, k], ρ[i, k], ρ_water)
     end
     for k in 1:levels, i in 1:columns
         if qr_out[i, k] > 1.0e-7 && nr_per_volume[i, k] > 0.0
@@ -91,14 +92,16 @@ function output_diagnostics!(work, parameters)
 
     # ❄️ snow
     for k in 1:levels, i in 1:columns
-        diameter_snow[i, k] = mean_diameter(qs_out[i, k], ns_per_volume[i, k], ρ[i, k], ρ_snow)
+        diameter_snow[i, k] = mean_diameter(
+            qs_out[i, k], ns_per_volume[i, k], ρ[i, k], ρ_snow)
     end
     for k in 1:levels, i in 1:columns
         if qs_out[i, k] > 1.0e-7 && ns_per_volume[i, k] > 0.0
             qs_weighted[i, k] = qs_out[i, k] * precip_fraction[i, k]
             ns_weighted[i, k] = ns_per_volume[i, k] * precip_fraction[i, k]
             frequency_snow[i, k] = precip_fraction[i, k]
-            diameter_snow_radiation[i, k] = 3.0 * ρ_snow / ρ_solid_water * diameter_snow[i, k]
+            diameter_snow_radiation[i, k] = 3.0 * ρ_snow / ρ_solid_water *
+                                            diameter_snow[i, k]
             radius_snow[i, k] = 1.5 * diameter_snow[i, k] * 1.0e6
         else
             diameter_snow_radiation[i, k] = 0.0
@@ -117,14 +120,16 @@ function output_diagnostics!(work, parameters)
     dense_on = settings.do_hail || settings.do_graupel
     for k in 1:levels, i in 1:columns
         diameter_graupel[i, k] = dense_on ?
-                       mean_diameter(qg_out[i, k], ng_per_volume[i, k], ρ[i, k], ρ_dense) : 0.0
+                                 mean_diameter(
+            qg_out[i, k], ng_per_volume[i, k], ρ[i, k], ρ_dense) : 0.0
     end
     for k in 1:levels, i in 1:columns
         if qg_out[i, k] > 1.0e-7 && ng_per_volume[i, k] > 0.0
             qg_weighted[i, k] = qg_out[i, k] * precip_fraction[i, k]
             ng_weighted[i, k] = ng_per_volume[i, k] * precip_fraction[i, k]
             frequency_graupel[i, k] = precip_fraction[i, k]
-            diameter_graupel_radiation[i, k] = 3.0 * ρ_dense / ρ_solid_water * diameter_graupel[i, k]
+            diameter_graupel_radiation[i, k] = 3.0 * ρ_dense / ρ_solid_water *
+                                               diameter_graupel[i, k]
             radius_graupel[i, k] = 1.5 * diameter_graupel[i, k] * 1.0e6
         else
             diameter_graupel_radiation[i, k] = 0.0
@@ -142,24 +147,27 @@ function output_diagnostics!(work, parameters)
         if qc[i, k] >= smallest_mixing_ratio && (nc[i, k] + nc_tendency[i, k] * Δt) > 10.0
             x = qc[i, k] / liquid_fraction[i, k] * ρ[i, k] * 1000.0
             z_cloud_liquid = (x * x) /
-                  (0.109 * (nc[i, k] + nc_tendency[i, k] * Δt) / liquid_fraction[i, k] * ρ[i, k] /
-                   1.0e6) * liquid_fraction[i, k] / precip_fraction[i, k]
+                             (0.109 * (nc[i, k] + nc_tendency[i, k] * Δt) /
+                              liquid_fraction[i, k] * ρ[i, k] /
+                              1.0e6) * liquid_fraction[i, k] / precip_fraction[i, k]
         else
             z_cloud_liquid = 0.0
         end
         if qi[i, k] >= smallest_mixing_ratio
-            z_ice_and_snow = (qi[i, k] * ρ[i, k] / ice_fraction[i, k] * 1000.0 / 0.1)^(1.0 / 0.63) *
-                   ice_fraction[i, k] / precip_fraction[i, k]
+            z_ice_and_snow = (qi[i, k] * ρ[i, k] / ice_fraction[i, k] * 1000.0 /
+                              0.1)^(1.0 / 0.63) *
+                             ice_fraction[i, k] / precip_fraction[i, k]
         else
             z_ice_and_snow = 0.0
         end
         if qs_out[i, k] >= smallest_mixing_ratio
-            z_ice_and_snow = z_ice_and_snow + (qs_out[i, k] * ρ[i, k] * 1000.0 / 0.1)^(1.0 / 0.63)
+            z_ice_and_snow = z_ice_and_snow +
+                             (qs_out[i, k] * ρ[i, k] * 1000.0 / 0.1)^(1.0 / 0.63)
         end
         dbz[i, k] = z_cloud_liquid + z_ice_and_snow
         # 🌧️ Z = a R^b, R in mm h⁻¹ (Comstock et al. 2004)
-        if flux_rain[i, k+1] >= rain_rate_threshold
-            z_rain = 32.0 * (flux_rain[i, k+1] * 3600.0)^1.4
+        if flux_rain[i, k + 1] >= rain_rate_threshold
+            z_rain = 32.0 * (flux_rain[i, k + 1] * 3600.0)^1.4
         else
             z_rain = 0.0
         end
@@ -204,18 +212,19 @@ function output_diagnostics!(work, parameters)
             x = λi[i, k]
             x2 = x * x
             z_cloud_ice = ρ[i, k] * (0.176 / 0.93) * 720.0 * ni_intercept[i, k] *
-                   ((ρ_cloud_ice / 900.0) * (ρ_cloud_ice / 900.0)) / ((x * x2) * (x2 * x2))
+                          ((ρ_cloud_ice / 900.0) * (ρ_cloud_ice / 900.0)) /
+                          ((x * x2) * (x2 * x2))
             z_cloud_ice = max(z_cloud_ice, z_min_10cm)
         end
         if λs[i, k] > 0.0
             z_snow = ρ[i, k] * (0.176 / 0.93) * 720.0 * ns_intercept[i, k] *
-                   ((ρ_snow / 900.0) * (ρ_snow / 900.0)) / λs[i, k]^7.0
+                     ((ρ_snow / 900.0) * (ρ_snow / 900.0)) / λs[i, k]^7.0
             z_snow = max(z_snow, z_min_10cm)
         end
         # 🟤 `do_hail .or. do_graupel .and. lamg > 0` binds as hail or (graupel and λ > 0)
         if settings.do_hail || (settings.do_graupel && λg[i, k] > 0.0)
             z_graupel = ρ[i, k] * (0.176 / 0.93) * 720.0 * N₀g[i, k] *
-                   ((ρ_dense / 900.0) * (ρ_dense / 900.0)) / λg[i, k]^7.0
+                        ((ρ_dense / 900.0) * (ρ_dense / 900.0)) / λg[i, k]^7.0
             z_graupel = max(z_graupel, z_min_10cm)
         end
         z_10cm[i, k] = (z_rain + z_cloud_ice + z_snow + z_graupel) * precip_fraction[i, k]
@@ -225,7 +234,8 @@ function output_diagnostics!(work, parameters)
         # 🧊 ice mass fraction
         condensate_total[i, k] = qs_out[i, k] + qr_out[i, k] + qc[i, k] + qi[i, k]
         qi_sed[i, k] = qs_out[i, k] + qi[i, k]
-        if qi_sed[i, k] > smallest_mixing_ratio && condensate_total[i, k] > smallest_mixing_ratio
+        if qi_sed[i, k] > smallest_mixing_ratio &&
+           condensate_total[i, k] > smallest_mixing_ratio
             ice_mass_fraction[i, k] = min(qi_sed[i, k] / condensate_total[i, k], 1.0)
         else
             ice_mass_fraction[i, k] = 0.0

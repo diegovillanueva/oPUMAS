@@ -42,7 +42,8 @@ function activation_and_nucleation!(work, parameters)
         if settings.prognostic_cloud_ice
             nucleates = ice_nuclei[i, k] > 0.0 && T[i, k] < T_ice_nucleation
             if !settings.ice_nucleation_without_rh
-                nucleates = nucleates && rh[i, k] * e_sat_liquid[i, k] / e_sat_ice[i, k] > 1.05
+                nucleates = nucleates &&
+                            rh[i, k] * e_sat_liquid[i, k] / e_sat_ice[i, k] > 1.05
             end
             if nucleates
                 ni_nucleation[i, k] = ice_nuclei[i, k] * ice_fraction[i, k]

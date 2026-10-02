@@ -67,13 +67,16 @@ function incloud_values!(work, parameters)
     if settings.precipitation_fraction_method == :in_cloud
         for i in 1:columns, k in 2:levels
             if qc[i, k] < smallest_mixing_ratio && qi[i, k] < smallest_mixing_ratio
-                precip_fraction[i, k] = precip_fraction[i, k-1]
+                precip_fraction[i, k] = precip_fraction[i, k - 1]
             end
         end
     else
         for i in 1:columns, k in 2:levels
-            if qr[i, k-1] >= smallest_mixing_ratio || qs[i, k-1] >= smallest_mixing_ratio || qg[i, k-1] >= smallest_mixing_ratio
-                precip_fraction[i, k] = max(precip_fraction[i, k-1], precip_fraction[i, k])
+            if qr[i, k - 1] >= smallest_mixing_ratio ||
+               qs[i, k - 1] >= smallest_mixing_ratio ||
+               qg[i, k - 1] >= smallest_mixing_ratio
+                precip_fraction[i, k] = max(
+                    precip_fraction[i, k - 1], precip_fraction[i, k])
             end
         end
     end

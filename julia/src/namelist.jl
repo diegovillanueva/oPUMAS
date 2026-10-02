@@ -39,7 +39,7 @@ const NAMELIST_FIELDS = Dict(
     "micro_mg_ncnst" => :droplet_number,
     "micro_mg_ninst" => :ice_number,
     "micro_mg_ngcons" => :constant_graupel_number,
-    "micro_mg_ngnst" => :graupel_number,
+    "micro_mg_ngnst" => :graupel_number
 )
 
 "Namelist entries that do not change the translated physics."
@@ -52,7 +52,7 @@ Read namelist group `pumas_settings` (one `name = value` per line, as gfortran w
 it). Later lines win, so a switch row can append overrides before the closing `/`.
 """
 function read_settings(path::AbstractString)
-    values = Dict{Symbol,Any}()
+    values = Dict{Symbol, Any}()
     for line in eachline(path)
         text = strip(line)
         (isempty(text) || startswith(text, '&') || text == "/") && continue

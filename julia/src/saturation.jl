@@ -27,12 +27,11 @@ Fortran twin: `GoffGratch_svp_water` in `wv_sat_methods.F90`.
 """
 function saturation_vapor_pressure_over_water(sat::SaturationConstants, T)
     Tₛ = sat.boiling_point
-    log10_e_hPa =
-        -7.90298 * (Tₛ / T - 1.0) +
-        5.02808 * log10(Tₛ / T) -
-        1.3816e-7 * (10.0^(11.344 * (1.0 - T / Tₛ)) - 1.0) +
-        8.1328e-3 * (10.0^(-3.49149 * (Tₛ / T - 1.0)) - 1.0) +
-        log10(1013.246)
+    log10_e_hPa = -7.90298 * (Tₛ / T - 1.0) +
+                  5.02808 * log10(Tₛ / T) -
+                  1.3816e-7 * (10.0^(11.344 * (1.0 - T / Tₛ)) - 1.0) +
+                  8.1328e-3 * (10.0^(-3.49149 * (Tₛ / T - 1.0)) - 1.0) +
+                  log10(1013.246)
     return 10.0^log10_e_hPa * 100.0
 end
 
@@ -46,10 +45,9 @@ Fortran twin: `GoffGratch_svp_ice` in `wv_sat_methods.F90`.
 """
 function saturation_vapor_pressure_over_ice(sat::SaturationConstants, T)
     T₀ = sat.triple_point
-    log10_e_hPa =
-        -9.09718 * (T₀ / T - 1.0) - 3.56654 * log10(T₀ / T) +
-        0.876793 * (1.0 - T / T₀) +
-        log10(6.1071)
+    log10_e_hPa = -9.09718 * (T₀ / T - 1.0) - 3.56654 * log10(T₀ / T) +
+                  0.876793 * (1.0 - T / T₀) +
+                  log10(6.1071)
     return 10.0^log10_e_hPa * 100.0
 end
 

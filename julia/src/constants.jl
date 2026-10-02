@@ -22,7 +22,7 @@ const bulk_density = (
     solid_water = 917.0,    # rhows
     snow = 250.0,           # rhosn
     graupel = 500.0,        # rhog
-    hail = 900.0,           # rhoh
+    hail = 900.0           # rhoh
 )
 
 """
@@ -42,12 +42,12 @@ const fall_speed_law = (
     # 🧊🔢 aj = ac*((rhoi/rhows)**(bc/3))*rhows/rhow, folded by the Fortran compiler.
     small_cloud_ice = (
         a = 3.0e7 * ((500.0 / 917.0)^(2.0 / 3.0)) * 917.0 / 1000.0,
-        b = 2.0,
+        b = 2.0
     ),
     rain = (a = 841.99667, b = 0.8),
     snow = (a = 11.72, b = 0.41),
     graupel = (a = 19.3, b = 0.37),
-    hail = (a = 114.5, b = 0.5),
+    hail = (a = 114.5, b = 0.5)
 )
 
 # ⚖️ Particle masses (kg)
@@ -71,8 +71,8 @@ time gives one unit in the last place less (see FINDINGS.md).
 const autoconversion_drop_mass_25um = 6.544984694978737e-11
 
 "Mass of a raindrop made by autoconversion, 40 μm radius (`droplet_mass_40um`)."
-const autoconversion_drop_mass_40um =
-    4.0 / 3.0 * π * bulk_density.liquid_water * (40.0e-6)^3
+const autoconversion_drop_mass_40um = 4.0 / 3.0 * π * bulk_density.liquid_water *
+                                      (40.0e-6)^3
 
 # 📏 Size limits
 "Bounds of the rain slope parameter λ (m⁻¹): mean diameters 500 μm to 20 μm."
@@ -93,7 +93,7 @@ const ventilation = (snow = (f1 = 0.86, f2 = 0.28), rain = (f1 = 0.78, f2 = 0.30
 const collection_efficiency = (
     ice_snow = 0.5,         # eii
     ice_droplet = 0.7,      # ecid
-    droplet_rain = 1.0,     # ecr
+    droplet_rain = 1.0     # ecr
 )
 
 # ❄️ Immersion freezing of Bigg (1953)
@@ -107,7 +107,7 @@ const radar = (
     cloudsat_max_dbz = 26.0,      # csmax
     minimum_dbz = -99.0,          # mindbz
     minimum_reflectivity = 1.26e-10,   # minrefl
-    minimum_reflectivity_10cm = 1.0e-26,  # minrefl10
+    minimum_reflectivity_10cm = 1.0e-26  # minrefl10
 )
 
 "Number sublimation factor (`sublim_factor`), zero: sublimation removes no particles."

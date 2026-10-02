@@ -13,6 +13,7 @@ function setup_step!(work, parameters)
     g = parameters.host.gravity
     agraupel = dense_precipitation(parameters).a
     (; inputs, state, incloud, diagnostics, scratch) = work
+    radii = diagnostics.effective_radius
     qc_in = inputs.cloud_liquid.q  # qcn
     nc_in = inputs.cloud_liquid.N  # ncn
     qi_in = inputs.cloud_ice.q  # qin
@@ -24,9 +25,9 @@ function setup_step!(work, parameters)
     qg_in = inputs.graupel.q  # qgr
     ng_in = inputs.graupel.N  # ngr
     qc_limiter_ratio = diagnostics.cloud_liquid.limiter_ratio  # qcrat
-    radius_cloud_liquid = diagnostics.effective_radius.cloud_liquid  # effc
-    radius_cloud_liquid_fixed = diagnostics.effective_radius.cloud_liquid_fixed_number  # effc_fn
-    radius_cloud_ice = diagnostics.effective_radius.cloud_ice  # effi
+    radius_cloud_liquid = radii.cloud_liquid  # effc
+    radius_cloud_liquid_fixed = radii.cloud_liquid_fixed_number  # effc_fn
+    radius_cloud_ice = radii.cloud_ice  # effi
     diameter_cloud_ice = diagnostics.effective_diameter.cloud_ice  # deffi
     dbz = diagnostics.radar.reflectivity_dbz  # refl
     dbz_10cm = diagnostics.radar.reflectivity_10cm_dbz  # refl10cm
@@ -93,8 +94,10 @@ function setup_step!(work, parameters)
     # ☁️ cloud fractions, with a minimum against division by zero
     for k in 1:levels, i in 1:columns
         if settings.uniform_subcolumns
-            liquid_fraction[i, k] = qc[i, k] >= smallest_mixing_ratio ? 1.0 : minimum_cloud_fraction
-            ice_fraction[i, k] = qi[i, k] >= smallest_mixing_ratio ? 1.0 : minimum_cloud_fraction
+            liquid_fraction[i, k] = qc[i, k] >= smallest_mixing_ratio ? 1.0 :
+                                    minimum_cloud_fraction
+            ice_fraction[i, k] = qi[i, k] >= smallest_mixing_ratio ? 1.0 :
+                                 minimum_cloud_fraction
             cloud_fraction[i, k] = max(ice_fraction[i, k], liquid_fraction[i, k])
             qsat_factor[i, k] = 1.0
         else
@@ -127,7 +130,8 @@ function setup_step!(work, parameters)
     for k in 1:levels, i in 1:columns
         water = saturation_over_water(saturation, T[i, k], p[i, k])
         ice = saturation_over_ice(saturation, T[i, k], p[i, k])
-        e_sat_liquid[i, k], qsat_liquid[i, k] = water.vapor_pressure, water.specific_humidity
+        e_sat_liquid[i, k], qsat_liquid[i, k] = water.vapor_pressure,
+        water.specific_humidity
         e_sat_ice[i, k], qsat_ice[i, k] = ice.vapor_pressure, ice.specific_humidity
     end
     for k in 1:levels, i in 1:columns
@@ -150,7 +154,8 @@ function setup_step!(work, parameters)
         radius_cloud_liquid[i, k] = 10.0
         radius_cloud_liquid_fixed[i, k] = 10.0
         radius_cloud_ice[i, k] = 25.0
-        radius_cloud_ice[i, k] = radius_cloud_ice[i, k] * settings.ice_effective_radius_factor
+        radius_cloud_ice[i, k] = radius_cloud_ice[i, k] *
+                                 settings.ice_effective_radius_factor
         diameter_cloud_ice[i, k] = 50.0
         dbz[i, k] = -9999.0
         dbz_10cm[i, k] = -9999.0

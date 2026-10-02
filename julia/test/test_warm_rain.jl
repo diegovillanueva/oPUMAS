@@ -5,31 +5,37 @@
     NCDataset(golden_path("golden_processes.nc")) do ds
         input(site, key) = argument(ds, site, key, :in)
 
-        check_sites(ds, "kk2000_liq_autoconversion", site -> begin
-            rates = kk2000_autoconversion.(Ref(parameters),
-                input(site, "a02"), input(site, "a03"), input(site, "a04"),
-                input(site, "a05"))
-            [
-                worst_error(ds, site, "a06", getproperty.(rates, :mass)),
-                worst_error(ds, site, "a07", getproperty.(rates, :rain_number)),
-                worst_error(ds, site, "a08", getproperty.(rates, :droplet_number)),
-            ]
-        end)
+        check_sites(ds,
+            "kk2000_liq_autoconversion",
+            site -> begin
+                rates = kk2000_autoconversion.(Ref(parameters),
+                    input(site, "a02"), input(site, "a03"), input(site, "a04"),
+                    input(site, "a05"))
+                [
+                    worst_error(ds, site, "a06", getproperty.(rates, :mass)),
+                    worst_error(ds, site, "a07", getproperty.(rates, :rain_number)),
+                    worst_error(ds, site, "a08", getproperty.(rates, :droplet_number))
+                ]
+            end)
 
-        check_sites(ds, "accrete_cloud_water_rain", site -> begin
-            rates = accretion.(Ref(parameters), input(site, "a02"), input(site, "a03"),
-                input(site, "a04"), input(site, "a05"), input(site, "a06"))
-            [
-                worst_error(ds, site, "a07", getproperty.(rates, :mass)),
-                worst_error(ds, site, "a08", getproperty.(rates, :droplet_number)),
-            ]
-        end)
+        check_sites(ds,
+            "accrete_cloud_water_rain",
+            site -> begin
+                rates = accretion.(Ref(parameters), input(site, "a02"), input(site, "a03"),
+                    input(site, "a04"), input(site, "a05"), input(site, "a06"))
+                [
+                    worst_error(ds, site, "a07", getproperty.(rates, :mass)),
+                    worst_error(ds, site, "a08", getproperty.(rates, :droplet_number))
+                ]
+            end)
 
-        check_sites(ds, "self_collection_rain", site -> begin
-            twin = rain_self_collection.(input(site, "a01"), input(site, "a02"),
-                input(site, "a03"))
-            [worst_error(ds, site, "a04", twin)]
-        end)
+        check_sites(ds,
+            "self_collection_rain",
+            site -> begin
+                twin = rain_self_collection.(input(site, "a01"), input(site, "a02"),
+                    input(site, "a03"))
+                [worst_error(ds, site, "a04", twin)]
+            end)
     end
 
     # 🌧️🔀 Seifert-Beheng routines run only with warm_rain = sb2001.
@@ -44,17 +50,19 @@
             [
                 worst_error(ds, site, "a07", getproperty.(rates, :mass)),
                 worst_error(ds, site, "a08", getproperty.(rates, :rain_number)),
-                worst_error(ds, site, "a09", getproperty.(rates, :droplet_number)),
+                worst_error(ds, site, "a09", getproperty.(rates, :droplet_number))
             ]
         end
 
-        check_sites(ds, "sb2001v2_accre_cld_water_rain", site -> begin
-            rates = sb2001_accretion.(input(site, "a01"), input(site, "a02"),
-                input(site, "a03"), input(site, "a04"))
-            [
-                worst_error(ds, site, "a06", getproperty.(rates, :mass)),
-                worst_error(ds, site, "a07", getproperty.(rates, :droplet_number)),
-            ]
-        end)
+        check_sites(ds,
+            "sb2001v2_accre_cld_water_rain",
+            site -> begin
+                rates = sb2001_accretion.(input(site, "a01"), input(site, "a02"),
+                    input(site, "a03"), input(site, "a04"))
+                [
+                    worst_error(ds, site, "a06", getproperty.(rates, :mass)),
+                    worst_error(ds, site, "a07", getproperty.(rates, :droplet_number))
+                ]
+            end)
     end
 end

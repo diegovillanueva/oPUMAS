@@ -21,14 +21,13 @@ function kk2000_autoconversion(parameters, q_cloud, N_cloud, ρ_air, relative_va
     q_cloud >= small_incloud_mixing_ratio ||
         return (; mass = 0.0, rain_number = 0.0, droplet_number = 0.0)
     a = s.autoconversion_water_exponent
-    enhancement =
-        s.uniform_subcolumns ? 1.0 : variance_coefficient(relative_variance, a)
+    enhancement = s.uniform_subcolumns ? 1.0 : variance_coefficient(relative_variance, a)
     mass = enhancement * s.autoconversion_prefactor * 1350.0 * q_cloud^a *
            (N_cloud * 1.0e-6 * ρ_air)^s.autoconversion_number_exponent
     return (;
         mass,
         rain_number = mass * (1.0 / autoconversion_drop_mass_25um),
-        droplet_number = mass * N_cloud / q_cloud,
+        droplet_number = mass * N_cloud / q_cloud
     )
 end
 
@@ -38,7 +37,7 @@ Mass spectral shape ν of cloud droplets for each droplet size shape parameter �
 """
 const droplet_mass_shape_table = (
     0.0, -0.557, -0.430, -0.307, -0.186, -0.067, 0.050, 0.167,
-    0.282, 0.397, 0.512, 0.626, 0.739, 0.853, 0.966, 0.966,
+    0.282, 0.397, 0.512, 0.626, 0.739, 0.853, 0.966, 0.966
 )
 
 "Autoconversion and accretion constants of Seifert and Beheng (2001) (`kc`, `kr`)."
@@ -61,7 +60,7 @@ function sb2001_autoconversion(shape, q_cloud, N_cloud, q_rain, ρ_air)
         return (; mass = 0.0, rain_number = 0.0, droplet_number = 0.0)
     k = trunc(Int, shape)
     ν_table = droplet_mass_shape_table
-    ν = ν_table[k] + (ν_table[k+1] - ν_table[k]) * (shape - k)
+    ν = ν_table[k] + (ν_table[k + 1] - ν_table[k]) * (shape - k)
     # 🧮 τ: rain fraction of liquid water, written as the Fortran does.
     τ = 1.0 - q_cloud / (q_cloud + q_rain)
     Φ = 600.0 * τ^0.68 * (1.0 - τ^0.68)^3
@@ -73,7 +72,7 @@ function sb2001_autoconversion(shape, q_cloud, N_cloud, q_rain, ρ_air)
     return (;
         mass,
         rain_number = mass / autoconversion_drop_mass_40um,
-        droplet_number = mass * 2.0 / x_star * 1000.0,
+        droplet_number = mass * 2.0 / x_star * 1000.0
     )
 end
 

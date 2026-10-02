@@ -54,7 +54,7 @@ function ColumnInputs(; time_step, f...)
         snow_from_host = (q = f[:tnd_qsnow], N = f[:tnd_nsnow]),
         ice_effective_radius = f[:re_ice],              # m
         host_freezing = (immersion = f[:frzimm], contact = f[:frzcnt],
-            deposition = f[:frzdep]),                   # cm⁻³ s⁻¹
+            deposition = f[:frzdep])                   # cm⁻³ s⁻¹
     )
 end
 
@@ -76,17 +76,19 @@ function allocate(inputs)
             cloud_liquid = level(), cloud_ice = level(), small_cloud_ice = level()),
         vapor_pressure_liquid = level(), vapor_pressure_ice = level(),  # esl esi
         q_sat_liquid = level(), q_sat_ice = level(),                    # qvl qvi
-        relative_humidity = level(),                                    # relhum
+        relative_humidity = level()                                    # relhum
     )
     state = (; species_fields(level)..., air)
-    distribution() = (q = level(), N = level(), λ = level(), N₀ = level(),
-        fall_speed_number = level())
+    function distribution()
+        (q = level(), N = level(), λ = level(), N₀ = level(),
+            fall_speed_number = level())
+    end
     incloud = (
         cloud_liquid = (q = level(), N = level(), μ = level(), λ = level()),
         cloud_ice = distribution(), rain = distribution(), snow = distribution(),
         graupel = distribution(),
         precipitation_fraction = level(), cloud_fraction = level(),
-        liquid_fraction = level(), ice_fraction = level(), saturation_scaling = level(),
+        liquid_fraction = level(), ice_fraction = level(), saturation_scaling = level()
     )
     rates = nested_fields(collect(values(LOCAL_RATE_PATHS)), level)
     process_rates = nested_fields(collect(values(PROCESS_RATE_PATHS)), level)
@@ -94,7 +96,7 @@ function allocate(inputs)
     diagnostics = (
         nested_fields(collect(values(DIAGNOSTIC_PATHS)), level)...,
         flux = nested_fields([p[2:end] for p in values(FLUX_PATHS)], interface),
-        surface = nested_fields([p[2:end] for p in values(SURFACE_PATHS)], surface),
+        surface = nested_fields([p[2:end] for p in values(SURFACE_PATHS)], surface)
     )
     scratch = (
         sedimenting = species_fields(level),           # dumc, dumnc, ..., dumng
@@ -112,7 +114,7 @@ function allocate(inputs)
         vapor_estimate = level(),                      # qtmpAI
         q_sat_estimate = level(),                      # qvnAI
         q_sat_adjusted = level(),                      # qvnA
-        evaporation_share = (rain = level(), snow = level(), graupel = level()),  # dum1A..3A
+        evaporation_share = (rain = level(), snow = level(), graupel = level())  # dum1A..3A
     )
     return (; inputs, state, incloud, rates, process_rates, tendencies, diagnostics,
         scratch)

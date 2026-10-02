@@ -10,7 +10,7 @@ Applies only when both snow and rain exceed 0.1 g kg⁻¹.
 Fortran twin: `graupel_collecting_snow` (`psacr`).
 """
 function snow_collection_by_rain(U_rain_mass, U_snow_mass, ρ_air, q_snow, q_rain,
-    λ_rain, N₀_rain, λ_snow, N₀_snow)
+        λ_rain, N₀_rain, λ_snow, N₀_snow)
     q_snow >= 0.1e-3 && q_rain >= 0.1e-3 || return 0.0
     kernel = π * π * collection_efficiency.droplet_rain * bulk_density.snow
     speed = ((1.2 * U_rain_mass - 0.95 * U_snow_mass)^2 +
@@ -29,7 +29,7 @@ Riming of graupel: collection of cloud droplets by graupel with fall speed a D�
 Fortran twin: `graupel_collecting_cld_water` (`psacwg`, `npsacwg`).
 """
 function droplet_collection_by_graupel(q_graupel, q_cloud, N_cloud, ρ_air, N₀_graupel,
-    λ_graupel, b_graupel, a_graupel)
+        λ_graupel, b_graupel, a_graupel)
     if !(q_graupel >= 1.0e-8 && q_cloud >= smallest_mixing_ratio)
         return (; mass = 0.0, number = 0.0)
     end
@@ -53,7 +53,7 @@ to graupel particles of `new_graupel_mass` (at most N_snow per time step), and t
 Fortran twin: `graupel_riming_liquid_snow` (`pgsacw`, `nscng`, `psacws`).
 """
 function rimed_snow_to_graupel(parameters, riming, q_snow, q_cloud, N_snow, ρ_air,
-    snow_density, graupel_density, a_snow, λ_snow, N₀_snow, time_step)
+        snow_density, graupel_density, a_snow, λ_snow, N₀_snow, time_step)
     if !(riming > 0.0 && q_snow >= 0.1e-3 && q_cloud >= 0.5e-3)
         return (; mass = 0.0, number = 0.0, riming)
     end
@@ -62,8 +62,9 @@ function rimed_snow_to_graupel(parameters, riming, q_snow, q_cloud, N_snow, ρ_a
     ρ_reference = parameters.reference_air_density
     factor = 4.0 * 2.0 * 3.0 * ρ_reference * π * E * E *
              parameters.gamma.twice_snow_plus2 / (8.0 * (graupel_density - snow_density))
-    mass = min(riming, factor * time_step * N₀_snow * q_cloud * q_cloud *
-                       a_snow * a_snow / (ρ_air * λ_snow^(2.0 * b + 2.0)))
+    mass = min(riming,
+        factor * time_step * N₀_snow * q_cloud * q_cloud *
+        a_snow * a_snow / (ρ_air * λ_snow^(2.0 * b + 2.0)))
     volume_gain = max(snow_density / (graupel_density - snow_density) * mass, 0.0)
     number = volume_gain / new_graupel_mass * ρ_air
     number = min(number, N_snow / time_step)
@@ -81,7 +82,7 @@ Applies when rain and graupel exceed `small_incloud_mixing_ratio`.
 Fortran twin: `graupel_collecting_rain` (`pracg`, `npracg`).
 """
 function rain_collection_by_graupel(q_rain, q_graupel, U_graupel_mass, U_rain_mass,
-    U_graupel_number, U_rain_number, ρ_air, N₀_rain, λ_rain, N₀_graupel, λ_graupel)
+        U_graupel_number, U_rain_number, ρ_air, N₀_rain, λ_rain, N₀_graupel, λ_graupel)
     q_rain >= 1.0e-8 && q_graupel >= 1.0e-8 || return (; mass = 0.0, number = 0.0)
     E = collection_efficiency.droplet_rain
     mass_kernel = π * π * E * bulk_density.liquid_water
@@ -115,7 +116,7 @@ Returns the graupel `mass` and `number` rates and what is left of the three inpu
 Fortran twin: `graupel_rain_riming_snow` (`pgracs`, `ngracs`, `pracs`, `npracs`, `psacr`).
 """
 function rain_snow_collisions_to_graupel(rain_by_snow, rain_number_by_snow, snow_by_rain,
-    q_snow, q_rain, N_rain, N_snow, N₀_snow, λ_snow, N₀_rain, λ_rain, time_step)
+        q_snow, q_rain, N_rain, N_snow, N₀_snow, λ_snow, N₀_rain, λ_rain, time_step)
     if !(rain_by_snow > 0.0 && q_snow >= 0.1e-3 && q_rain >= 0.1e-3)
         return (; mass = 0.0, number = 0.0, rain_by_snow, rain_number_by_snow,
             snow_by_rain)
@@ -148,7 +149,7 @@ Returns the ice `number` and `mass` from each source and the rime rates left.
 Fortran twin: `graupel_rime_splintering` (`nmultg`, `qmultg`, `nmultrg`, `qmultrg`).
 """
 function rime_splintering_by_graupel(parameters, T, q_cloud, q_rain, q_graupel,
-    droplet_riming, rain_riming)
+        droplet_riming, rain_riming)
     T₀ = parameters.host.melting_point
     T_3, T_5, T_8 = T₀ - 3.0, T₀ - 5.0, T₀ - 8.0
     none = (; droplet_mass = 0.0, droplet_number = 0.0, rain_mass = 0.0,

@@ -18,7 +18,8 @@ function water_budget(work, parameters)
     I(x) = column_integral(x, inputs, g)
     surface = work.diagnostics.surface.total .* 1000
     residual = I(t.vapor) .+ sum(I(getproperty(t, n).q) for n in SPECIES) .+ surface
-    gross = I(abs.(t.vapor)) .+ sum(I(abs.(getproperty(t, n).q)) for n in SPECIES) .+ surface
+    gross = I(abs.(t.vapor)) .+ sum(I(abs.(getproperty(t, n).q)) for n in SPECIES) .+
+            surface
     return residual, gross
 end
 
@@ -78,18 +79,21 @@ end
         excess, value, where = worst_negative(work)
         @test excess >= 0
         println("⚖️ $(rpad(label, 20)) water $(maximum(abs, water)) kg m⁻² s⁻¹, energy ",
-            "$(maximum(abs, energy)) W m⁻², negative beyond rounding $excess ($value at $where)")
+            "$(maximum(abs, energy)) W m⁻², negative beyond rounding ",
+            "$excess ($value at $where)")
     end
 
     # 🏜️ clear dry column: no condensate, no cloud, 0.1 g/kg vapor, no host freezing
     parameters = setup(read_settings(golden_path("settings_base.nml")))
     inputs = read_inputs(golden_path("golden_inputs.nc"))
     none() = zero(inputs.T)
-    dry = merge(inputs, (q_vapor = fill(1e-7, size(inputs.T)),
-        map(n -> n => (q = none(), N = none()), SPECIES)...,
-        snow_from_host = (q = none(), N = none()),
-        cloud_fraction = none(), liquid_cloud_fraction = none(), ice_cloud_fraction = none(),
-        host_freezing = (immersion = none(), contact = none(), deposition = none())))
+    dry = merge(inputs,
+        (q_vapor = fill(1e-7, size(inputs.T)),
+            map(n -> n => (q = none(), N = none()), SPECIES)...,
+            snow_from_host = (q = none(), N = none()),
+            cloud_fraction = none(), liquid_cloud_fraction = none(),
+            ice_cloud_fraction = none(),
+            host_freezing = (immersion = none(), contact = none(), deposition = none())))
     work = microphysics_step!(allocate(dry), parameters)
     t = work.tendencies
     @test all(iszero, t.heating) && all(iszero, t.vapor)

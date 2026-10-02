@@ -136,10 +136,10 @@ function sedimentation_fall_speeds!(work, parameters)
 
     if settings.implicit_sedimentation
         for i in 1:columns
-            z_interface[i, levels+1] = 0.0
+            z_interface[i, levels + 1] = 0.0
             for k in levels:-1:1
-                H = Rd * T[i, k] / g * log(p_interface[i, k+1] / p_interface[i, k])
-                z_interface[i, k] = z_interface[i, k+1] + H
+                H = Rd * T[i, k] / g * log(p_interface[i, k + 1] / p_interface[i, k])
+                z_interface[i, k] = z_interface[i, k + 1] + H
             end
         end
     end
@@ -151,7 +151,7 @@ function sedimentation_fall_speeds!(work, parameters)
             mass_gamma_top = 4.0 + bc + μc[i, k]
             mass_gamma_bottom = μc[i, k] + 4.0
             vc_mass[i, k] = a_cloud_liquid[i, k] * gamma_function(mass_gamma_top) /
-                          (λc[i, k]^bc * gamma_function(mass_gamma_bottom))
+                            (λc[i, k]^bc * gamma_function(mass_gamma_bottom))
             if settings.ifs_snow_fall_speed
                 fall_qc[i, k] = 0.0
                 fall_nc[i, k] = 0.0
@@ -159,8 +159,9 @@ function sedimentation_fall_speeds!(work, parameters)
                 number_gamma_top = 1.0 + bc + μc[i, k]
                 number_gamma_bottom = μc[i, k] + 1.0
                 fall_qc[i, k] = g * ρ[i, k] * vc_mass[i, k]
-                fall_nc[i, k] = g * ρ[i, k] * a_cloud_liquid[i, k] * gamma_function(number_gamma_top) /
-                            (λc[i, k]^bc * gamma_function(number_gamma_bottom))
+                fall_nc[i, k] = g * ρ[i, k] * a_cloud_liquid[i, k] *
+                                gamma_function(number_gamma_top) /
+                                (λc[i, k]^bc * gamma_function(number_gamma_bottom))
             end
         else
             fall_qc[i, k] = 0.0
@@ -183,21 +184,24 @@ function sedimentation_fall_speeds!(work, parameters)
             vi_mass[i, k] = vi_mass[i, k] * vtrmi_factor
             fall_qi[i, k] = g * ρ[i, k] * vi_mass[i, k]
             fall_ni[i, k] = g * ρ[i, k] *
-                        min(a_cloud_ice[i, k] * gamma.ice_plus1 / λi[i, k]^bi, 1.2 * ρ_correction[i, k])
+                            min(a_cloud_ice[i, k] * gamma.ice_plus1 / λi[i, k]^bi,
+                                1.2 * ρ_correction[i, k])
             irad = 1.5 / λi[i, k] * 1e6
             ifrac = min(1.0, max(0.0, (irad - 18.0) / 2.0))
             if ifrac < 1.0
                 # 🔁 the factor is applied again to the blend (FINDINGS.md)
                 vi_mass[i, k] = ifrac * vi_mass[i, k] +
-                              (1.0 - ifrac) *
-                              min(a_small_ice[i, k] * gamma.small_ice_plus4 / (6.0 * λi[i, k]^bj),
+                                (1.0 - ifrac) *
+                                min(
+                    a_small_ice[i, k] * gamma.small_ice_plus4 / (6.0 * λi[i, k]^bj),
                     1.2 * ρ_correction[i, k])
                 vi_mass[i, k] = vi_mass[i, k] * vtrmi_factor
                 fall_qi[i, k] = g * ρ[i, k] * vi_mass[i, k]
                 fall_ni[i, k] = ifrac * fall_ni[i, k] +
-                            (1.0 - ifrac) * g * ρ[i, k] *
-                            min(a_small_ice[i, k] * gamma.small_ice_plus1 / λi[i, k]^bj,
-                    1.2 * ρ_correction[i, k])
+                                (1.0 - ifrac) * g * ρ[i, k] *
+                                min(
+                                    a_small_ice[i, k] * gamma.small_ice_plus1 / λi[i, k]^bj,
+                                    1.2 * ρ_correction[i, k])
             end
             if settings.ifs_snow_fall_speed
                 fall_qi[i, k] = g * ρ[i, k] * 0.1
@@ -219,17 +223,19 @@ function sedimentation_fall_speeds!(work, parameters)
     for i in 1:columns, k in 1:levels
         if λr[i, k] >= smallest_mixing_ratio
             λ_power = λr[i, k]^br
-            vr_number[i, k] = min(a_rain[i, k] * gamma.rain_plus1 / λ_power, 9.1 * ρ_correction[i, k])
+            vr_number[i, k] = min(
+                a_rain[i, k] * gamma.rain_plus1 / λ_power, 9.1 * ρ_correction[i, k])
             fall_nr[i, k] = g * ρ[i, k] * vr_number[i, k]
-            vr_mass[i, k] = min(a_rain[i, k] * gamma.rain_plus4 / (6.0 * λ_power), 9.1 * ρ_correction[i, k])
+            vr_mass[i, k] = min(
+                a_rain[i, k] * gamma.rain_plus4 / (6.0 * λ_power), 9.1 * ρ_correction[i, k])
             fall_qr[i, k] = g * ρ[i, k] * vr_mass[i, k]
         else
             fall_qr[i, k] = 0.0
             fall_nr[i, k] = 0.0
         end
         if settings.precipitation_fall_correction && k > 2 && fall_qr[i, k] < 1.e-10
-            fall_qr[i, k] = fall_qr[i, k-1]
-            fall_nr[i, k] = fall_nr[i, k-1]
+            fall_qr[i, k] = fall_qr[i, k - 1]
+            fall_nr[i, k] = fall_nr[i, k - 1]
         end
         qr_sed[i, k] = (qr[i, k] + qr_tendency[i, k] * Δt)
         nr_sed[i, k] = max((nr[i, k] + nr_tendency[i, k] * Δt), 0.0)
@@ -243,10 +249,12 @@ function sedimentation_fall_speeds!(work, parameters)
     for i in 1:columns, k in 1:levels
         if λs[i, k] >= smallest_mixing_ratio
             λ_power = λs[i, k]^bs
-            vs_mass[i, k] = min(a_snow[i, k] * gamma.snow_plus4 / (6.0 * λ_power), 1.2 * ρ_correction[i, k])
+            vs_mass[i, k] = min(
+                a_snow[i, k] * gamma.snow_plus4 / (6.0 * λ_power), 1.2 * ρ_correction[i, k])
             vs_mass[i, k] = vs_mass[i, k] * settings.snow_fall_speed_factor
             fall_qs[i, k] = g * ρ[i, k] * vs_mass[i, k]
-            vs_number[i, k] = min(a_snow[i, k] * gamma.snow_plus1 / λ_power, 1.2 * ρ_correction[i, k])
+            vs_number[i, k] = min(
+                a_snow[i, k] * gamma.snow_plus1 / λ_power, 1.2 * ρ_correction[i, k])
             fall_ns[i, k] = g * ρ[i, k] * vs_number[i, k]
             if settings.ifs_snow_fall_speed
                 vs_mass[i, k] = 1.0
@@ -257,8 +265,8 @@ function sedimentation_fall_speeds!(work, parameters)
             fall_ns[i, k] = 0.0
         end
         if settings.precipitation_fall_correction && k > 2 && fall_qs[i, k] < 1.e-10
-            fall_qs[i, k] = fall_qs[i, k-1]
-            fall_ns[i, k] = fall_ns[i, k-1]
+            fall_qs[i, k] = fall_qs[i, k - 1]
+            fall_ns[i, k] = fall_ns[i, k - 1]
         end
         qs_sed[i, k] = (qs[i, k] + qs_tendency[i, k] * Δt)
         ns_sed[i, k] = max((ns[i, k] + ns_tendency[i, k] * Δt), 0.0)
@@ -274,15 +282,16 @@ function sedimentation_fall_speeds!(work, parameters)
             vg_mass[i, k] = min(a_graupel[i, k] * gamma.graupel_plus4 / (6.0 * λ_power),
                 20.0 * ρ_correction[i, k])
             fall_qg[i, k] = g * ρ[i, k] * vg_mass[i, k]
-            vg_number[i, k] = min(a_graupel[i, k] * gamma.graupel_plus1 / λ_power, 20.0 * ρ_correction[i, k])
+            vg_number[i, k] = min(
+                a_graupel[i, k] * gamma.graupel_plus1 / λ_power, 20.0 * ρ_correction[i, k])
             fall_ng[i, k] = g * ρ[i, k] * vg_number[i, k]
         else
             fall_qg[i, k] = 0.0
             fall_ng[i, k] = 0.0
         end
         if settings.precipitation_fall_correction && k > 2 && fall_qg[i, k] < 1.e-10
-            fall_qg[i, k] = fall_qg[i, k-1]
-            fall_ng[i, k] = fall_ng[i, k-1]
+            fall_qg[i, k] = fall_qg[i, k - 1]
+            fall_ng[i, k] = fall_ng[i, k - 1]
         end
         qg_sed[i, k] = (qg[i, k] + qg_tendency[i, k] * Δt)
         ng_sed[i, k] = max((ng[i, k] + ng_tendency[i, k] * Δt), 0.0)

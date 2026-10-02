@@ -12,6 +12,7 @@
 function effective_radius!(work, parameters)
     (; settings, hydrometeors) = parameters
     (; inputs, state, incloud, tendencies, diagnostics, scratch) = work
+    radii = diagnostics.effective_radius
     ng_tendency = tendencies.graupel.N  # ngtend
     qc = state.cloud_liquid.q
     nc = state.cloud_liquid.N
@@ -57,9 +58,9 @@ function effective_radius!(work, parameters)
     λg = incloud.graupel.λ  # lamg
     ni_intercept = scratch.ice_intercept  # dumni0A2D
     ns_intercept = scratch.snow_intercept  # dumns0A2D
-    radius_cloud_liquid = diagnostics.effective_radius.cloud_liquid  # effc
-    radius_cloud_liquid_fixed = diagnostics.effective_radius.cloud_liquid_fixed_number  # effc_fn
-    radius_cloud_ice = diagnostics.effective_radius.cloud_ice  # effi
+    radius_cloud_liquid = radii.cloud_liquid  # effc
+    radius_cloud_liquid_fixed = radii.cloud_liquid_fixed_number  # effc_fn
+    radius_cloud_ice = radii.cloud_ice  # effi
     diameter_cloud_ice = diagnostics.effective_diameter.cloud_ice  # deffi
     area_density_ice = diagnostics.surface_area_density.cloud_ice  # sadice
     area_density_snow = diagnostics.surface_area_density.snow  # sadsnow
@@ -104,31 +105,37 @@ function effective_radius!(work, parameters)
         for k in 1:levels, i in 1:columns
             number_before[i, k] = ni_sed[i, k]
             ice = size_distribution(hydrometeors.cloud_ice, qi_sed[i, k], ni_sed[i, k])
-            λi[i, k], ni_sed[i, k], ni_intercept[i, k] = ice.slope, ice.number, ice.intercept
+            λi[i, k], ni_sed[i, k], ni_intercept[i, k] = ice.slope, ice.number,
+            ice.intercept
         end
         for k in 1:levels, i in 1:columns
             if qi_sed[i, k] >= smallest_mixing_ratio
                 if ni_sed[i, k] != number_before[i, k]
-                    ni_tendency[i, k] = (ni_sed[i, k] * ice_fraction[i, k] - ni[i, k]) * inv_Δt
+                    ni_tendency[i, k] = (ni_sed[i, k] * ice_fraction[i, k] - ni[i, k]) *
+                                        inv_Δt
                 end
                 radius_cloud_ice[i, k] = 1.5 / λi[i, k] * 1.0e6
                 radius_cloud_ice[i, k] = radius_cloud_ice[i, k] * effi_factor
                 x = λi[i, k]
-                area_density_ice[i, k] = 2.0 * π * (1.0 / (x * x * x)) * ni_intercept[i, k] * ρ[i, k] *
-                               1.0e-2
+                area_density_ice[i, k] = 2.0 * π * (1.0 / (x * x * x)) *
+                                         ni_intercept[i, k] * ρ[i, k] *
+                                         1.0e-2
             else
                 radius_cloud_ice[i, k] = 25.0
                 radius_cloud_ice[i, k] = radius_cloud_ice[i, k] * effi_factor
                 area_density_ice[i, k] = 0.0
             end
-            diameter_cloud_ice[i, k] = radius_cloud_ice[i, k] * ρ_cloud_ice / ρ_solid_water * 2.0
+            diameter_cloud_ice[i, k] = radius_cloud_ice[i, k] * ρ_cloud_ice /
+                                       ρ_solid_water * 2.0
         end
     else
         for k in 1:levels, i in 1:columns
             radius_cloud_ice[i, k] = ice_radius_in[i, k] * 1.0e6
             radius_cloud_ice[i, k] = radius_cloud_ice[i, k] * effi_factor
             diameter_cloud_ice[i, k] = radius_cloud_ice[i, k] * 2.0
-            area_density_ice[i, k] = 4.0 * π * (radius_cloud_ice[i, k] * radius_cloud_ice[i, k]) * ni[i, k] * ρ[i, k] * 1e-2
+            area_density_ice[i, k] = 4.0 * π *
+                                     (radius_cloud_ice[i, k] * radius_cloud_ice[i, k]) *
+                                     ni[i, k] * ρ[i, k] * 1e-2
         end
     end
 
@@ -142,11 +149,13 @@ function effective_radius!(work, parameters)
     for k in 1:levels, i in 1:columns
         if qc_sed[i, k] >= smallest_mixing_ratio
             if settings.constant_droplet_number
-                nc_tendency[i, k] = (settings.droplet_number / ρ[i, k] * liquid_fraction[i, k] - nc[i, k]) *
-                               inv_Δt
+                nc_tendency[i, k] = (settings.droplet_number / ρ[i, k] *
+                                     liquid_fraction[i, k] - nc[i, k]) *
+                                    inv_Δt
             end
             if number_before[i, k] != nc_sed[i, k]
-                nc_tendency[i, k] = (nc_sed[i, k] * liquid_fraction[i, k] - nc[i, k]) * inv_Δt
+                nc_tendency[i, k] = (nc_sed[i, k] * liquid_fraction[i, k] - nc[i, k]) *
+                                    inv_Δt
             end
             radius_cloud_liquid[i, k] = (μc[i, k] + 3.0) / λc[i, k] / 2.0 * 1.0e6
             λc_radiation[i, k] = λc[i, k]
@@ -191,11 +200,13 @@ function effective_radius!(work, parameters)
     for k in 1:levels, i in 1:columns
         if qs_sed[i, k] >= smallest_mixing_ratio
             if number_before[i, k] != ns_sed[i, k]
-                ns_tendency[i, k] = (ns_sed[i, k] * precip_fraction[i, k] - ns[i, k]) * inv_Δt
+                ns_tendency[i, k] = (ns_sed[i, k] * precip_fraction[i, k] - ns[i, k]) *
+                                    inv_Δt
             end
             x = λs[i, k]
-            area_density_snow[i, k] = 2.0 * π * (1.0 / (x * x * x)) * ns_intercept[i, k] * ρ[i, k] *
-                            1.0e-2
+            area_density_snow[i, k] = 2.0 * π * (1.0 / (x * x * x)) * ns_intercept[i, k] *
+                                      ρ[i, k] *
+                                      1.0e-2
         end
         number_before[i, k] = ng_sed[i, k]
     end
@@ -218,7 +229,8 @@ function effective_radius!(work, parameters)
         if qc[i, k] + qc_tendency[i, k] * Δt < smallest_mixing_ratio
             nc_tendency[i, k] = -nc[i, k] * inv_Δt
         end
-        if settings.prognostic_cloud_ice && qi[i, k] + qi_tendency[i, k] * Δt < smallest_mixing_ratio
+        if settings.prognostic_cloud_ice &&
+           qi[i, k] + qi_tendency[i, k] * Δt < smallest_mixing_ratio
             ni_tendency[i, k] = -ni[i, k] * inv_Δt
         end
         if qr[i, k] + qr_tendency[i, k] * Δt < smallest_mixing_ratio

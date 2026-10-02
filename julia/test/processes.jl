@@ -35,7 +35,7 @@ function worst_error(ds, site, key, twin)
 end
 
 "Worst relative error per checked routine, printed at the end of the tests."
-const REPORT = Pair{String,Float64}[]
+const REPORT = Pair{String, Float64}[]
 
 "Collects the worst error per routine and reports the overall worst."
 function check_sites(ds, routine, replay; tolerance = 1e-13)
@@ -50,5 +50,6 @@ function check_sites(ds, routine, replay; tolerance = 1e-13)
 end
 
 # 🧩📝 Lets a test write `check_sites(ds, routine) do site ... end`.
-check_sites(replay::Function, ds, routine; kwargs...) =
+function check_sites(replay::Function, ds, routine; kwargs...)
     check_sites(ds, routine, replay; kwargs...)
+end

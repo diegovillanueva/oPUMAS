@@ -165,14 +165,14 @@ function setup(settings::Settings, host::HostConstants = HostConstants())
         small_ice_plus1 = gamma_function(1.0 + bⱼ),
         small_ice_plus4 = gamma_function(4.0 + bⱼ),
         graupel_plus1 = gamma_function(1.0 + b_dense),
-        graupel_plus4 = gamma_function(4.0 + b_dense),
+        graupel_plus4 = gamma_function(4.0 + b_dense)
     )
     saturation = SaturationConstants(;
         melting_point = T₀,
         triple_point = host.triple_point,
         boiling_point = host.boiling_point,
         ice_transition_range = host.ice_transition_range,
-        molar_mass_ratio = host.molar_mass_ratio,
+        molar_mass_ratio = host.molar_mass_ratio
     )
     rain_freezing_temperature = settings.ifs_rain_freezing ? T₀ : T₀ - 40.0
     return Parameters(
@@ -185,7 +185,7 @@ function setup(settings::Settings, host::HostConstants = HostConstants())
         T₀ - 5.0,
         T₀ + 2.0,
         rain_freezing_temperature,
-        gamma,
+        gamma
     )
 end
 
