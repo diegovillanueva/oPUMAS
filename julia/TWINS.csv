@@ -1,0 +1,18 @@
+julia_function,fortran_file,fortran_routine,upstream_commit
+gamma_function,libm,tgamma (gfortran gamma intrinsic),-
+saturation_over_water,wv_sat_methods.F90,wv_sat_qsat_water,-
+saturation_over_ice,wv_sat_methods.F90,wv_sat_qsat_ice,-
+hydrometeor_properties,micro_pumas_utils.F90,NewMGHydrometeorProps,1af093b
+setup,micro_pumas_v1.F90,micro_pumas_init,1af093b
+setup,micro_pumas_utils.F90,micro_pumas_utils_init,1af093b
+rising_factorial,micro_pumas_utils.F90,rising_factorial,1af093b
+variance_coefficient,micro_pumas_utils.F90,var_coef,1af093b
+latent_heat_factor,micro_pumas_utils.F90,calc_ab,1af093b
+size_distribution,micro_pumas_utils.F90,size_dist_param_basic,1af093b
+droplet_size_distribution,micro_pumas_utils.F90,size_dist_param_liq,1af093b
+mean_diameter,micro_pumas_utils.F90,avg_diameter_vec,1af093b
+kk2000_autoconversion,micro_pumas_utils.F90,kk2000_liq_autoconversion,1af093b
+sb2001_autoconversion,micro_pumas_utils.F90,sb2001v2_liq_autoconversion,1af093b
+sb2001_accretion,micro_pumas_utils.F90,sb2001v2_accre_cld_water_rain,1af093b
+accretion,micro_pumas_utils.F90,accrete_cloud_water_rain,1af093b
+rain_self_collection,micro_pumas_utils.F90,self_collection_rain,1af093b
