@@ -139,11 +139,13 @@ tests/column/
 - 📘 Write `julia/README.md`: how to run one column, how to add a process (mirror of the checklist in the stage map), table Fortran routine → Julia function.
 - 🧪 Tests must stay green after every renaming commit; renaming and arithmetic changes never share a commit.
 - ✅ Accept: Diego reads `step.jl` and two process files and approves the style.
+- 📌 Status (2026-10-02): done, waiting for Diego's style review. Stages bind readable locals with the PUMAS name in a comment (`work.fortran` aliases removed), constants and time step under equation symbols, `dum`-style scratch replaced by named intermediates, JuliaFormatter (sciml, 92 columns) via `tools/format.sh`, `SYMBOLS.md` lists all 349 stage bindings, README has the one-step example, the add-a-process checklist and the twin table. Bit-for-bit after every commit.
 
 ### M7 🔗🔄 Staying in sync with upstream
 - 🟣 `tools/check_twins.sh <old>..<new>`: lists Fortran routines changed in a commit range (via `git diff -U0` plus routine line ranges) and prints the Julia twins from `TWINS.csv` that need review. Add it to the "Agent routine" in `git_work.md` after an upstream merge.
 - 🟣 `tools/check_names.jl`: every `Julia` path in the dictionary exists; every exported function has a `Fortran twin` line.
 - ✅ Accept: both tools run clean; a fake change to `accrete_rain_snow` is reported.
+- 📌 Status (2026-10-02): done. `check_twins.sh` reports the fake `accrete_rain_snow` change as `rain_collection_by_snow`; `tools/check_names.jl` passes (215 dictionary paths, 35 exported twins). The `Julia` column is metadata in `translate.py`, so no `languages.csv` row; both tools are in the agent routine of `git_work.md`.
 
 ### M8 ⏳🧩 Later, only on Diego's request
 - 🧊 Sppe controls from `dev/Sppe`; TAU bin warm rain; MG4 lookup tables; an offline single-column time loop with plots; a `CF-CCPP`-names Fortran driver.
