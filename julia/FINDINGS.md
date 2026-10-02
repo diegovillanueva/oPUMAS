@@ -7,10 +7,11 @@
 - 🟣 The twin calls `tgamma` from `libm` through `ccall`, not `SpecialFunctions.gamma` and not a port of the series in the file.
 - ⚠️ The plan (handoffs/julia.plan.md, M2) assumed the series; it is unused with gfortran builds.
 
-## 📐⚖️ Real powers, exp and log are libm in Fortran and native in Julia
-- 📍 Fortran `x**y` with a real exponent calls libm `pow`; Julia `^`, `exp` and `log` are Julia's own implementations.
-- 🟣 Results may differ by one ulp; the tests therefore use a relative tolerance (1e-12 for single routines, 1e-10 for a full step) instead of bit-for-bit.
-- 🔢 `x**2` with an integer literal is `x*x` in both languages; the twin keeps integer literals where the Fortran has them.
+## 📐⚖️ Real powers, exp and log come from libm, as in the Fortran
+- 📍 Fortran `x**y` with a real exponent, `exp`, `log` and `log10` call glibc libm; Julia's `^`, `exp` and `log` are Julia's own implementations and can differ by one ulp.
+- 🧨 One ulp is enough to break the full step: the implicit sedimentation fluxes cancel to near zero at the lowest levels (for example `lflx` 2.5e-29 against -1.2e-27), so native Julia math gave relative errors up to 50 there.
+- 🟣 `src/libm.jl` shadows `^(::Float64, ::Float64)`, `exp`, `log` and `log10` inside the module with `ccall`s to `libm.so.6`. With it every routine and all 155 fields of `golden_base.nc` are bit-for-bit identical.
+- 🔢 Integer powers stay Julia's (`x^2` is `x*x`); powers by an integer literal larger than 3 are written out the way gfortran's `powi` multiplies (`x**7` is `x³·x⁴`).
 
 ## 🧊📏 Ice lambda bound uses Fortran precedence
 - 📍 `micro_pumas_utils.F90`, `micro_pumas_utils_init`: the lower ice lambda bound is written `1._r8/2._r8*dcs`, which Fortran evaluates as `(1/2)*dcs`, not `1/(2*dcs)`.
@@ -38,3 +39,17 @@
 - 📍 `secondary_ice_production` uses 270.16, 268.16 and 265.16 K, which are -3, -5 and -8 °C from the triple point (273.16 K). `graupel_rime_splintering` uses `tmelt - 3` and so on from 273.15 K. `heterogeneous_rain_freezing` uses 269.15 K.
 - 🐛🤔 The two Hallett-Mossop windows of snow and graupel are therefore 0.01 K apart and do not follow a host that changes `tmelt`.
 - 🟣 The twin writes the same literals.
+
+## 🧾🌍 The golden inputs hold real NaN values
+- 📍 `tests/column/data/golden_inputs.nc` has NaN in 5 points of `tnd_nsnow` and 1 of `re_ice`, and `_FillValue = NaN`, so NCDatasets reads them as `missing`.
+- 🟣 `read_inputs` reads the raw values (`.var`) and the step test treats NaN against NaN as equal. The Fortran outputs are reproduced bit for bit, so the NaNs do not reach any output with these settings.
+
+## 🧊🪜 Quirks of the time step (stages 11–15 of `micro_pumas_tend`)
+- 🧊 The ice fall speed factor `vtrmi_factor` multiplies `vtrmi` and then again the blended small-ice speed when the ice fraction is below 1, so blended points get the factor twice.
+- 🪂 The precipitation fall correction starts at `k > 2`, so the second level never takes the speed of the level above.
+- 🟤 In the effective radius stage `dumg` and `dumng` are grid means, not divided by `precip_frac` like rain and snow; the graupel number check then multiplies by `precip_frac` again.
+- 🟤 The 10 cm reflectivity of graupel uses `n0g` from the process stage, which stage 15 never updates.
+- 🌧️ The rain freezing after sedimentation sizes the rain from grid-mean `dumr`, not in-precipitation values.
+- 🟤 `do_hail .or. do_graupel .and. lamg > 0` binds as `do_hail .or. (do_graupel .and. lamg > 0)`; with hail on, graupel reflectivity is added even when `lamg` is 0.
+- 🔢 The explicit sedimentation step `rnstep = 1._r8/real(nstep)` divides by a default-kind (single precision) real; exact for every realistic `nstep`, kept as `Float64(Float32(nstep))`.
+- 🚫 `nrcons` and `nscons` (constant rain and snow number) are not settings of oPUMAS, so their branches are left out; they are false in all CAM namelists.

@@ -34,3 +34,7 @@ rain_collection_by_graupel,micro_pumas_utils.F90,graupel_collecting_rain,1af093b
 rain_snow_collisions_to_graupel,micro_pumas_utils.F90,graupel_rain_riming_snow,1af093b
 rime_splintering_by_graupel,micro_pumas_utils.F90,graupel_rime_splintering,1af093b
 add_rain_cloud_effective_radius,micro_pumas_v1.F90,calc_rercld,1af093b
+microphysics_step!,micro_pumas_v1.F90,micro_pumas_tend,1af093b
+implicit_fall!,micro_pumas_v1.F90,implicit_fall,1af093b
+sediment_implicit!,micro_pumas_v1.F90,Sedimentation_implicit,1af093b
+sediment_explicit!,micro_pumas_v1.F90,Sedimentation,1af093b

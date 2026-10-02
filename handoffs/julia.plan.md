@@ -125,6 +125,7 @@ tests/column/
 - 🧮 The about 280 local work arrays of the Fortran become fields of the containers or locals of a stage; none are module-level globals.
 - ✅ Accept per stage (if M1.7 was done): outputs at the stage boundary match to 1e-12 relative.
 - ✅ Accept for the step: all outputs and all `proc_rates` of `golden_base.nc` match with max relative error ≤ 1e-10 and absolute error below 1e-20 where the reference is zero; report the worst variable and column in the test log.
+- 📌 Status (2026-10-02): done. All 155 fields of `golden_base.nc` are bit-for-bit identical once real powers, exp and log come from libm; per-stage checks (M1.7) were not needed.
 
 ### M5 🎛️✅ Switch matrix and conservation
 - 🟣 Run `test_step.jl` over every in-scope golden file from M1.5.
