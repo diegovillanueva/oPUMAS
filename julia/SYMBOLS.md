@@ -24,3 +24,12 @@
 | `Φ` | Seifert-Beheng universal function of τ | `dum1` | 1 |
 | `x_star` | drop mass separating cloud from rain | `2.6e-7` | g |
 | `k` | lower index into the shape table | `dumi` | 1 |
+| `U` | mass- or number-weighted fall speed | `umr`, `uns`, … | m s⁻¹ |
+| `E` | collection efficiency | `eii`, `ecid`, `ecr`, `eci` | 1 |
+| `D` | mean droplet diameter (μ + 1) / λ | `dc0` | m |
+| `x` | autoconversion size over mean ice size λ D_cs | `d_rat` | 1 |
+| `r` | slope ratio λ_r / λ_s | `d_rat` | 1 |
+| `T_3`, `T_5`, `T_8` | 3, 5 and 8 K below the melting point | `tm_3`, `tm_5`, `tm_8` | K |
+| `λr`, `λg` | rain and graupel slopes (local to `rain_collection_by_graupel`) | `lamr`, `lamg` | m⁻¹ |
+| `ρ_s²`, `ρ_w²` | squared bulk densities of snow and water | `cons18`, `cons19` | kg² m⁻⁶ |
+| `Γ` | gamma function value of the fall speed exponent | `gamma_half_*` | 1 |

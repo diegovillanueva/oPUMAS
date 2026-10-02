@@ -8,6 +8,7 @@ include("processes.jl")
     include("test_foundations.jl")
     include("test_size_distributions.jl")
     include("test_warm_rain.jl")
+    include("test_ice_processes.jl")
 end
 
 println("🔬 worst relative error per routine")

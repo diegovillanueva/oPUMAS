@@ -24,3 +24,17 @@
 ## 🔁💧 CAM passes `allow_sed_supersat` as `remove_supersat`
 - 📍 `interface/cesm215/micro_mg_cam.F90` calls `micro_pumas_init(..., allow_sed_supersat, micro_pumas_warm_rain, ...)`, and the dummy argument at that position is `remove_supersat_in`.
 - 🐛🤔 A namelist that allows supersaturation therefore asks PUMAS to remove it. Upstream CAM passes the same variable, so the twin keeps the Fortran meaning: `Settings.remove_supersaturation` is read from `allow_sed_supersat` unchanged.
+
+## 🟤🌬️ Graupel sublimation mixes the graupel and snow fall speed exponents
+- 📍 `micro_pumas_utils.F90`, `evaporate_sublimate_precip_graupel`: the ventilation term of graupel uses `gamma(5/2 + bg/2)` but divides by `lamg**(5/2 + bs/2)`, the snow exponent. It also uses the snow ventilation coefficients `f1s`, `f2s`.
+- 🐛🤔 Dimensionally the λ power should follow the gamma argument, `5/2 + bg/2`. With bg = 0.37 and bs = 0.41 the exponents differ by 0.02, so the rate is off by a factor λ^0.02, about 20 % at λ = 10⁴ m⁻¹.
+- 🟣 The twin keeps the snow exponent and marks it in `precipitation_evaporation`.
+
+## 🟤❄️ Rime splintering on graupel has two branches that never run
+- 📍 `graupel_rime_splintering`: inside `if (t < tm_3 .and. t > tm_8)` the code still tests `t > tm_3` and `t < tm_8`, both impossible there.
+- 🟣 The twin keeps only the two live branches, (T₀ - 3 - T)/2 above -5 °C and (T - T₀ + 8)/3 below, which give the same numbers.
+
+## 🌡️🔢 Some temperature thresholds are hard-coded in kelvin
+- 📍 `secondary_ice_production` uses 270.16, 268.16 and 265.16 K, which are -3, -5 and -8 °C from the triple point (273.16 K). `graupel_rime_splintering` uses `tmelt - 3` and so on from 273.15 K. `heterogeneous_rain_freezing` uses 269.15 K.
+- 🐛🤔 The two Hallett-Mossop windows of snow and graupel are therefore 0.01 K apart and do not follow a host that changes `tmelt`.
+- 🟣 The twin writes the same literals.

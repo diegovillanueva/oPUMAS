@@ -16,8 +16,8 @@ julia/tools/julia.sh -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
 
 ## 📂 Layout
 
-- 📦 `src/`: the package (`oPUMAS.jl` includes everything). Foundations (constants, saturation, hydrometeors, parameters, namelist, size distributions) at the top, one file per process family in `src/processes/`.
-- 🧪 `test/`: tests against the golden files from `tests/column/`. `processes.jl` replays captured Fortran calls; one `test_<topic>.jl` per source file.
+- 📦 `src/`: the package (`oPUMAS.jl` includes everything). Foundations (constants, saturation, hydrometeors, parameters, namelist, size distributions) at the top, one file per process family in `src/processes/`: `warm_rain`, `aggregation` (ice and snow), `riming` (snow collecting droplets and rain), `freezing`, `deposition` (vapor growth, Bergeron, evaporation), `graupel`, `effective_radius`.
+- 🧪 `test/`: tests against the golden files from `tests/column/`. `processes.jl` replays captured Fortran calls; one `test_<topic>.jl` per topic (`test_ice_processes.jl` covers every ice, snow, graupel and vapor process).
 - 📋 `TWINS.csv`: Julia function, Fortran file and routine, upstream commit translated.
 - 🔣 `SYMBOLS.md`: every short symbol used inside functions.
 - 🐛 `FINDINGS.md`: oddities of the Fortran met while translating.
