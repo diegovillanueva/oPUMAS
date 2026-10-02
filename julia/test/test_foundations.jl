@@ -16,7 +16,7 @@ function hydrometeor_pairs(name, h::HydrometeorProperties)
         "utils_mg_$(name)_props_eff_dim" => h.mass_exponent,
         "utils_mg_$(name)_props_shape_coef" => h.mass_coefficient,
         "utils_mg_$(name)_props_lambda_bounds" => bounds,
-        "utils_mg_$(name)_props_min_mean_mass" => h.minimum_mean_mass,
+        "utils_mg_$(name)_props_min_mean_mass" => h.minimum_mean_mass
     ]
 end
 
@@ -136,7 +136,7 @@ function module_state_pairs(p::Parameters)
         "v1_vfac_drop" => fall_speed_factor.cloud_liquid,
         "v1_vfac_ice" => fall_speed_factor.cloud_ice,
         "v1_do_implicit_fall" => s.implicit_sedimentation,
-        "v1_accre_sees_auto" => s.accretion_sees_autoconversion,
+        "v1_accre_sees_auto" => s.accretion_sees_autoconversion
     ]
     for (name, h) in pairs(hyd)
         fortran = name == :cloud_liquid ? "liq" : name == :cloud_ice ? "ice" : string(name)
@@ -160,14 +160,15 @@ same_bits(fortran::AbstractVector, twin) = all(same_bits.(fortran, collect(twin)
             @test isempty(setdiff(fortran_names, names))   # nothing left untested
             for ((name, twin), key) in zip(state, names)
                 ok = same_bits(captured(ds, key), twin)
-                ok || @info "differs" name fortran = captured(ds, key) twin
+                ok || @info "differs" name fortran=captured(ds, key) twin
                 @test ok
             end
         end
 
         @testset "saturation matches the Fortran" begin
-            sites = [(k, f) for (k, f) in (("qsat_water", saturation_over_water),
-                     ("qsat_ice", saturation_over_ice)) for _ in 1:1]
+            sites = [(k, f)
+                     for (k, f) in (("qsat_water", saturation_over_water),
+                ("qsat_ice", saturation_over_ice)) for _ in 1:1]
             worst = 0.0
             for (prefix, saturation) in sites, n in 1:9
                 site = "$(prefix)_$(n)"

@@ -1,2 +1,4 @@
-style = "blue"
+style = "sciml"
 margin = 92
+whitespace_in_kwargs = true
+join_lines_based_on_source = true

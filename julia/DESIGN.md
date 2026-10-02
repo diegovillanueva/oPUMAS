@@ -1,6 +1,6 @@
-# 🧊🪜 Container design for the time step (M4, draft for review)
+# 🧊🪜 Container design for the time step
 
-🙋📝 Draft for Diego's review. No stage is filled until this design is approved (plan M4).
+🙋📝 Written as the M4 draft for Diego's review; the proposed answers of section 4 were adopted. Section 5 records how it was built.
 🧭📌 Stage numbers refer to `code_analysis/PUMAS_stage_map.md`.
 
 ## 1. 🧱📐 Principles
@@ -130,3 +130,10 @@ end
 3. 🧾 **`ProcessRates` keeps PUMAS order and meaning?** Proposed: same fields as `proc_rates_type` with dictionary names, so history output and golden comparison stay one-to-one. Its 93 fields would be generated from `translation/dictionary.csv` once and then written out by hand-readable code, not by macros.
 4. 🔣 **Unicode field names?** Proposed: `λ`, `N₀`, `μ` only inside `InCloudSpecies`, where they are standard; everything else is words. The alternative is `slope`, `intercept`, `shape` everywhere, as in `size_distribution`'s return value today.
 5. 🧭 **`air` as a NamedTuple of matrices in `State`?** It holds `diffusivity`, `viscosity`, `schmidt` and the density-corrected fall speed prefactors. The vapor twins of M3 already take a scalar `air` NamedTuple, built per point in the stage loop.
+
+## 5. ✅🧱 As built (M4–M6)
+
+- 📦 **NamedTuples, not structs.** The containers are nested NamedTuples of matrices built by `allocate` from the path tables in `src/names.jl` (`LOCAL_RATE_PATHS`, `PROCESS_RATE_PATHS`, `TENDENCY_PATHS`, `DIAGNOSTIC_PATHS`, `FLUX_PATHS`, `SURFACE_PATHS`), so a new field is one table row. `work` is `(; inputs, state, incloud, rates, process_rates, tendencies, diagnostics, scratch)`; `scratch` holds the Fortran work arrays that several stages share (`dumc`, `fc`, `dum_2D`, …).
+- 🔤 **Readable locals in the stages (M6).** Each stage starts with `(; inputs, state, ...) = work` and binds the fields it uses to readable locals with the PUMAS name in a comment, `qc_autoconversion = rates.cloud_liquid.autoconversion_to_rain.mass  # prc`. Long paths go through a species sub-container (`liquid_means = process_rates.cloud_liquid`). The M4 `work.fortran` aliases with PUMAS names are gone; `SYMBOLS.md` lists every binding.
+- 🔣 **Constants under their equation symbols.** `host_constants(parameters)` gives `g`, `Rd`, `cp`, `Lv`, `Lf`, `Ls`, `T₀`, …; the PUMAS short constants (`qsmall`, `omsm`, `mincld`) are the long names of `src/constants.jl`.
+- ⚖️ **Numbers first, names second.** Every renaming commit kept all 16 switch rows bit-for-bit; renaming and arithmetic never shared a commit.

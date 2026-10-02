@@ -11,7 +11,7 @@ PUMAS sums this over sub-steps and divides by their number later.
 Fortran twin: `calc_rercld` in `micro_pumas_v1.F90` (`rercld`).
 """
 function add_rain_cloud_effective_radius(radius_sum, λ_rain, N₀_rain, λ_cloud, μ_cloud,
-    q_rain, q_cloud, N_cloud)
+        q_rain, q_cloud, N_cloud)
     area = λ_rain > 0.0 ? N₀_rain * π / (2.0 * λ_rain^3.0) : 0.0
     if λ_cloud > 0.0
         moment = rising_factorial(μ_cloud + 1.0, 2)

@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-META_COLUMNS = {"id", "kind", "scope", "units", "meaning", "cf_ccpp_source", "standard_name", "notes"}
+META_COLUMNS = {"id", "kind", "scope", "units", "meaning", "cf_ccpp_source", "standard_name", "notes", "Julia"}
 TOKEN = re.compile(
     r"""(?P<str>'(?:[^']|'')*'|"(?:[^"]|"")*")
        |(?P<num>(?:\d+\.?\d*|\.\d+)(?:[eEdD][+-]?\d+)?(?:_\w+)?)

@@ -16,8 +16,8 @@ Fortran twin: the `eps` expression repeated in the routines below.
 """
 function ventilated_diffusion(air, N₀, λ, a, Γ, b, f)
     (; ρ, diffusivity, viscosity, schmidt) = air
-    ventilation_term =
-        f.f2 * (a * ρ / viscosity)^0.5 * schmidt^(1.0 / 3.0) * Γ / λ^(5.0 / 2.0 + b / 2.0)
+    ventilation_term = f.f2 * (a * ρ / viscosity)^0.5 * schmidt^(1.0 / 3.0) * Γ /
+                       λ^(5.0 / 2.0 + b / 2.0)
     return 2.0 * π * N₀ * ρ * diffusivity * (f.f1 / (λ * λ) + ventilation_term)
 end
 
@@ -90,8 +90,8 @@ function ice_deposition(parameters, air, q_ice, N_ice, ice_fraction)
     exchange = 2.0 * π * ice.intercept * ρ * diffusivity / (ice.slope * ice.slope)
     growth = exchange / heat * (q_vapor - q_sat_ice) * ice_fraction
     freezing = T < parameters.host.melting_point
-    deposition, sublimation =
-        freezing && growth > 0.0 ? (growth, 0.0) : (0.0, min(growth, 0.0))
+    deposition, sublimation = freezing && growth > 0.0 ? (growth, 0.0) :
+                              (0.0, min(growth, 0.0))
     bergeron = freezing ? max(exchange / heat * (q_sat_liquid - q_sat_ice), 0.0) : 0.0
     return (; deposition, sublimation, bergeron)
 end
@@ -103,16 +103,17 @@ end
 Evaporation of rain and sublimation of snow and graupel in the clear-air part of the
 precipitation area. `rain`, `snow`, `graupel` are NamedTuples `(; q, λ, N₀, a)` of
 in-precipitation values (graupel also `b`). Precipitation under cloud (`liquid_fraction`,
-ignored if q_cloud + q_ice < 10⁻⁶) does not evaporate; vapor in the clear part is
-q_clear = (q_vapor - f_cloud q_sat_liquid) / (1 - f_cloud).
+ignored if `q_cloud + q_ice < 10⁻⁶`) does not evaporate; vapor in the clear part is
+`q_clear = (q_vapor - f_cloud q_sat_liquid) / (1 - f_cloud)`.
 
 Returns in-precipitation rates ≤ 0 (kg kg⁻¹ s⁻¹) `rain`, `snow`, `graupel`, and
 `area`, the precipitation fraction outside cloud (`am_evp_st`).
 With `ifs_evaporation_threshold`, rain only evaporates where q_clear / q_sat_liquid ≤ 0.9.
 Fortran twin: `evaporate_sublimate_precip_graupel` (`pre`, `prds`, `prdg`).
 """
-function precipitation_evaporation(parameters, air, liquid_fraction, precipitation_fraction,
-    q_cloud, q_ice, rain, snow, graupel)
+function precipitation_evaporation(
+        parameters, air, liquid_fraction, precipitation_fraction,
+        q_cloud, q_ice, rain, snow, graupel)
     (; T, q_vapor, q_sat_liquid, q_sat_ice) = air
     none = (; rain = 0.0, snow = 0.0, graupel = 0.0, area = 0.0)
     cloud_fraction = q_cloud + q_ice < 1.0e-6 ? 0.0 : liquid_fraction

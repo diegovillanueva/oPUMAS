@@ -65,7 +65,7 @@ const LOCAL_RATE_PATHS = (
     minstgm = (:graupel, :instant_melting, :mass),
     ninstgm = (:graupel, :instant_melting, :number),
     minstrf = (:rain, :instant_freezing, :mass),
-    ninstrf = (:rain, :instant_freezing, :number),
+    ninstrf = (:rain, :instant_freezing, :number)
 )
 
 "Grid-mean process rates kept for history, `ProcessRates` (`proc_rates_type`)."
@@ -158,7 +158,7 @@ const PROCESS_RATE_PATHS = (
     qctend_SB2001 = (:cloud_liquid, :warm_rain_sb2001, :mass),
     nctend_SB2001 = (:cloud_liquid, :warm_rain_sb2001, :number),
     qrtend_SB2001 = (:rain, :warm_rain_sb2001, :mass),
-    nrtend_SB2001 = (:rain, :warm_rain_sb2001, :number),
+    nrtend_SB2001 = (:rain, :warm_rain_sb2001, :number)
 )
 
 "Tendencies returned to the host (`intent(out)` of micro_pumas_tend)."
@@ -169,7 +169,7 @@ const TENDENCY_PATHS = (
     qitend = (:cloud_ice, :q), nitend = (:cloud_ice, :N),
     qrtend = (:rain, :q), nrtend = (:rain, :N),
     qstend = (:snow, :q), nstend = (:snow, :N),
-    qgtend = (:graupel, :q), ngtend = (:graupel, :N),
+    qgtend = (:graupel, :q), ngtend = (:graupel, :N)
 )
 
 "Diagnostics returned to the host on levels (`intent(out)` of micro_pumas_tend)."
@@ -218,13 +218,13 @@ const DIAGNOSTIC_PATHS = (
     fcsrfl = (:radar, :cloudsat_frequency),
     refl10cm = (:radar, :reflectivity_10cm_dbz),
     reflz10cm = (:radar, :reflectivity_10cm_z),
-    nfice = (:ice_mass_fraction,),
+    nfice = (:ice_mass_fraction,)
 )
 
 "Fluxes on interfaces (column, level + 1), kg m⁻² s⁻¹ (`*flx`)."
 const FLUX_PATHS = (
     lflx = (:flux, :cloud_liquid), iflx = (:flux, :cloud_ice), rflx = (:flux, :rain),
-    sflx = (:flux, :snow), gflx = (:flux, :graupel),
+    sflx = (:flux, :snow), gflx = (:flux, :graupel)
 )
 
 "Surface precipitation rates per column, m s⁻¹ (`prect`, `preci`)."
@@ -232,7 +232,7 @@ const SURFACE_PATHS = (prect = (:surface, :total), preci = (:surface, :ice))
 
 "Every host output of the step, PUMAS name => (container, path)."
 function output_paths()
-    outputs = Pair{Symbol,Tuple}[]
+    outputs = Pair{Symbol, Tuple}[]
     for (table, container) in ((TENDENCY_PATHS, :tendencies),
         (DIAGNOSTIC_PATHS, :diagnostics), (FLUX_PATHS, :diagnostics),
         (SURFACE_PATHS, :diagnostics), (PROCESS_RATE_PATHS, :process_rates))

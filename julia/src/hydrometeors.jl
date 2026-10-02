@@ -16,12 +16,12 @@ struct HydrometeorProperties
     density::Float64
     mass_exponent::Float64
     mass_coefficient::Float64
-    slope_bounds::Union{Nothing,NTuple{2,Float64}}
-    minimum_mean_mass::Union{Nothing,Float64}
+    slope_bounds::Union{Nothing, NTuple{2, Float64}}
+    minimum_mean_mass::Union{Nothing, Float64}
 end
 
 function HydrometeorProperties(
-    density, mass_exponent; slope_bounds = nothing, minimum_mean_mass = nothing
+        density, mass_exponent; slope_bounds = nothing, minimum_mean_mass = nothing
 )
     mass_coefficient = density * π * gamma_function(mass_exponent + 1.0) / 6.0
     return HydrometeorProperties(
@@ -33,7 +33,8 @@ end
     hydrometeor_properties(ice_to_snow_size)
 
 Properties of the six categories, as set by `micro_pumas_utils_init`.
-`ice_to_snow_size` is the cloud ice to snow autoconversion diameter (m, `dcs`).
+`ice_to_snow_size` is the cloud ice to snow autoconversion diameter (m, `dcs`). Fortran
+twin: the `NewMGHydrometeorProps` calls in `micro_pumas_utils_init`.
 """
 function hydrometeor_properties(ice_to_snow_size)
     d = sphere_mass_exponent
@@ -46,7 +47,7 @@ function hydrometeor_properties(ice_to_snow_size)
         ),
         cloud_ice = HydrometeorProperties(
             bulk_density.cloud_ice, d;
-            slope_bounds = ice_slope_bounds, minimum_mean_mass = minimum_mean_mass,
+            slope_bounds = ice_slope_bounds, minimum_mean_mass = minimum_mean_mass
         ),
         rain = HydrometeorProperties(
             bulk_density.liquid_water, d; slope_bounds = rain_slope_bounds
@@ -59,6 +60,6 @@ function hydrometeor_properties(ice_to_snow_size)
         ),
         hail = HydrometeorProperties(
             bulk_density.hail, d; slope_bounds = snow_slope_bounds
-        ),
+        )
     )
 end

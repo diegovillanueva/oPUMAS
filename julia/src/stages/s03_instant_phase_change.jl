@@ -10,84 +10,99 @@ the threshold.
 """
 function instant_phase_change!(work, parameters)
     (; settings) = parameters
-    (; cpp, xlf, snowmelt, rainfrze) = host_short_names(parameters)
-    F = work.fortran
-    (; t, qr, nr, qs, ns, qg, ng, tlat) = F
-    (; minstsm, ninstsm, minstgm, ninstgm, minstrf, ninstrf) = F
-    (; meltsdttot, meltstot, meltgtot, frzrdttot) = F
-    rdeltat = 1.0 / work.inputs.time_step
+    (; cp, Lf, T_snow_melt, T_rain_freeze) = host_constants(parameters)
+    (; inputs, state, rates, process_rates, tendencies) = work
+    T = inputs.T  # t
+    qr = state.rain.q
+    nr = state.rain.N
+    qs = state.snow.q
+    ns = state.snow.N
+    qg = state.graupel.q
+    ng = state.graupel.N
+    heating = tendencies.heating  # tlat
+    qs_instant_melting = rates.snow.instant_melting.mass  # minstsm
+    ns_instant_melting = rates.snow.instant_melting.number  # ninstsm
+    qg_instant_melting = rates.graupel.instant_melting.mass  # minstgm
+    ng_instant_melting = rates.graupel.instant_melting.number  # ninstgm
+    qr_instant_freezing = rates.rain.instant_freezing.mass  # minstrf
+    nr_instant_freezing = rates.rain.instant_freezing.number  # ninstrf
+    heating_snow_melting = process_rates.heating.snow_melting  # meltsdttot
+    qs_melting_mean = process_rates.snow.melting.mass  # meltstot
+    qg_melting_mean = process_rates.graupel.melting.mass  # meltgtot
+    heating_rain_freezing = process_rates.heating.rain_freezing  # frzrdttot
+    inv_Δt = 1.0 / work.inputs.time_step
     columns, levels = grid_size(work)
     for k in 1:levels, i in 1:columns
         # ❄️➡️💧 melting of snow at +2 °C
-        if t[i, k] > snowmelt && qs[i, k] > 0.0
-            dum = -xlf / cpp * qs[i, k]
-            if t[i, k] + dum < snowmelt
-                dum = (t[i, k] - snowmelt) * cpp / xlf
-                dum = dum / qs[i, k]
-                dum = max(0.0, dum)
-                dum = min(1.0, dum)
+        if T[i, k] > T_snow_melt && qs[i, k] > 0.0
+            ΔT_all = -Lf / cp * qs[i, k]  # dum, if all of it changed phase
+            if T[i, k] + ΔT_all < T_snow_melt
+                melt_fraction = (T[i, k] - T_snow_melt) * cp / Lf
+                melt_fraction = melt_fraction / qs[i, k]
+                melt_fraction = max(0.0, melt_fraction)
+                melt_fraction = min(1.0, melt_fraction)
             else
-                dum = 1.0
+                melt_fraction = 1.0
             end
-            minstsm[i, k] = dum * qs[i, k]
-            ninstsm[i, k] = dum * ns[i, k]
-            dum1 = -xlf * minstsm[i, k] * rdeltat
-            tlat[i, k] = tlat[i, k] + dum1
-            meltsdttot[i, k] = meltsdttot[i, k] + dum1
-            meltstot[i, k] = minstsm[i, k] * rdeltat
-            qs[i, k] = max(qs[i, k] - minstsm[i, k], 0.0)
-            ns[i, k] = max(ns[i, k] - ninstsm[i, k], 0.0)
-            qr[i, k] = max(qr[i, k] + minstsm[i, k], 0.0)
-            nr[i, k] = max(nr[i, k] + ninstsm[i, k], 0.0)
+            qs_instant_melting[i, k] = melt_fraction * qs[i, k]
+            ns_instant_melting[i, k] = melt_fraction * ns[i, k]
+            latent_heating = -Lf * qs_instant_melting[i, k] * inv_Δt
+            heating[i, k] = heating[i, k] + latent_heating
+            heating_snow_melting[i, k] = heating_snow_melting[i, k] + latent_heating
+            qs_melting_mean[i, k] = qs_instant_melting[i, k] * inv_Δt
+            qs[i, k] = max(qs[i, k] - qs_instant_melting[i, k], 0.0)
+            ns[i, k] = max(ns[i, k] - ns_instant_melting[i, k], 0.0)
+            qr[i, k] = max(qr[i, k] + qs_instant_melting[i, k], 0.0)
+            nr[i, k] = max(nr[i, k] + ns_instant_melting[i, k], 0.0)
         end
 
         # 🟤➡️💧 melting of graupel at +2 °C
-        if t[i, k] > snowmelt && qg[i, k] > 0.0
-            dum = -xlf / cpp * qg[i, k]
-            if t[i, k] + dum < snowmelt
-                dum = (t[i, k] - snowmelt) * cpp / xlf
-                dum = dum / qg[i, k]
-                dum = max(0.0, dum)
-                dum = min(1.0, dum)
+        if T[i, k] > T_snow_melt && qg[i, k] > 0.0
+            ΔT_all = -Lf / cp * qg[i, k]  # dum, if all of it changed phase
+            if T[i, k] + ΔT_all < T_snow_melt
+                melt_fraction = (T[i, k] - T_snow_melt) * cp / Lf
+                melt_fraction = melt_fraction / qg[i, k]
+                melt_fraction = max(0.0, melt_fraction)
+                melt_fraction = min(1.0, melt_fraction)
             else
-                dum = 1.0
+                melt_fraction = 1.0
             end
-            minstgm[i, k] = dum * qg[i, k]
-            ninstgm[i, k] = dum * ng[i, k]
-            dum1 = -xlf * minstgm[i, k] * rdeltat
-            tlat[i, k] = tlat[i, k] + dum1
-            meltsdttot[i, k] = meltsdttot[i, k] + dum1
-            meltgtot[i, k] = minstgm[i, k] * rdeltat
-            qg[i, k] = max(qg[i, k] - minstgm[i, k], 0.0)
-            ng[i, k] = max(ng[i, k] - ninstgm[i, k], 0.0)
-            qr[i, k] = max(qr[i, k] + minstgm[i, k], 0.0)
-            nr[i, k] = max(nr[i, k] + ninstgm[i, k], 0.0)
+            qg_instant_melting[i, k] = melt_fraction * qg[i, k]
+            ng_instant_melting[i, k] = melt_fraction * ng[i, k]
+            latent_heating = -Lf * qg_instant_melting[i, k] * inv_Δt
+            heating[i, k] = heating[i, k] + latent_heating
+            heating_snow_melting[i, k] = heating_snow_melting[i, k] + latent_heating
+            qg_melting_mean[i, k] = qg_instant_melting[i, k] * inv_Δt
+            qg[i, k] = max(qg[i, k] - qg_instant_melting[i, k], 0.0)
+            ng[i, k] = max(ng[i, k] - ng_instant_melting[i, k], 0.0)
+            qr[i, k] = max(qr[i, k] + qg_instant_melting[i, k], 0.0)
+            nr[i, k] = max(nr[i, k] + ng_instant_melting[i, k], 0.0)
         end
 
         # 💧➡️🧊 freezing of rain, to graupel (or hail) if on, else to snow
-        if t[i, k] < rainfrze && qr[i, k] > 0.0
-            dum = xlf / cpp * qr[i, k]
-            if t[i, k] + dum > rainfrze
-                dum = -(t[i, k] - rainfrze) * cpp / xlf
-                dum = dum / qr[i, k]
-                dum = max(0.0, dum)
-                dum = min(1.0, dum)
+        if T[i, k] < T_rain_freeze && qr[i, k] > 0.0
+            ΔT_all = Lf / cp * qr[i, k]  # dum, if all of it changed phase
+            if T[i, k] + ΔT_all > T_rain_freeze
+                freeze_fraction = -(T[i, k] - T_rain_freeze) * cp / Lf
+                freeze_fraction = freeze_fraction / qr[i, k]
+                freeze_fraction = max(0.0, freeze_fraction)
+                freeze_fraction = min(1.0, freeze_fraction)
             else
-                dum = 1.0
+                freeze_fraction = 1.0
             end
-            minstrf[i, k] = dum * qr[i, k]
-            ninstrf[i, k] = dum * nr[i, k]
-            dum1 = xlf * minstrf[i, k] * rdeltat
-            tlat[i, k] = tlat[i, k] + dum1
-            frzrdttot[i, k] = frzrdttot[i, k] + dum1
-            qr[i, k] = max(qr[i, k] - minstrf[i, k], 0.0)
-            nr[i, k] = max(nr[i, k] - ninstrf[i, k], 0.0)
+            qr_instant_freezing[i, k] = freeze_fraction * qr[i, k]
+            nr_instant_freezing[i, k] = freeze_fraction * nr[i, k]
+            latent_heating = Lf * qr_instant_freezing[i, k] * inv_Δt
+            heating[i, k] = heating[i, k] + latent_heating
+            heating_rain_freezing[i, k] = heating_rain_freezing[i, k] + latent_heating
+            qr[i, k] = max(qr[i, k] - qr_instant_freezing[i, k], 0.0)
+            nr[i, k] = max(nr[i, k] - nr_instant_freezing[i, k], 0.0)
             if settings.do_hail || settings.do_graupel
-                qg[i, k] = max(qg[i, k] + minstrf[i, k], 0.0)
-                ng[i, k] = max(ng[i, k] + ninstrf[i, k], 0.0)
+                qg[i, k] = max(qg[i, k] + qr_instant_freezing[i, k], 0.0)
+                ng[i, k] = max(ng[i, k] + nr_instant_freezing[i, k], 0.0)
             else
-                qs[i, k] = max(qs[i, k] + minstrf[i, k], 0.0)
-                ns[i, k] = max(ns[i, k] + ninstrf[i, k], 0.0)
+                qs[i, k] = max(qs[i, k] + qr_instant_freezing[i, k], 0.0)
+                ns[i, k] = max(ns[i, k] + nr_instant_freezing[i, k], 0.0)
             end
         end
     end

@@ -9,7 +9,7 @@ or absolute error where the reference is zero (tolerances of handoffs/julia.plan
 and whether the field is bit-for-bit identical.
 """
 function compare_step(work, ds)
-    results = Tuple{String,Float64,Int,Int,Bool}[]
+    results = Tuple{String, Float64, Int, Int, Bool}[]
     for (name, (container, path...)) in output_paths()
         haskey(ds, String(name)) || continue
         v = ds[String(name)].var                     # raw: keep NaN, the fill value
@@ -37,8 +37,10 @@ end
 function switch_labels()
     rows = readlines(joinpath(@__DIR__, "..", "..", "tests", "switches.csv"))[2:end]
     labels = [first(split(row, ',')) for row in rows if !isempty(strip(row))]
-    return filter(l -> isfile(joinpath(GOLDEN, "golden_$l.nc")) &&
-                       isfile(joinpath(GOLDEN, "settings_$l.nml")), labels)
+    return filter(
+        l -> isfile(joinpath(GOLDEN, "golden_$l.nc")) &&
+            isfile(joinpath(GOLDEN, "settings_$l.nml")),
+        labels)
 end
 
 "🪜 Workspace after one step of the golden inputs under the settings of switch row `label`."
@@ -57,7 +59,8 @@ end
             results = compare_step(work, ds)
             @test length(results) > 100
             for (name, err, column, level, _) in results
-                err <= 1e-10 || println("❌ $label $name error $err at column $column level $level")
+                err <= 1e-10 ||
+                    println("❌ $label $name error $err at column $column level $level")
                 @test err <= 1e-10
             end
             name, err, _, _, _ = results[argmax([r[2] for r in results])]

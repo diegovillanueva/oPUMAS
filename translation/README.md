@@ -40,6 +40,7 @@ git push origin main_cam_interface CF-CCPP  # sync.sh never pushes
 | `cf_ccpp_source` | `CCPP`, `CF` or `constructed` |
 | `standard_name` | 📚 The strict CF/CCPP standard name when one exists |
 | `notes` | 🗒️ Free text |
+| `Julia` | 🟣 Container path of the concept in oPUMAS.jl (`rates.rain.accretion_by_snow.mass`), metadata not a language; `julia/tools/check_names.jl` checks every path exists |
 
 ## ✍️📐 Naming grammar of the CF-CCPP language
 

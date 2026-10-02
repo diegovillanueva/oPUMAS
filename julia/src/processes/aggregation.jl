@@ -28,7 +28,7 @@ Loss of snow number by snow flakes sticking together, at or below 0 °C (kg⁻¹
 Fortran twin: `snow_self_aggregation` (`nsagg`).
 """
 function snow_self_aggregation(parameters, T, ρ_air, a_snow, snow_density, q_snow,
-    N_snow)
+        N_snow)
     if !(q_snow >= smallest_mixing_ratio && T <= parameters.host.melting_point)
         return 0.0
     end
@@ -48,7 +48,7 @@ Collection of cloud ice by falling snow at or below 0 °C (in-cloud, ≥ 0). The
 Fortran twin: `accrete_cloud_ice_snow` (`prai`, `nprai`).
 """
 function ice_collection_by_snow(parameters, T, ρ_air, a_snow, q_ice, N_ice, q_snow,
-    λ_snow, N₀_snow)
+        λ_snow, N₀_snow)
     small = smallest_mixing_ratio
     if !(q_snow >= small && q_ice >= small && T <= parameters.host.melting_point)
         return (; mass = 0.0, number = 0.0)

@@ -9,34 +9,59 @@
 tendencies; snow sublimation and production join `nevapr` and `prain`.
 """
 function reapply_instant_changes!(work, parameters)
-    F = work.fortran
-    (; nc, qs, ns, qr, nr, qg, ng, ncn, qsn, nsn, qrn, nrn, qgr, ngr, npccn, dum_2D) = F
-    (; nctend, qstend, nstend, qrtend, nrtend, qgtend, ngtend, nevapr, prain) = F
-    rdeltat = 1.0 / work.inputs.time_step
+    (; inputs, state, process_rates, tendencies, diagnostics, scratch) = work
+    qs_sublimation_mean = process_rates.snow.sublimation.mass  # evapsnow
+    qs_production = process_rates.snow.production.mass  # prodsnow
+    nc = state.cloud_liquid.N
+    qs = state.snow.q
+    ns = state.snow.N
+    qr = state.rain.q
+    nr = state.rain.N
+    qg = state.graupel.q
+    ng = state.graupel.N
+    nc_in = inputs.cloud_liquid.N  # ncn
+    qs_in = inputs.snow.q  # qsn
+    ns_in = inputs.snow.N  # nsn
+    qr_in = inputs.rain.q  # qrn
+    nr_in = inputs.rain.N  # nrn
+    qg_in = inputs.graupel.q  # qgr
+    ng_in = inputs.graupel.N  # ngr
+    droplet_activation = inputs.activated_droplets  # npccn
+    before = scratch.number_before  # dum_2D, here the value before the reset
+    nc_tendency = tendencies.cloud_liquid.N  # nctend
+    qs_tendency = tendencies.snow.q  # qstend
+    ns_tendency = tendencies.snow.N  # nstend
+    qr_tendency = tendencies.rain.q  # qrtend
+    nr_tendency = tendencies.rain.N  # nrtend
+    qg_tendency = tendencies.graupel.q  # qgtend
+    ng_tendency = tendencies.graupel.N  # ngtend
+    precip_evaporation = diagnostics.precipitation.evaporation  # nevapr
+    precip_production = diagnostics.precipitation.production  # prain
+    inv_Δt = 1.0 / work.inputs.time_step
     columns, levels = grid_size(work)
     for k in 1:levels, i in 1:columns
-        nc[i, k] = ncn[i, k]
-        nctend[i, k] = nctend[i, k] + npccn[i, k]
-        dum_2D[i, k] = qs[i, k]
-        qs[i, k] = qsn[i, k]
-        qstend[i, k] = qstend[i, k] + (dum_2D[i, k] - qs[i, k]) * rdeltat
-        dum_2D[i, k] = ns[i, k]
-        ns[i, k] = nsn[i, k]
-        nstend[i, k] = nstend[i, k] + (dum_2D[i, k] - ns[i, k]) * rdeltat
-        dum_2D[i, k] = qr[i, k]
-        qr[i, k] = qrn[i, k]
-        qrtend[i, k] = qrtend[i, k] + (dum_2D[i, k] - qr[i, k]) * rdeltat
-        dum_2D[i, k] = nr[i, k]
-        nr[i, k] = nrn[i, k]
-        nrtend[i, k] = nrtend[i, k] + (dum_2D[i, k] - nr[i, k]) * rdeltat
-        dum_2D[i, k] = qg[i, k]
-        qg[i, k] = qgr[i, k]
-        qgtend[i, k] = qgtend[i, k] + (dum_2D[i, k] - qg[i, k]) * rdeltat
-        dum_2D[i, k] = ng[i, k]
-        ng[i, k] = ngr[i, k]
-        ngtend[i, k] = ngtend[i, k] + (dum_2D[i, k] - ng[i, k]) * rdeltat
-        nevapr[i, k] = nevapr[i, k] + F.evapsnow[i, k]
-        prain[i, k] = prain[i, k] + F.prodsnow[i, k]
+        nc[i, k] = nc_in[i, k]
+        nc_tendency[i, k] = nc_tendency[i, k] + droplet_activation[i, k]
+        before[i, k] = qs[i, k]
+        qs[i, k] = qs_in[i, k]
+        qs_tendency[i, k] = qs_tendency[i, k] + (before[i, k] - qs[i, k]) * inv_Δt
+        before[i, k] = ns[i, k]
+        ns[i, k] = ns_in[i, k]
+        ns_tendency[i, k] = ns_tendency[i, k] + (before[i, k] - ns[i, k]) * inv_Δt
+        before[i, k] = qr[i, k]
+        qr[i, k] = qr_in[i, k]
+        qr_tendency[i, k] = qr_tendency[i, k] + (before[i, k] - qr[i, k]) * inv_Δt
+        before[i, k] = nr[i, k]
+        nr[i, k] = nr_in[i, k]
+        nr_tendency[i, k] = nr_tendency[i, k] + (before[i, k] - nr[i, k]) * inv_Δt
+        before[i, k] = qg[i, k]
+        qg[i, k] = qg_in[i, k]
+        qg_tendency[i, k] = qg_tendency[i, k] + (before[i, k] - qg[i, k]) * inv_Δt
+        before[i, k] = ng[i, k]
+        ng[i, k] = ng_in[i, k]
+        ng_tendency[i, k] = ng_tendency[i, k] + (before[i, k] - ng[i, k]) * inv_Δt
+        precip_evaporation[i, k] = precip_evaporation[i, k] + qs_sublimation_mean[i, k]
+        precip_production[i, k] = precip_production[i, k] + qs_production[i, k]
     end
     return nothing
 end
