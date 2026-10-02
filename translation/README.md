@@ -20,11 +20,13 @@ translation/sync.sh                      # before and after working on CF-CCPP
 python3 translation/check.py             # dictionary against the sources
 python3 translation/check.py --branches  # translate(main_cam_interface) == CF-CCPP
 python3 -m pytest -q translation
+tests/column/cf_ccpp_check.sh            # translated Fortran is bit-for-bit (herdr-compute)
 git push origin main_cam_interface CF-CCPP  # sync.sh never pushes
 ```
 
 - 🌿🔁 `sync.sh` replays new `CF-CCPP` commits, translated, onto `main_cam_interface`, then writes one `🔁 sync` commit on `CF-CCPP` that holds the translated `main_cam_interface` tip. The `Translated-from: <hash>` trailer of that commit marks the synced pair.
 - 📥🧬 Upstream PUMAS is merged into `main_cam_interface` only. Dictionary edits are made on `main_cam_interface` only. The next sync carries both to `CF-CCPP`.
+- 🧪🔤 `tests/column/cf_ccpp_check.sh` translates the working tree into `tests/column/build/cf_ccpp`, builds the column driver from it (`driver.F90` and `pumas_column_io.F90` are `components` rows of `files.csv`) and checks that every switch row and the 48-step loop are bit-for-bit with the PUMAS-name golden files. Run it after any dictionary edit. `check.py` also scans `tests/column/*.F90`.
 - 🧳📤 One-way export for other compilers: `translate.py --from PUMAS --to CF-CCPP --wrap` breaks lines over 132 characters, and `--no-units` drops the unit suffixes. Never use these two flags on the editable branches.
 
 ## 📖🧱 Dictionary columns
@@ -65,6 +67,7 @@ fall speeds  <species>_<mass|number>_weighted_fall_speed
 ## ➕🌐 Add a language
 
 1. 📖 Add a column to `dictionary.csv` (any header that is not a metadata column). Empty cells mean "keep the PUMAS name".
+   ⚠️🧾 Every column that is not in `META_COLUMNS` of `translate.py` counts as a language and must hold legal Fortran names. A column of other data (such as `Julia`, which holds dotted paths) goes into `META_COLUMNS` instead, with no `languages.csv` row.
 2. 🌿 Add a row to `languages.csv` with the branch name.
 3. 🔁 Run `translation/sync.sh`; it creates the branch.
 

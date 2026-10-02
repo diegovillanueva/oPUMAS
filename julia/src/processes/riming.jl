@@ -28,22 +28,27 @@ function droplet_collection_by_snow(parameters, T, ρ_air, a_snow, U_snow, visco
 end
 
 """
-    rime_splintering_by_snow(T, riming)
+    rime_splintering_by_snow(T, riming; enabled = true, number_factor = 1.0)
 
 Hallett-Mossop rime splintering: riming snow (`riming`, kg kg⁻¹ s⁻¹) sheds
 3.5 × 10⁸ ice splinters per kg of rime, most at -5 °C, none outside -3 to -8 °C.
 Returns the new ice `number` (kg⁻¹ s⁻¹), its `mass` (splinters of `new_ice_crystal_mass`,
 at most the rime), and the `riming` left for snow.
+🧊🎛️ Sppe: `enabled = false` (`onoff_sip`) gives no splinters, `number_factor`
+(`factor_HM`) scales their number.
 Fortran twin: `secondary_ice_production` (`nsacwi`, `msacwi`, `psacws`).
 """
-function rime_splintering_by_snow(T, riming)
-    if T < 270.16 && T >= 268.16
+function rime_splintering_by_snow(T, riming; enabled = true, number_factor = 1.0)
+    if !enabled
+        number = 0.0
+    elseif T < 270.16 && T >= 268.16
         number = 3.5e8 * (270.16 - T) / 2.0 * riming
     elseif T < 268.16 && T >= 265.16
         number = 3.5e8 * (T - 265.16) / 3.0 * riming
     else
         number = 0.0
     end
+    number_factor != 1.0 && (number = number * number_factor)
     mass = min(number * new_ice_crystal_mass, riming)
     return (; mass, number, riming = riming - mass)
 end

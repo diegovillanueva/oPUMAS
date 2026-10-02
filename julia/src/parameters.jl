@@ -74,8 +74,10 @@ Base.@kwdef struct Settings
     its namelist variable `allow_sed_supersat` here unchanged: see FINDINGS.md.
     """
     remove_supersaturation::Bool = false
-    "Warm rain scheme: `:kk2000` or `:sb2001` (`micro_pumas_warm_rain`)."
+    "Warm rain scheme: `:kk2000`, `:sb2001` or `:tau` (`micro_pumas_warm_rain`)."
     warm_rain::Symbol = :kk2000
+    "🌧️📄 TAU collection kernel file, for `warm_rain = :tau` (`micro_pumas_kernel_file`)."
+    tau_kernel_file::String = ""
     "No evaporation of sedimenting condensate by cloud fraction (`micro_mg_evap_sed_off`)."
     no_sedimentation_evaporation::Bool = false
     "Ice nucleation without the humidity condition (`micro_mg_icenuc_rh_off`)."
@@ -108,6 +110,30 @@ Base.@kwdef struct Settings
     constant_graupel_number::Bool = false
     "Graupel number when held constant, m⁻³ (`micro_mg_ngnst`)."
     graupel_number::Float64 = 0.0005e6
+    # 🧊🎛️ Sppe process controls (`micro_pumas_sppe.F90` on branch `dev/Sppe`, namelist
+    #    group `micro_dv_nl` in CAM). The defaults are upstream PUMAS.
+    "🧊🌫️ Nucleation from `naai` also above -40 °C (`naai_het_also_in_mpc`)."
+    nucleation_in_mixed_phase::Bool = true
+    "🧊🔢 Cap the ice number at `maximum_ice_number` (`enable_nimax`)."
+    cap_ice_number::Bool = true
+    "☁️💧 Removed supersaturation is liquid from -35 to -5 °C (`detrainment_ramp_liq`)."
+    supersaturation_to_liquid::Bool = false
+    "💧🧊 Bigg contact freezing, used without host freezing (`onoff_contact_freezing`)."
+    droplet_contact_freezing::Bool = true
+    "❄️✨ Hallett-Mossop splinters from snow riming (`onoff_sip`)."
+    rime_splintering::Bool = true
+    "🌧️🧊 Bigg freezing of rain (`rain_freeze`)."
+    rain_freezing::Bool = true
+    "💧🌧️ Factor on liquid autoconversion, kk2000 and sb2001 (`auto_liq_factor`)."
+    autoconversion_factor::Float64 = 1.0
+    "❄️💧 Factor on riming of droplets by snow, before splintering (`riming_factor`)."
+    riming_factor::Float64 = 1.0
+    "🌫️🧊 Factor on Bergeron deposition onto cloud ice (`micro_mg_ice_berg_ice_factor`)."
+    bergeron_ice_factor::Float64 = 1.0
+    "🌫️❄️ Factor on Bergeron deposition onto snow (`micro_mg_ice_berg_snow_factor`)."
+    bergeron_snow_factor::Float64 = 1.0
+    "✨🔢 Factor on the Hallett-Mossop splinter number (`factor_HM`)."
+    splinter_number_factor::Float64 = 1.0
 end
 
 """
@@ -121,6 +147,8 @@ Everything `micro_pumas_init` and `micro_pumas_utils_init` store, built by [`set
 - `ice_nucleation_temperature`, `snow_melting_temperature`, `rain_freezing_temperature`:
   K (`icenuct`, `snowmelt`, `rainfrze`)
 - `gamma`: Γ values of the fall speed exponents (`gamma_b*_plus*`, `gamma_*bs*`)
+- `tau_bins`: bin grid and kernel of the TAU bin code ([`tau_bins`](@ref)), or `nothing`
+  unless `warm_rain = :tau`
 """
 struct Parameters
     settings::Settings
@@ -133,6 +161,7 @@ struct Parameters
     snow_melting_temperature::Float64
     rain_freezing_temperature::Float64
     gamma::NamedTuple
+    tau_bins::Union{Nothing, NamedTuple}
 end
 
 """
@@ -185,7 +214,8 @@ function setup(settings::Settings, host::HostConstants = HostConstants())
         T₀ - 5.0,
         T₀ + 2.0,
         rain_freezing_temperature,
-        gamma
+        gamma,
+        settings.warm_rain == :tau ? tau_bins(settings.tau_kernel_file) : nothing
     )
 end
 
@@ -204,8 +234,11 @@ function check_scope(settings::Settings)
     if settings.do_hail && settings.do_graupel
         error("do_hail and do_graupel cannot both be true")
     end
-    if settings.warm_rain ∉ (:kk2000, :sb2001)
+    if settings.warm_rain ∉ (:kk2000, :sb2001, :tau)
         error("warm_rain = :$(settings.warm_rain) is not translated yet")
+    end
+    if settings.warm_rain == :tau && !isfile(settings.tau_kernel_file)
+        error("warm_rain = :tau needs tau_kernel_file (micro_pumas_kernel_file)")
     end
     if settings.precipitation_fraction_method ∉ (:in_cloud, :max_overlap)
         method = settings.precipitation_fraction_method

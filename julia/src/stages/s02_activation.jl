@@ -45,6 +45,9 @@ function activation_and_nucleation!(work, parameters)
                 nucleates = nucleates &&
                             rh[i, k] * e_sat_liquid[i, k] / e_sat_ice[i, k] > 1.05
             end
+            if !settings.nucleation_in_mixed_phase  # 🧊🎛️ Sppe: only cirrus nucleates
+                nucleates = nucleates && T[i, k] < 233.15
+            end
             if nucleates
                 ni_nucleation[i, k] = ice_nuclei[i, k] * ice_fraction[i, k]
                 ni_nucleation[i, k] = max(ni_nucleation[i, k], 0.0)

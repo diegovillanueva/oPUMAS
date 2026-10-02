@@ -2,6 +2,9 @@
 ! 🔁🧊 Reads one inputs NetCDF and one settings namelist, calls micro_pumas_init and
 ! micro_pumas_tend exactly as CAM does (interface/cesm215/micro_mg_cam.F90), and writes
 ! every output and every allocated proc_rates component to one NetCDF file.
+! ⏱️📈 An optional fourth argument nsteps repeats the call, applying the tendencies to the
+! state with forward Euler between calls (host forcing held fixed); the outputs are those
+! of the last call. The Julia twin is time_loop! in julia/src/time_loop.jl.
 ! 🛠️📐 Build and run: tests/column/build.sh, tests/column/run.sh (see tests/column/README.md).
 program pumas_column_driver
   use pumas_kinds, only: r8 => kind_r8
@@ -13,6 +16,9 @@ program pumas_column_driver
   use pumas_column_io, only: write_outputs
 #ifdef CAPTURE
   use pumas_column_capture, only: capture_close
+#endif
+#ifdef SPPE
+  use micro_pumas_sppe, only: micro_pumas_sppe_set
 #endif
   implicit none
 
@@ -62,10 +68,21 @@ program pumas_column_driver
        micro_mg_accre_sees_auto, micro_mg_implicit_fall, micro_mg_nccons, micro_mg_nicons, &
        micro_mg_ncnst, micro_mg_ninst, micro_mg_ngcons, micro_mg_ngnst, &
        micro_pumas_kernel_file
+#ifdef SPPE
+  ! 🧊🎛️ Sppe process controls of dev/Sppe (micro_pumas_sppe.F90); defaults are upstream PUMAS.
+  logical :: naai_het_also_in_mpc = .true., enable_nimax = .true., detrainment_ramp_liq = .false.
+  logical :: onoff_contact_freezing = .true., onoff_sip = .true., rain_freeze = .true.
+  real(r8) :: auto_liq_factor = 1._r8, riming_factor = 1._r8, factor_HM = 1._r8
+  real(r8) :: micro_mg_ice_berg_ice_factor = 1._r8, micro_mg_ice_berg_snow_factor = 1._r8
+  namelist /pumas_settings/ naai_het_also_in_mpc, enable_nimax, detrainment_ramp_liq, &
+       onoff_contact_freezing, onoff_sip, rain_freeze, auto_liq_factor, riming_factor, &
+       micro_mg_ice_berg_ice_factor, micro_mg_ice_berg_snow_factor, factor_HM
+#endif
 
   character(len=1024) :: settings_file, inputs_file, output_file
   character(len=128) :: errstring
-  integer :: ncid, ncol, nlev, ndust, unit, ios
+  character(len=32) :: nsteps_arg
+  integer :: ncid, ncol, nlev, ndust, unit, ios, istep, nsteps
   real(r8) :: deltat
   type(proc_rates_type) :: pr
 
@@ -173,8 +190,13 @@ program pumas_column_driver
   call get_command_argument(2, inputs_file)
   call get_command_argument(3, output_file)
   if (len_trim(output_file) == 0) then
-     write(*,*) 'usage: pumas_column_driver settings.nml inputs.nc output.nc'
+     write(*,*) 'usage: pumas_column_driver settings.nml inputs.nc output.nc [nsteps]'
      stop 2
+  end if
+  nsteps = 1
+  if (command_argument_count() >= 4) then
+     call get_command_argument(4, nsteps_arg)
+     read(nsteps_arg, *) nsteps
   end if
 
   open(newunit=unit, file=trim(settings_file), status='old', action='read', iostat=ios)
@@ -206,6 +228,12 @@ program pumas_column_driver
        micro_mg_ngcons, micro_mg_ngnst, .false., 0._r8, .false., 0._r8, &
        '', '', '', 6, errstring)
   call check_err(errstring, 'micro_pumas_init')
+#ifdef SPPE
+  ! 🧊🎛️ As micro_mg_cam_init on dev/Sppe: the controls are set once, after micro_pumas_init.
+  call micro_pumas_sppe_set(naai_het_also_in_mpc, enable_nimax, detrainment_ramp_liq, &
+       onoff_contact_freezing, onoff_sip, rain_freeze, auto_liq_factor, riming_factor, &
+       micro_mg_ice_berg_ice_factor, micro_mg_ice_berg_snow_factor, factor_HM)
+#endif
   if (trim(micro_pumas_warm_rain) == 'tau') &
        call pumas_stochastic_kernel_init(trim(micro_pumas_kernel_file))
 
@@ -319,6 +347,8 @@ program pumas_column_driver
   call pr%allocate(ncol, nlev, ncd, micro_pumas_warm_rain, errstring)
   call check_err(errstring, 'proc_rates%allocate')
 
+  do istep = 1, nsteps
+  if (istep > 1) call advance_state()
   call micro_pumas_tend( &
        ncol, nlev, deltat, &
        t, q, qcn, qin, ncn, nin, qrn, qsn, nrn, nsn, qgr, ngr, &
@@ -340,6 +370,7 @@ program pumas_column_driver
        tnd_qsnow, tnd_nsnow, re_ice, prer_evap, &
        frzimm, frzcnt, frzdep)
   call check_err(errstring, 'micro_pumas_tend')
+  end do
 #ifdef CAPTURE
   call capture_close()
 #endif
@@ -355,6 +386,24 @@ program pumas_column_driver
   write(*,'(a)') trim(output_file)
 
 contains
+
+  ! ⏱️📈 Forward Euler with the tendencies of the last call; negative q and N become zero.
+  subroutine advance_state()
+    t = t + tlat/cpair*deltat
+    call euler(q, qvlat)
+    call euler(qcn, qctend); call euler(ncn, nctend)
+    call euler(qin, qitend); call euler(nin, nitend)
+    call euler(qrn, qrtend); call euler(nrn, nrtend)
+    call euler(qsn, qstend); call euler(nsn, nstend)
+    call euler(qgr, qgtend); call euler(ngr, ngtend)
+  end subroutine advance_state
+
+  subroutine euler(x, tendency)
+    real(r8), intent(inout) :: x(:,:)
+    real(r8), intent(in) :: tendency(:,:)
+    x = x + tendency*deltat
+    where (x < 0._r8) x = 0._r8
+  end subroutine euler
 
   subroutine die(msg)
     character(len=*), intent(in) :: msg

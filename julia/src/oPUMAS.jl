@@ -16,6 +16,7 @@ include("parameters.jl")
 include("namelist.jl")
 include("size_distributions.jl")
 include("processes/warm_rain.jl")
+include("processes/bin_warm_rain.jl")
 include("processes/aggregation.jl")
 include("processes/riming.jl")
 include("processes/freezing.jl")
@@ -41,6 +42,7 @@ include("stages/s13_instant_phase_change2.jl")
 include("stages/s14_effective_radius.jl")
 include("stages/s15_output_diagnostics.jl")
 include("step.jl")
+include("time_loop.jl")
 
 export gamma_function
 export SaturationConstants, saturation_over_water, saturation_over_ice
@@ -50,6 +52,7 @@ export size_distribution, droplet_size_distribution, mean_diameter
 export rising_factorial, variance_coefficient, latent_heat_factor
 export kk2000_autoconversion, sb2001_autoconversion, sb2001_accretion, accretion
 export rain_self_collection
+export tau_bins, tau_bin_distribution!, tau_collision_rates!, tau_collection
 export ice_to_snow_autoconversion, snow_self_aggregation, ice_collection_by_snow
 export droplet_collection_by_snow, rime_splintering_by_snow, rain_collection_by_snow
 export rain_immersion_freezing
@@ -59,6 +62,6 @@ export snow_collection_by_rain, droplet_collection_by_graupel, rimed_snow_to_gra
 export rain_collection_by_graupel, rain_snow_collisions_to_graupel
 export rime_splintering_by_graupel, add_rain_cloud_effective_radius
 export ColumnInputs, read_inputs, allocate, output_paths, field_at
-export microphysics_step!
+export microphysics_step!, advance_state!, time_loop!
 
 end

@@ -118,7 +118,7 @@ def run_checks(root: Path) -> list[str]:
     comp_all = set().union(*(c for _, c in ids.values()))
     ref = langs[0]
     comp_names = {r[ref].lower() for r in rows if r["scope"].startswith("type:")}
-    for p in list(root.glob("*.F90")) + list(root.glob("interface/*/*.F90")):
+    for p in [*root.glob("*.F90"), *root.glob("interface/*/*.F90"), *root.glob("tests/column/*.F90")]:
         rel = str(p.relative_to(root))
         if p.is_symlink() or rel in modes:
             continue

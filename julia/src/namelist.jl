@@ -24,6 +24,7 @@ const NAMELIST_FIELDS = Dict(
     "micro_mg_max_nicons" => :maximum_ice_number,
     "allow_sed_supersat" => :remove_supersaturation,
     "micro_pumas_warm_rain" => :warm_rain,
+    "micro_pumas_kernel_file" => :tau_kernel_file,
     "micro_mg_evap_sed_off" => :no_sedimentation_evaporation,
     "micro_mg_icenuc_rh_off" => :ice_nucleation_without_rh,
     "micro_mg_icenuc_use_meyers" => :meyers_ice_nucleation,
@@ -39,11 +40,23 @@ const NAMELIST_FIELDS = Dict(
     "micro_mg_ncnst" => :droplet_number,
     "micro_mg_ninst" => :ice_number,
     "micro_mg_ngcons" => :constant_graupel_number,
-    "micro_mg_ngnst" => :graupel_number
+    "micro_mg_ngnst" => :graupel_number,
+    # 🧊🎛️ Sppe controls (dev/Sppe)
+    "naai_het_also_in_mpc" => :nucleation_in_mixed_phase,
+    "enable_nimax" => :cap_ice_number,
+    "detrainment_ramp_liq" => :supersaturation_to_liquid,
+    "onoff_contact_freezing" => :droplet_contact_freezing,
+    "onoff_sip" => :rime_splintering,
+    "rain_freeze" => :rain_freezing,
+    "auto_liq_factor" => :autoconversion_factor,
+    "riming_factor" => :riming_factor,
+    "micro_mg_ice_berg_ice_factor" => :bergeron_ice_factor,
+    "micro_mg_ice_berg_snow_factor" => :bergeron_snow_factor,
+    "factor_hm" => :splinter_number_factor
 )
 
 "Namelist entries that do not change the translated physics."
-const NAMELIST_IGNORED = ("micro_pumas_kernel_file",)
+const NAMELIST_IGNORED = ()
 
 """
     read_settings(path) -> Settings
@@ -72,4 +85,5 @@ function parse_value(::Type{Bool}, text)
     return letter == 'T'
 end
 parse_value(::Type{Float64}, text) = parse(Float64, replace(strip(text), r"[dD]" => "e"))
-parse_value(::Type{Symbol}, text) = Symbol(strip(strip(text), ['"', '\'', ' ']))
+parse_value(::Type{Symbol}, text) = Symbol(parse_value(String, text))
+parse_value(::Type{String}, text) = String(strip(strip(text), ['"', '\'', ' ']))

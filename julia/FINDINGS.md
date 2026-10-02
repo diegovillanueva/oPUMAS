@@ -21,6 +21,7 @@
 ## 🔢🧊 One constant is folded with higher precision by the compiler
 - 📍 `micro_pumas_utils.F90`: `droplet_mass_25um = 4._r8/3._r8*pi*rhow*(25.e-6_r8)**3` is a parameter, so gfortran folds it with exact arithmetic (MPFR) and rounds once.
 - 🟣 Julia computes the same expression at run time with rounding after each operation and lands one unit in the last place lower. The twin writes the folded value as a literal; every other folded constant (`aj`, `mi0`, `mmult`, `mi0l_min`, `droplet_mass_40um`) matches bit for bit when computed.
+- 🌧️ The TAU bin code has a second one: `m1 = 4._r8/3._r8*pi*rhow*(6.e-6_r8)**3` (a 6 μm drop) folds one unit in the last place below the run-time value, so `tau_new_drop_mass` is a literal too.
 
 ## 🔁💧 CAM passes `allow_sed_supersat` as `remove_supersat`
 - 📍 `interface/cesm215/micro_mg_cam.F90` calls `micro_pumas_init(..., allow_sed_supersat, micro_pumas_warm_rain, ...)`, and the dummy argument at that position is `remove_supersat_in`.
@@ -55,6 +56,16 @@
 - 🟤 In the effective radius stage `dumg` and `dumng` are grid means, not divided by `precip_frac` like rain and snow; the graupel number check then multiplies by `precip_frac` again.
 - 🟤 The 10 cm reflectivity of graupel uses `n0g` from the process stage, which stage 15 never updates.
 - 🌧️ The rain freezing after sedimentation sizes the rain from grid-mean `dumr`, not in-precipitation values.
-- 🟤 `do_hail .or. do_graupel .and. lamg > 0` binds as `do_hail .or. (do_graupel .and. lamg > 0)`; with hail on, graupel reflectivity is added even when `lamg` is 0.
+- 🟤 `do_hail .or. do_graupel .and. lamg > 0` binds as `do_hail .or. (do_graupel .and. lamg > 0)`; with hail on, graupel reflectivity is added even when `lamg` is 0. 📡 In the `hail` switch row this divides by zero: `refl10cm` is NaN at 5448 of 6688 points and +Inf at 303 (`reflz10cm` NaN at the same 5448).
 - 🔢 The explicit sedimentation step `rnstep = 1._r8/real(nstep)` divides by a default-kind (single precision) real; exact for every realistic `nstep`, kept as `Float64(Float32(nstep))`.
 - 🚫 `nrcons` and `nscons` (constant rain and snow number) are not settings of oPUMAS, so their branches are left out; they are false in all CAM namelists.
+
+## 🌧️🧮 TAU cloud-rain cut: a condition that is always true
+- 📍 `pumas_stochastic_collect_tau.F90`, `cam_bin_distribute`: the bin of least mass between the cloud and rain peaks is only searched if `(max_qc/max_qr < 10._r8) .or. (max_qc/max_qr > 0.1_r8)`, which holds for every positive ratio.
+- 🐛🤔 An `.and.` (peaks within a factor 10 of each other) was probably meant. The search loop also runs from the cloud peak to the rain peak only, so when the rain peak lies below the cloud peak the cut stays at 40 μm.
+- 🟣 The twin keeps the `.or.` and says so in a comment.
+
+## 📊🚫 The MG4 lookup-table routines are never called
+- 📍 `micro_pumas_utils.F90` defines and exports `init_lookup_table`, `access_lookup_table`, `access_lookup_table_coll`, `ice_deposition_sublimation_mg4`, `evaporate_sublimate_precip_mg4`, `evaporate_sublimate_precip_graupel_mg4`, `ice_self_aggregation`, `accrete_cloud_water_ice` and `accrete_rain_ice`, left from the MG4 branch (`b6df45d`).
+- 🔎 Nothing calls them: not `micro_pumas_v1.F90`, not `micro_pumas_ccpp.F90`, not `interface/*`, not CAM. No lookup table file ships with PUMAS either.
+- 🟣 So they have no twin: without a call site there is nothing to check a translation against. Milestone M8 lists them as dropped.

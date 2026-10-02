@@ -38,3 +38,10 @@ microphysics_step!,micro_pumas_v1.F90,micro_pumas_tend,1af093b
 implicit_fall!,micro_pumas_v1.F90,implicit_fall,1af093b
 sediment_implicit!,micro_pumas_v1.F90,Sedimentation_implicit,1af093b
 sediment_explicit!,micro_pumas_v1.F90,Sedimentation,1af093b
+tau_bins,pumas_stochastic_collect_tau.F90,pumas_stochastic_kernel_init,1af093b
+tau_bins,pumas_stochastic_collect_tau.F90,calc_bins,1af093b
+tau_bin_distribution!,pumas_stochastic_collect_tau.F90,cam_bin_distribute,1af093b
+tau_collision_rates!,pumas_stochastic_collect_tau.F90,compute_coll_params,1af093b
+tau_collection,pumas_stochastic_collect_tau.F90,pumas_stochastic_collect_tau_tend,1af093b
+advance_state!,tests/column/driver.F90,advance_state,-
+time_loop!,tests/column/driver.F90,pumas_column_driver (nsteps loop),-

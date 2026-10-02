@@ -8,8 +8,9 @@ here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SOURCE="${SOURCE:-/cluster/work/climate/${USER}/opumas_column/source}"
 DATA="${DATA:-${here}/data}"
 SELF_RTOL="${SELF_RTOL:-1e-12}"
-# 🎛️🚫 Rows not translated to Julia, or not PUMAS switches at all.
-SKIP="${SKIP:-tau wsub_default}"
+# 🎛️🚫 Rows that are not PUMAS switches at all.
+SKIP="${SKIP:-wsub_default}"
+REPO="$(cd "${here}/../.." && pwd)"
 
 source ~/conda >/dev/null 2>&1 || true
 
@@ -44,15 +45,29 @@ xr.concat([cam, syn[list(cam.data_vars)]], dim="col", data_vars="all").to_netcdf
 PY
 
 # 🎛️📄 One golden file per in-scope switch row: settings.nml plus the row's overrides.
-while IFS=, read -r label expect nl; do
-	[[ "${label}" == label ]] && continue
-	[[ " ${SKIP} " == *" ${label} "* ]] && { echo "skip ${label}"; continue; }
-	sed '$d' "${SOURCE}/settings.nml" >"settings_${label}.nml"
-	[[ -n "${nl}" ]] && tr ';' '\n' <<<"${nl}" >>"settings_${label}.nml"
-	echo "/" >>"settings_${label}.nml"
-	"${driver}" "settings_${label}.nml" golden_inputs.nc "golden_${label}.nc" >/dev/null
-	echo "${DATA}/golden_${label}.nc"
-done <"${here}/../switches.csv"
+golden_rows() {
+	local driver="$1" table="$2" label expect nl
+	while IFS=, read -r label expect nl; do
+		[[ "${label}" == label ]] && continue
+		[[ " ${SKIP} " == *" ${label} "* ]] && { echo "skip ${label}"; continue; }
+		sed '$d' "${SOURCE}/settings.nml" >"settings_${label}.nml"
+		[[ -n "${nl}" ]] && tr ';' '\n' <<<"${nl//@REPO@/${REPO}}" >>"settings_${label}.nml"
+		echo "/" >>"settings_${label}.nml"
+		"${driver}" "settings_${label}.nml" golden_inputs.nc "golden_${label}.nc" >/dev/null
+		echo "${DATA}/golden_${label}.nc"
+	done <"${table}"
+}
+golden_rows "${driver}" "${here}/../switches.csv"
+# 🧊🎛️ Sppe rows: the driver built from dev/Sppe (SPPE_ROWS=0 skips them). Its defaults
+#    must reproduce golden_base.nc bit for bit, and each row adds Sppe namelist values.
+if [[ "${SPPE_ROWS:-1}" == 1 ]]; then
+	SPPE=1 "${here}/build.sh" >/dev/null
+	golden_rows "${here}/build/sppe/pumas_column_sppe" "${here}/switches_sppe.csv"
+	python3 "${here}/compare.py" --quiet golden_sppe_base.nc golden_base.nc
+fi
+# ⏱️📈 Time loop: 48 steps (8 h) of the base settings with forward Euler between calls.
+"${driver}" settings_base.nml golden_inputs.nc golden_loop.nc 48 >/dev/null
+echo "${DATA}/golden_loop.nc"
 # 🔬🧷 Process-level data: arguments of every process call in the base step.
 PUMAS_CAPTURE_FILE="${DATA}/golden_processes.nc" "${capture}" "${SOURCE}/settings.nml" \
 	golden_inputs.nc capture_base.nc >/dev/null
