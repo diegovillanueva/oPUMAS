@@ -66,23 +66,23 @@ function effective_radius!(work, parameters)
     λc_radiation = diagnostics.radiation.droplet_slope  # lamcrad
     μc_radiation = diagnostics.radiation.droplet_shape  # pgamrad
     nr_per_volume = diagnostics.rain.N_per_volume  # nrout
-    deltat = work.inputs.time_step
-    rdeltat = 1.0 / deltat
+    Δt = work.inputs.time_step
+    inv_Δt = 1.0 / Δt
     effi_factor = settings.ice_effective_radius_factor
     columns, levels = grid_size(work)
 
     for k in 1:levels, i in 1:columns
-        qc_sed[i, k] = max(qc[i, k] + qc_tendency[i, k] * deltat, 0.0) / liquid_fraction[i, k]
-        qi_sed[i, k] = max(qi[i, k] + qi_tendency[i, k] * deltat, 0.0) / ice_fraction[i, k]
-        nc_sed[i, k] = max(nc[i, k] + nc_tendency[i, k] * deltat, 0.0) / liquid_fraction[i, k]
-        ni_sed[i, k] = max(ni[i, k] + ni_tendency[i, k] * deltat, 0.0) / ice_fraction[i, k]
-        qr_sed[i, k] = max(qr[i, k] + qr_tendency[i, k] * deltat, 0.0) / precip_fraction[i, k]
-        nr_sed[i, k] = max(nr[i, k] + nr_tendency[i, k] * deltat, 0.0) / precip_fraction[i, k]
-        qs_sed[i, k] = max(qs[i, k] + qs_tendency[i, k] * deltat, 0.0) / precip_fraction[i, k]
-        ns_sed[i, k] = max(ns[i, k] + ns_tendency[i, k] * deltat, 0.0) / precip_fraction[i, k]
+        qc_sed[i, k] = max(qc[i, k] + qc_tendency[i, k] * Δt, 0.0) / liquid_fraction[i, k]
+        qi_sed[i, k] = max(qi[i, k] + qi_tendency[i, k] * Δt, 0.0) / ice_fraction[i, k]
+        nc_sed[i, k] = max(nc[i, k] + nc_tendency[i, k] * Δt, 0.0) / liquid_fraction[i, k]
+        ni_sed[i, k] = max(ni[i, k] + ni_tendency[i, k] * Δt, 0.0) / ice_fraction[i, k]
+        qr_sed[i, k] = max(qr[i, k] + qr_tendency[i, k] * Δt, 0.0) / precip_fraction[i, k]
+        nr_sed[i, k] = max(nr[i, k] + nr_tendency[i, k] * Δt, 0.0) / precip_fraction[i, k]
+        qs_sed[i, k] = max(qs[i, k] + qs_tendency[i, k] * Δt, 0.0) / precip_fraction[i, k]
+        ns_sed[i, k] = max(ns[i, k] + ns_tendency[i, k] * Δt, 0.0) / precip_fraction[i, k]
         # 🟤 graupel stays a grid mean here (FINDINGS.md)
-        qg_sed[i, k] = max(qg[i, k] + qg_tendency[i, k] * deltat, 0.0)
-        ng_sed[i, k] = max(ng[i, k] + ng_tendency[i, k] * deltat, 0.0)
+        qg_sed[i, k] = max(qg[i, k] + qg_tendency[i, k] * Δt, 0.0)
+        ng_sed[i, k] = max(ng[i, k] + ng_tendency[i, k] * Δt, 0.0)
         if settings.constant_droplet_number
             nc_sed[i, k] = settings.droplet_number / ρ[i, k]
         end
@@ -107,9 +107,9 @@ function effective_radius!(work, parameters)
             λi[i, k], ni_sed[i, k], ni_intercept[i, k] = ice.slope, ice.number, ice.intercept
         end
         for k in 1:levels, i in 1:columns
-            if qi_sed[i, k] >= qsmall
+            if qi_sed[i, k] >= smallest_mixing_ratio
                 if ni_sed[i, k] != number_before[i, k]
-                    ni_tendency[i, k] = (ni_sed[i, k] * ice_fraction[i, k] - ni[i, k]) * rdeltat
+                    ni_tendency[i, k] = (ni_sed[i, k] * ice_fraction[i, k] - ni[i, k]) * inv_Δt
                 end
                 radius_cloud_ice[i, k] = 1.5 / λi[i, k] * 1.0e6
                 radius_cloud_ice[i, k] = radius_cloud_ice[i, k] * effi_factor
@@ -121,7 +121,7 @@ function effective_radius!(work, parameters)
                 radius_cloud_ice[i, k] = radius_cloud_ice[i, k] * effi_factor
                 area_density_ice[i, k] = 0.0
             end
-            diameter_cloud_ice[i, k] = radius_cloud_ice[i, k] * rhoi / rhows * 2.0
+            diameter_cloud_ice[i, k] = radius_cloud_ice[i, k] * ρ_cloud_ice / ρ_solid_water * 2.0
         end
     else
         for k in 1:levels, i in 1:columns
@@ -140,13 +140,13 @@ function effective_radius!(work, parameters)
         μc[i, k], λc[i, k], nc_sed[i, k] = liquid.shape, liquid.slope, liquid.number
     end
     for k in 1:levels, i in 1:columns
-        if qc_sed[i, k] >= qsmall
+        if qc_sed[i, k] >= smallest_mixing_ratio
             if settings.constant_droplet_number
                 nc_tendency[i, k] = (settings.droplet_number / ρ[i, k] * liquid_fraction[i, k] - nc[i, k]) *
-                               rdeltat
+                               inv_Δt
             end
             if number_before[i, k] != nc_sed[i, k]
-                nc_tendency[i, k] = (nc_sed[i, k] * liquid_fraction[i, k] - nc[i, k]) * rdeltat
+                nc_tendency[i, k] = (nc_sed[i, k] * liquid_fraction[i, k] - nc[i, k]) * inv_Δt
             end
             radius_cloud_liquid[i, k] = (μc[i, k] + 3.0) / λc[i, k] / 2.0 * 1.0e6
             λc_radiation[i, k] = λc[i, k]
@@ -160,7 +160,7 @@ function effective_radius!(work, parameters)
         μc[i, k], λc[i, k], nc_sed[i, k] = liquid.shape, liquid.slope, liquid.number
     end
     for k in 1:levels, i in 1:columns
-        if qc_sed[i, k] >= qsmall
+        if qc_sed[i, k] >= smallest_mixing_ratio
             radius_cloud_liquid_fixed[i, k] = (μc[i, k] + 3.0) / λc[i, k] / 2.0 * 1.0e6
         else
             radius_cloud_liquid[i, k] = 10.0
@@ -177,8 +177,8 @@ function effective_radius!(work, parameters)
         λr[i, k], nr_sed[i, k], N₀r[i, k] = rain.slope, rain.number, rain.intercept
     end
     for k in 1:levels, i in 1:columns
-        if qr_sed[i, k] >= qsmall && number_before[i, k] != nr_sed[i, k]
-            nr_tendency[i, k] = (nr_sed[i, k] * precip_fraction[i, k] - nr[i, k]) * rdeltat
+        if qr_sed[i, k] >= smallest_mixing_ratio && number_before[i, k] != nr_sed[i, k]
+            nr_tendency[i, k] = (nr_sed[i, k] * precip_fraction[i, k] - nr[i, k]) * inv_Δt
         end
         number_before[i, k] = ns_sed[i, k]
     end
@@ -189,9 +189,9 @@ function effective_radius!(work, parameters)
         λs[i, k], ns_sed[i, k], ns_intercept[i, k] = snow.slope, snow.number, snow.intercept
     end
     for k in 1:levels, i in 1:columns
-        if qs_sed[i, k] >= qsmall
+        if qs_sed[i, k] >= smallest_mixing_ratio
             if number_before[i, k] != ns_sed[i, k]
-                ns_tendency[i, k] = (ns_sed[i, k] * precip_fraction[i, k] - ns[i, k]) * rdeltat
+                ns_tendency[i, k] = (ns_sed[i, k] * precip_fraction[i, k] - ns[i, k]) * inv_Δt
             end
             x = λs[i, k]
             area_density_snow[i, k] = 2.0 * π * (1.0 / (x * x * x)) * ns_intercept[i, k] * ρ[i, k] *
@@ -211,28 +211,28 @@ function effective_radius!(work, parameters)
     end
 
     for k in 1:levels, i in 1:columns
-        if qg_sed[i, k] >= qsmall && number_before[i, k] != ng_sed[i, k]
-            ng_tendency[i, k] = (ng_sed[i, k] * precip_fraction[i, k] - ng[i, k]) * rdeltat
+        if qg_sed[i, k] >= smallest_mixing_ratio && number_before[i, k] != ng_sed[i, k]
+            ng_tendency[i, k] = (ng_sed[i, k] * precip_fraction[i, k] - ng[i, k]) * inv_Δt
         end
         # 🚫 no number without mass
-        if qc[i, k] + qc_tendency[i, k] * deltat < qsmall
-            nc_tendency[i, k] = -nc[i, k] * rdeltat
+        if qc[i, k] + qc_tendency[i, k] * Δt < smallest_mixing_ratio
+            nc_tendency[i, k] = -nc[i, k] * inv_Δt
         end
-        if settings.prognostic_cloud_ice && qi[i, k] + qi_tendency[i, k] * deltat < qsmall
-            ni_tendency[i, k] = -ni[i, k] * rdeltat
+        if settings.prognostic_cloud_ice && qi[i, k] + qi_tendency[i, k] * Δt < smallest_mixing_ratio
+            ni_tendency[i, k] = -ni[i, k] * inv_Δt
         end
-        if qr[i, k] + qr_tendency[i, k] * deltat < qsmall
-            nr_tendency[i, k] = -nr[i, k] * rdeltat
+        if qr[i, k] + qr_tendency[i, k] * Δt < smallest_mixing_ratio
+            nr_tendency[i, k] = -nr[i, k] * inv_Δt
         end
-        if qs[i, k] + qs_tendency[i, k] * deltat < qsmall
-            ns_tendency[i, k] = -ns[i, k] * rdeltat
+        if qs[i, k] + qs_tendency[i, k] * Δt < smallest_mixing_ratio
+            ns_tendency[i, k] = -ns[i, k] * inv_Δt
         end
-        if qg[i, k] + qg_tendency[i, k] * deltat < qsmall
-            ng_tendency[i, k] = -ng[i, k] * rdeltat
+        if qg[i, k] + qg_tendency[i, k] * Δt < smallest_mixing_ratio
+            ng_tendency[i, k] = -ng[i, k] * inv_Δt
         end
         # 📤 qc and qi are only used for output from here on
-        qc[i, k] = qc[i, k] + qc_tendency[i, k] * deltat
-        qi[i, k] = qi[i, k] + qi_tendency[i, k] * deltat
+        qc[i, k] = qc[i, k] + qc_tendency[i, k] * Δt
+        qi[i, k] = qi[i, k] + qi_tendency[i, k] * Δt
         if nr_per_volume[i, k] == 0.0
             nr_per_volume[i, k] = 1.0e-34
         end

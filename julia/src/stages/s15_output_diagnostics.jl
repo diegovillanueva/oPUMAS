@@ -64,12 +64,12 @@ function output_diagnostics!(work, parameters)
     ns_intercept = scratch.snow_intercept  # dumns0A2D
     number_before = scratch.number_before  # dum_2D
     qi_sed = scratch.sedimenting.cloud_ice.q  # dumi
-    deltat = work.inputs.time_step
+    Δt = work.inputs.time_step
     columns, levels = grid_size(work)
 
     # 🌧️ rain
     for k in 1:levels, i in 1:columns
-        diameter_rain[i, k] = mean_diameter(qr_out[i, k], nr_per_volume[i, k], ρ[i, k], rhow)
+        diameter_rain[i, k] = mean_diameter(qr_out[i, k], nr_per_volume[i, k], ρ[i, k], ρ_water)
     end
     for k in 1:levels, i in 1:columns
         if qr_out[i, k] > 1.0e-7 && nr_per_volume[i, k] > 0.0
@@ -91,14 +91,14 @@ function output_diagnostics!(work, parameters)
 
     # ❄️ snow
     for k in 1:levels, i in 1:columns
-        diameter_snow[i, k] = mean_diameter(qs_out[i, k], ns_per_volume[i, k], ρ[i, k], rhosn)
+        diameter_snow[i, k] = mean_diameter(qs_out[i, k], ns_per_volume[i, k], ρ[i, k], ρ_snow)
     end
     for k in 1:levels, i in 1:columns
         if qs_out[i, k] > 1.0e-7 && ns_per_volume[i, k] > 0.0
             qs_weighted[i, k] = qs_out[i, k] * precip_fraction[i, k]
             ns_weighted[i, k] = ns_per_volume[i, k] * precip_fraction[i, k]
             frequency_snow[i, k] = precip_fraction[i, k]
-            diameter_snow_radiation[i, k] = 3.0 * rhosn / rhows * diameter_snow[i, k]
+            diameter_snow_radiation[i, k] = 3.0 * ρ_snow / ρ_solid_water * diameter_snow[i, k]
             radius_snow[i, k] = 1.5 * diameter_snow[i, k] * 1.0e6
         else
             diameter_snow_radiation[i, k] = 0.0
@@ -124,7 +124,7 @@ function output_diagnostics!(work, parameters)
             qg_weighted[i, k] = qg_out[i, k] * precip_fraction[i, k]
             ng_weighted[i, k] = ng_per_volume[i, k] * precip_fraction[i, k]
             frequency_graupel[i, k] = precip_fraction[i, k]
-            diameter_graupel_radiation[i, k] = 3.0 * rhogtmp / rhows * diameter_graupel[i, k]
+            diameter_graupel_radiation[i, k] = 3.0 * rhogtmp / ρ_solid_water * diameter_graupel[i, k]
             radius_graupel[i, k] = 1.5 * diameter_graupel[i, k] * 1.0e6
         else
             diameter_graupel_radiation[i, k] = 0.0
@@ -139,21 +139,21 @@ function output_diagnostics!(work, parameters)
     # 📡 analytic radar reflectivity (Shupe), in-precipitation, mm⁶ m⁻³
     rthrsh = 0.0001 / 3600.0
     for k in 1:levels, i in 1:columns
-        if qc[i, k] >= qsmall && (nc[i, k] + nc_tendency[i, k] * deltat) > 10.0
+        if qc[i, k] >= smallest_mixing_ratio && (nc[i, k] + nc_tendency[i, k] * Δt) > 10.0
             x = qc[i, k] / liquid_fraction[i, k] * ρ[i, k] * 1000.0
             dum = (x * x) /
-                  (0.109 * (nc[i, k] + nc_tendency[i, k] * deltat) / liquid_fraction[i, k] * ρ[i, k] /
+                  (0.109 * (nc[i, k] + nc_tendency[i, k] * Δt) / liquid_fraction[i, k] * ρ[i, k] /
                    1.0e6) * liquid_fraction[i, k] / precip_fraction[i, k]
         else
             dum = 0.0
         end
-        if qi[i, k] >= qsmall
+        if qi[i, k] >= smallest_mixing_ratio
             dum1 = (qi[i, k] * ρ[i, k] / ice_fraction[i, k] * 1000.0 / 0.1)^(1.0 / 0.63) *
                    ice_fraction[i, k] / precip_fraction[i, k]
         else
             dum1 = 0.0
         end
-        if qs_out[i, k] >= qsmall
+        if qs_out[i, k] >= smallest_mixing_ratio
             dum1 = dum1 + (qs_out[i, k] * ρ[i, k] * 1000.0 / 0.1)^(1.0 / 0.63)
         end
         dbz[i, k] = dum + dum1
@@ -204,12 +204,12 @@ function output_diagnostics!(work, parameters)
             x = λi[i, k]
             x2 = x * x
             dum2 = ρ[i, k] * (0.176 / 0.93) * 720.0 * ni_intercept[i, k] *
-                   ((rhoi / 900.0) * (rhoi / 900.0)) / ((x * x2) * (x2 * x2))
+                   ((ρ_cloud_ice / 900.0) * (ρ_cloud_ice / 900.0)) / ((x * x2) * (x2 * x2))
             dum2 = max(dum2, minrefl10)
         end
         if λs[i, k] > 0.0
             dum3 = ρ[i, k] * (0.176 / 0.93) * 720.0 * ns_intercept[i, k] *
-                   ((rhosn / 900.0) * (rhosn / 900.0)) / λs[i, k]^7.0
+                   ((ρ_snow / 900.0) * (ρ_snow / 900.0)) / λs[i, k]^7.0
             dum3 = max(dum3, minrefl10)
         end
         # 🟤 `do_hail .or. do_graupel .and. lamg > 0` binds as hail or (graupel and λ > 0)
@@ -225,7 +225,7 @@ function output_diagnostics!(work, parameters)
         # 🧊 ice mass fraction
         number_before[i, k] = qs_out[i, k] + qr_out[i, k] + qc[i, k] + qi[i, k]
         qi_sed[i, k] = qs_out[i, k] + qi[i, k]
-        if qi_sed[i, k] > qsmall && number_before[i, k] > qsmall
+        if qi_sed[i, k] > smallest_mixing_ratio && number_before[i, k] > smallest_mixing_ratio
             ice_mass_fraction[i, k] = min(qi_sed[i, k] / number_before[i, k], 1.0)
         else
             ice_mass_fraction[i, k] = 0.0

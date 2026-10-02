@@ -40,7 +40,7 @@ function incloud_values!(work, parameters)
     N₀r = incloud.rain.N₀  # n0r
     columns, levels = grid_size(work)
     for k in 1:levels, i in 1:columns
-        if qc[i, k] >= qsmall
+        if qc[i, k] >= smallest_mixing_ratio
             qc_cloud[i, k] = min(qc[i, k] / liquid_fraction[i, k], 5.0e-3)
             nc_cloud[i, k] = max(nc[i, k] / liquid_fraction[i, k], 0.0)
             if settings.constant_droplet_number
@@ -50,7 +50,7 @@ function incloud_values!(work, parameters)
             qc_cloud[i, k] = 0.0
             nc_cloud[i, k] = 0.0
         end
-        if qi[i, k] >= qsmall
+        if qi[i, k] >= smallest_mixing_ratio
             qi_cloud[i, k] = min(qi[i, k] / ice_fraction[i, k], 5.0e-3)
             ni_cloud[i, k] = max(ni[i, k] / ice_fraction[i, k], 0.0)
             if settings.constant_ice_number
@@ -66,13 +66,13 @@ function incloud_values!(work, parameters)
     # 🌧️ precipitation fraction, top down
     if settings.precipitation_fraction_method == :in_cloud
         for i in 1:columns, k in 2:levels
-            if qc[i, k] < qsmall && qi[i, k] < qsmall
+            if qc[i, k] < smallest_mixing_ratio && qi[i, k] < smallest_mixing_ratio
                 precip_fraction[i, k] = precip_fraction[i, k-1]
             end
         end
     else
         for i in 1:columns, k in 2:levels
-            if qr[i, k-1] >= qsmall || qs[i, k-1] >= qsmall || qg[i, k-1] >= qsmall
+            if qr[i, k-1] >= smallest_mixing_ratio || qs[i, k-1] >= smallest_mixing_ratio || qg[i, k-1] >= smallest_mixing_ratio
                 precip_fraction[i, k] = max(precip_fraction[i, k-1], precip_fraction[i, k])
             end
         end
@@ -87,7 +87,7 @@ function incloud_values!(work, parameters)
         qr_precip[i, k] = qr[i, k] / precip_fraction[i, k]
         nr_precip[i, k] = nr[i, k] / precip_fraction[i, k]
         qr_precip[i, k] = min(qr_precip[i, k], 0.01)
-        if qr_precip[i, k] < qsmall
+        if qr_precip[i, k] < smallest_mixing_ratio
             qr_precip[i, k] = 0.0
             nr_precip[i, k] = 0.0
         end

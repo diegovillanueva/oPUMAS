@@ -11,7 +11,7 @@ scheme.
 """
 function sedimentation_fall_speeds!(work, parameters)
     (; settings, hydrometeors, gamma) = parameters
-    (; g, r) = host_short_names(parameters)
+    (; g, Rd) = host_constants(parameters)
     dense = dense_precipitation(parameters)
     (; inputs, state, incloud, process_rates, tendencies, scratch) = work
     T = inputs.T  # t
@@ -82,20 +82,20 @@ function sedimentation_fall_speeds!(work, parameters)
     vr_mass = process_rates.rain.fall_speed.mass  # umr
     vs_mass = process_rates.snow.fall_speed.mass  # ums
     vg_mass = process_rates.graupel.fall_speed.mass  # umg
-    deltat = work.inputs.time_step
+    Δt = work.inputs.time_step
     columns, levels = grid_size(work)
 
     for k in 1:levels, i in 1:columns
-        qc_sed[i, k] = (qc[i, k] + qc_tendency[i, k] * deltat) / liquid_fraction[i, k]
-        qi_sed[i, k] = (qi[i, k] + qi_tendency[i, k] * deltat) / ice_fraction[i, k]
-        nc_sed[i, k] = max((nc[i, k] + nc_tendency[i, k] * deltat) / liquid_fraction[i, k], 0.0)
-        ni_sed[i, k] = max((ni[i, k] + ni_tendency[i, k] * deltat) / ice_fraction[i, k], 0.0)
-        qr_sed[i, k] = (qr[i, k] + qr_tendency[i, k] * deltat) / precip_fraction[i, k]
-        nr_sed[i, k] = max((nr[i, k] + nr_tendency[i, k] * deltat) / precip_fraction[i, k], 0.0)
-        qs_sed[i, k] = (qs[i, k] + qs_tendency[i, k] * deltat) / precip_fraction[i, k]
-        ns_sed[i, k] = max((ns[i, k] + ns_tendency[i, k] * deltat) / precip_fraction[i, k], 0.0)
-        qg_sed[i, k] = (qg[i, k] + qg_tendency[i, k] * deltat) / precip_fraction[i, k]
-        ng_sed[i, k] = max((ng[i, k] + ng_tendency[i, k] * deltat) / precip_fraction[i, k], 0.0)
+        qc_sed[i, k] = (qc[i, k] + qc_tendency[i, k] * Δt) / liquid_fraction[i, k]
+        qi_sed[i, k] = (qi[i, k] + qi_tendency[i, k] * Δt) / ice_fraction[i, k]
+        nc_sed[i, k] = max((nc[i, k] + nc_tendency[i, k] * Δt) / liquid_fraction[i, k], 0.0)
+        ni_sed[i, k] = max((ni[i, k] + ni_tendency[i, k] * Δt) / ice_fraction[i, k], 0.0)
+        qr_sed[i, k] = (qr[i, k] + qr_tendency[i, k] * Δt) / precip_fraction[i, k]
+        nr_sed[i, k] = max((nr[i, k] + nr_tendency[i, k] * Δt) / precip_fraction[i, k], 0.0)
+        qs_sed[i, k] = (qs[i, k] + qs_tendency[i, k] * Δt) / precip_fraction[i, k]
+        ns_sed[i, k] = max((ns[i, k] + ns_tendency[i, k] * Δt) / precip_fraction[i, k], 0.0)
+        qg_sed[i, k] = (qg[i, k] + qg_tendency[i, k] * Δt) / precip_fraction[i, k]
+        ng_sed[i, k] = max((ng[i, k] + ng_tendency[i, k] * Δt) / precip_fraction[i, k], 0.0)
         # 🔢 constant numbers; the constant rain and snow numbers (nrcons, nscons) are
         #    not settings of oPUMAS.jl yet, so their branches are left out.
         if settings.constant_graupel_number
@@ -138,7 +138,7 @@ function sedimentation_fall_speeds!(work, parameters)
         for i in 1:columns
             z_interface[i, levels+1] = 0.0
             for k in levels:-1:1
-                H = r * T[i, k] / g * log(p_interface[i, k+1] / p_interface[i, k])
+                H = Rd * T[i, k] / g * log(p_interface[i, k+1] / p_interface[i, k])
                 z_interface[i, k] = z_interface[i, k+1] + H
             end
         end
@@ -147,7 +147,7 @@ function sedimentation_fall_speeds!(work, parameters)
     # 💧 droplets
     bc = fall_speed_law.cloud_liquid.b
     for k in 1:levels, i in 1:columns
-        if qc_sed[i, k] >= qsmall
+        if qc_sed[i, k] >= smallest_mixing_ratio
             dum1 = 4.0 + bc + μc[i, k]
             dum2 = μc[i, k] + 4.0
             vc_mass[i, k] = a_cloud_liquid[i, k] * gamma_function(dum1) /
@@ -166,9 +166,9 @@ function sedimentation_fall_speeds!(work, parameters)
             fall_qc[i, k] = 0.0
             fall_nc[i, k] = 0.0
         end
-        qc_sed[i, k] = (qc[i, k] + qc_tendency[i, k] * deltat)
-        nc_sed[i, k] = max((nc[i, k] + nc_tendency[i, k] * deltat), 0.0)
-        if qc_sed[i, k] < qsmall
+        qc_sed[i, k] = (qc[i, k] + qc_tendency[i, k] * Δt)
+        nc_sed[i, k] = max((nc[i, k] + nc_tendency[i, k] * Δt), 0.0)
+        if qc_sed[i, k] < smallest_mixing_ratio
             nc_sed[i, k] = 0.0
         end
     end
@@ -177,7 +177,7 @@ function sedimentation_fall_speeds!(work, parameters)
     bi, bj = fall_speed_law.cloud_ice.b, fall_speed_law.small_cloud_ice.b
     vtrmi_factor = settings.ice_fall_speed_factor
     for k in 1:levels, i in 1:columns
-        if qi_sed[i, k] >= qsmall
+        if qi_sed[i, k] >= smallest_mixing_ratio
             vi_mass[i, k] = min(a_cloud_ice[i, k] * gamma.ice_plus4 / (6.0 * λi[i, k]^bi),
                 1.2 * ρ_correction[i, k])
             vi_mass[i, k] = vi_mass[i, k] * vtrmi_factor
@@ -207,9 +207,9 @@ function sedimentation_fall_speeds!(work, parameters)
             fall_qi[i, k] = 0.0
             fall_ni[i, k] = 0.0
         end
-        qi_sed[i, k] = (qi[i, k] + qi_tendency[i, k] * deltat)
-        ni_sed[i, k] = max((ni[i, k] + ni_tendency[i, k] * deltat), 0.0)
-        if qi_sed[i, k] < qsmall
+        qi_sed[i, k] = (qi[i, k] + qi_tendency[i, k] * Δt)
+        ni_sed[i, k] = max((ni[i, k] + ni_tendency[i, k] * Δt), 0.0)
+        if qi_sed[i, k] < smallest_mixing_ratio
             ni_sed[i, k] = 0.0
         end
     end
@@ -217,7 +217,7 @@ function sedimentation_fall_speeds!(work, parameters)
     # 🌧️ rain; the fall correction starts at k = 3 as in the Fortran (FINDINGS.md)
     br = fall_speed_law.rain.b
     for i in 1:columns, k in 1:levels
-        if λr[i, k] >= qsmall
+        if λr[i, k] >= smallest_mixing_ratio
             qtmp = λr[i, k]^br
             vr_number[i, k] = min(a_rain[i, k] * gamma.rain_plus1 / qtmp, 9.1 * ρ_correction[i, k])
             fall_nr[i, k] = g * ρ[i, k] * vr_number[i, k]
@@ -231,9 +231,9 @@ function sedimentation_fall_speeds!(work, parameters)
             fall_qr[i, k] = fall_qr[i, k-1]
             fall_nr[i, k] = fall_nr[i, k-1]
         end
-        qr_sed[i, k] = (qr[i, k] + qr_tendency[i, k] * deltat)
-        nr_sed[i, k] = max((nr[i, k] + nr_tendency[i, k] * deltat), 0.0)
-        if qr_sed[i, k] < qsmall
+        qr_sed[i, k] = (qr[i, k] + qr_tendency[i, k] * Δt)
+        nr_sed[i, k] = max((nr[i, k] + nr_tendency[i, k] * Δt), 0.0)
+        if qr_sed[i, k] < smallest_mixing_ratio
             nr_sed[i, k] = 0.0
         end
     end
@@ -241,7 +241,7 @@ function sedimentation_fall_speeds!(work, parameters)
     # ❄️ snow
     bs = fall_speed_law.snow.b
     for i in 1:columns, k in 1:levels
-        if λs[i, k] >= qsmall
+        if λs[i, k] >= smallest_mixing_ratio
             qtmp = λs[i, k]^bs
             vs_mass[i, k] = min(a_snow[i, k] * gamma.snow_plus4 / (6.0 * qtmp), 1.2 * ρ_correction[i, k])
             vs_mass[i, k] = vs_mass[i, k] * settings.snow_fall_speed_factor
@@ -260,16 +260,16 @@ function sedimentation_fall_speeds!(work, parameters)
             fall_qs[i, k] = fall_qs[i, k-1]
             fall_ns[i, k] = fall_ns[i, k-1]
         end
-        qs_sed[i, k] = (qs[i, k] + qs_tendency[i, k] * deltat)
-        ns_sed[i, k] = max((ns[i, k] + ns_tendency[i, k] * deltat), 0.0)
-        if qs_sed[i, k] < qsmall
+        qs_sed[i, k] = (qs[i, k] + qs_tendency[i, k] * Δt)
+        ns_sed[i, k] = max((ns[i, k] + ns_tendency[i, k] * Δt), 0.0)
+        if qs_sed[i, k] < smallest_mixing_ratio
             ns_sed[i, k] = 0.0
         end
     end
 
     # 🟤 graupel or hail
     for i in 1:columns, k in 1:levels
-        if λg[i, k] >= qsmall
+        if λg[i, k] >= smallest_mixing_ratio
             qtmp = λg[i, k]^dense.b
             vg_mass[i, k] = min(a_graupel[i, k] * gamma.graupel_plus4 / (6.0 * qtmp),
                 20.0 * ρ_correction[i, k])
@@ -284,9 +284,9 @@ function sedimentation_fall_speeds!(work, parameters)
             fall_qg[i, k] = fall_qg[i, k-1]
             fall_ng[i, k] = fall_ng[i, k-1]
         end
-        qg_sed[i, k] = (qg[i, k] + qg_tendency[i, k] * deltat)
-        ng_sed[i, k] = max((ng[i, k] + ng_tendency[i, k] * deltat), 0.0)
-        if qg_sed[i, k] < qsmall
+        qg_sed[i, k] = (qg[i, k] + qg_tendency[i, k] * Δt)
+        ng_sed[i, k] = max((ng[i, k] + ng_tendency[i, k] * Δt), 0.0)
+        if qg_sed[i, k] < smallest_mixing_ratio
             ng_sed[i, k] = 0.0
         end
     end

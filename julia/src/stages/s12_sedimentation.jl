@@ -8,13 +8,13 @@
 ⬇️ Twin of `implicit_fall` for column `i`: updates the mixing ratio `q[i, :]` in place,
 writes the cumulative fall-out `flux[i, :]` and returns the surface value.
 """
-function implicit_fall!(q, flux, deltat, i, zint, speed, pdel, levels)
+function implicit_fall!(q, flux, Δt, i, zint, speed, pdel, levels)
     dz = Vector{Float64}(undef, levels)
     dd = Vector{Float64}(undef, levels)
     qm = Vector{Float64}(undef, levels)
     for k in 1:levels
         dz[k] = zint[i, k] - zint[i, k+1]
-        dd[k] = deltat * speed[i, k]
+        dd[k] = Δt * speed[i, k]
         q[i, k] = q[i, k] * pdel[i, k]
     end
     qm[1] = q[i, 1] / (dz[1] + dd[1])
@@ -44,39 +44,39 @@ call leaves them out.
 """
 function sediment_implicit!(tendency, amount, speed, work, parameters, check_qsmall;
     flux = nothing, sedimentation = nothing, surface = nothing, surface_ice = nothing)
-    (; g) = host_short_names(parameters)
+    (; g) = host_constants(parameters)
     (; inputs, scratch) = work
     z_interface = scratch.interface_height  # zint
     Δp = inputs.pressure_thickness  # pdel
-    deltat = work.inputs.time_step
+    Δt = work.inputs.time_step
     columns, levels = grid_size(work)
     after = copy(amount)
     falling = similar(amount)
     precipitation = Vector{Float64}(undef, columns)
     for i in 1:columns
-        precipitation[i] = implicit_fall!(after, falling, deltat, i, z_interface, speed, Δp,
+        precipitation[i] = implicit_fall!(after, falling, Δt, i, z_interface, speed, Δp,
             levels)
     end
     for k in 1:levels, i in 1:columns
         if check_qsmall
-            if falling[i, k] >= qsmall && flux !== nothing
-                flux[i, k+1] = flux[i, k+1] + falling[i, k] / g / deltat
+            if falling[i, k] >= smallest_mixing_ratio && flux !== nothing
+                flux[i, k+1] = flux[i, k+1] + falling[i, k] / g / Δt
             end
         elseif flux !== nothing
-            flux[i, k+1] = flux[i, k+1] + falling[i, k] / g / deltat
+            flux[i, k+1] = flux[i, k+1] + falling[i, k] / g / Δt
         end
         if sedimentation !== nothing
-            sedimentation[i, k] = sedimentation[i, k] + (after[i, k] - amount[i, k]) / deltat
+            sedimentation[i, k] = sedimentation[i, k] + (after[i, k] - amount[i, k]) / Δt
         end
-        tendency[i, k] = tendency[i, k] + (after[i, k] - amount[i, k]) / deltat
+        tendency[i, k] = tendency[i, k] + (after[i, k] - amount[i, k]) / Δt
     end
     for i in 1:columns
         if precipitation[i] >= 0.0
             if surface !== nothing
-                surface[i] = surface[i] + precipitation[i] / g / deltat / 1000.0
+                surface[i] = surface[i] + precipitation[i] / g / Δt / 1000.0
             end
             if surface_ice !== nothing
-                surface_ice[i] = surface_ice[i] + precipitation[i] / g / deltat / 1000.0
+                surface_ice[i] = surface_ice[i] + precipitation[i] / g / Δt / 1000.0
             end
         end
     end
@@ -92,14 +92,14 @@ its content in one sub-step.
 function sub_steps(mass_speed, number_speed, work)
     (; scratch) = work
     inv_Δp = scratch.inverse_pressure_thickness  # pdel_inv
-    deltat = work.inputs.time_step
+    Δt = work.inputs.time_step
     columns, levels = grid_size(work)
     nstep = Vector{Int}(undef, columns)
     rnstep = Vector{Float64}(undef, columns)
     for i in 1:columns
         mass_max = maximum(mass_speed[i, k] * inv_Δp[i, k] for k in 1:levels)
         number_max = maximum(number_speed[i, k] * inv_Δp[i, k] for k in 1:levels)
-        nstep[i] = 1 + trunc(Int, max(mass_max, number_max) * deltat)
+        nstep[i] = 1 + trunc(Int, max(mass_max, number_max) * Δt)
         rnstep[i] = 1.0 / Float64(Float32(nstep[i]))
     end
     return nstep, rnstep
@@ -117,10 +117,10 @@ function sediment_explicit!(tendency, amount, speed, nstep, rnstep, work, parame
     falls; sedimentation = nothing, surface = nothing, flux = nothing,
     latent_heat = nothing, evaporation = nothing, heating = nothing, vapor = nothing,
     fraction = nothing, surface_ice = nothing)
-    (; g) = host_short_names(parameters)
+    (; g) = host_constants(parameters)
     (; scratch) = work
     inv_Δp = scratch.inverse_pressure_thickness  # pdel_inv
-    deltat = work.inputs.time_step
+    Δt = work.inputs.time_step
     columns, levels = grid_size(work)
     dum1 = Vector{Float64}(undef, levels)
     fallout = Vector{Float64}(undef, levels + 1)   # fallout[k + 1] is faloutx(i, k)
@@ -149,7 +149,7 @@ function sediment_explicit!(tendency, amount, speed, nstep, rnstep, work, parame
                 if sedimentation !== nothing
                     sedimentation[i, k] = sedimentation[i, k] - faltndx * rnstepmax
                 end
-                amount[i, k] = amount[i, k] - faltndx * deltat * rnstepmax
+                amount[i, k] = amount[i, k] - faltndx * Δt * rnstepmax
                 if k > 1 && (evaporation !== nothing || vapor !== nothing ||
                              heating !== nothing)
                     faltndqxe = (fallout[k+1] - fallout[k]) * inv_Δp[i, k]
@@ -188,7 +188,7 @@ evaporation terms into `tlat`/`qvlat` and the surface rates into `prect`/`preci`
 """
 function sedimentation!(work, parameters)
     (; settings) = parameters
-    (; g, xxlv, xxls) = host_short_names(parameters)
+    (; g, Lv, Ls) = host_constants(parameters)
     (; state, incloud, process_rates, tendencies, diagnostics, scratch) = work
     qc_sedimentation = process_rates.cloud_liquid.sedimentation.mass  # qcsedten
     nc_sedimentation = process_rates.cloud_liquid.sedimentation.number  # ncsedten
@@ -291,14 +291,14 @@ function sedimentation!(work, parameters)
         nstep, rnstep = sub_steps(fall_qi, fall_ni, work)
         sediment_explicit!(qi_tendency, qi_sed, fall_qi, nstep, rnstep, work, parameters, ice_on;
             sedimentation = qi_sedimentation, surface = surface_cloud_ice, flux = flux_cloud_ice,
-            latent_heat = xxls, evaporation = qi_sedimentation_sublimation, heating = heating_sed_ice,
+            latent_heat = Ls, evaporation = qi_sedimentation_sublimation, heating = heating_sed_ice,
             vapor = qv_sed_ice, fraction = ice_fraction, surface_ice = surface_frozen_cloud_ice)
         sediment_explicit!(ni_tendency, ni_sed, fall_ni, nstep, rnstep, work, parameters, ice_on;
             fraction = ice_fraction, sedimentation = ni_sedimentation)
         nstep, rnstep = sub_steps(fall_qc, fall_nc, work)
         sediment_explicit!(qc_tendency, qc_sed, fall_qc, nstep, rnstep, work, parameters, true;
             sedimentation = qc_sedimentation, surface = surface_cloud_liquid, flux = flux_cloud_liquid,
-            latent_heat = xxlv, evaporation = qc_sedimentation_evaporation, heating = heating_sed_liquid,
+            latent_heat = Lv, evaporation = qc_sedimentation_evaporation, heating = heating_sed_liquid,
             vapor = qv_sed_liquid, fraction = liquid_fraction)
         sediment_explicit!(nc_tendency, nc_sed, fall_nc, nstep, rnstep, work, parameters, true;
             fraction = liquid_fraction, sedimentation = nc_sedimentation)

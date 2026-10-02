@@ -9,7 +9,7 @@ fields here and writes the rest before reading them.
 """
 function setup_step!(work, parameters)
     (; settings, saturation) = parameters
-    (; r, rhosu) = host_short_names(parameters)
+    (; Rd, ρ_ref) = host_constants(parameters)
     g = parameters.host.gravity
     agraupel = dense_precipitation(parameters).a
     (; inputs, state, incloud, diagnostics, scratch) = work
@@ -93,37 +93,37 @@ function setup_step!(work, parameters)
     # ☁️ cloud fractions, with a minimum against division by zero
     for k in 1:levels, i in 1:columns
         if settings.uniform_subcolumns
-            liquid_fraction[i, k] = qc[i, k] >= qsmall ? 1.0 : mincld
-            ice_fraction[i, k] = qi[i, k] >= qsmall ? 1.0 : mincld
+            liquid_fraction[i, k] = qc[i, k] >= smallest_mixing_ratio ? 1.0 : minimum_cloud_fraction
+            ice_fraction[i, k] = qi[i, k] >= smallest_mixing_ratio ? 1.0 : minimum_cloud_fraction
             cloud_fraction[i, k] = max(ice_fraction[i, k], liquid_fraction[i, k])
             qsat_factor[i, k] = 1.0
         else
-            cloud_fraction[i, k] = max(cloud_fraction_in[i, k], mincld)
-            liquid_fraction[i, k] = max(liquid_fraction_in[i, k], mincld)
-            ice_fraction[i, k] = max(ice_fraction_in[i, k], mincld)
+            cloud_fraction[i, k] = max(cloud_fraction_in[i, k], minimum_cloud_fraction)
+            liquid_fraction[i, k] = max(liquid_fraction_in[i, k], minimum_cloud_fraction)
+            ice_fraction[i, k] = max(ice_fraction_in[i, k], minimum_cloud_fraction)
             qsat_factor[i, k] = qsat_factor_in[i, k]
         end
     end
 
     # 🌬️ air properties and density-corrected fall speed prefactors
     for k in 1:levels, i in 1:columns
-        ρ[i, k] = p[i, k] / (r * T[i, k])
+        ρ[i, k] = p[i, k] / (Rd * T[i, k])
         D_v[i, k] = 8.794e-5 * T[i, k]^1.81 / p[i, k]
         η[i, k] = 1.496e-6 * T[i, k]^1.5 / (T[i, k] + 120.0)
         Sc[i, k] = η[i, k] / (ρ[i, k] * D_v[i, k])
-        ρ_correction[i, k] = (rhosu / ρ[i, k])^0.54
+        ρ_correction[i, k] = (ρ_ref / ρ[i, k])^0.54
         a_rain[i, k] = fall_speed_law.rain.a * ρ_correction[i, k]
         a_snow[i, k] = fall_speed_law.snow.a * ρ_correction[i, k]
         if settings.do_hail || settings.do_graupel
             a_graupel[i, k] = agraupel * ρ_correction[i, k]
         end
-        a_cloud_liquid[i, k] = g * rhow / (18.0 * η[i, k])
-        a_cloud_ice[i, k] = fall_speed_law.cloud_ice.a * (rhosu / ρ[i, k])^0.35
-        a_small_ice[i, k] = fall_speed_law.small_cloud_ice.a * (rhosu / ρ[i, k])^0.35
+        a_cloud_liquid[i, k] = g * ρ_water / (18.0 * η[i, k])
+        a_cloud_ice[i, k] = fall_speed_law.cloud_ice.a * (ρ_ref / ρ[i, k])^0.35
+        a_small_ice[i, k] = fall_speed_law.small_cloud_ice.a * (ρ_ref / ρ[i, k])^0.35
     end
 
     # 💧 saturation over water and ice, scaled for subgrid ice cloud below freezing
-    tmelt = parameters.host.melting_point
+    T₀ = parameters.host.melting_point
     for k in 1:levels, i in 1:columns
         water = saturation_over_water(saturation, T[i, k], p[i, k])
         ice = saturation_over_ice(saturation, T[i, k], p[i, k])
@@ -131,7 +131,7 @@ function setup_step!(work, parameters)
         e_sat_ice[i, k], qsat_ice[i, k] = ice.vapor_pressure, ice.specific_humidity
     end
     for k in 1:levels, i in 1:columns
-        if T[i, k] >= tmelt
+        if T[i, k] >= T₀
             e_sat_ice[i, k] = e_sat_liquid[i, k]
             qsat_ice[i, k] = qsat_liquid[i, k]
         else
@@ -140,12 +140,12 @@ function setup_step!(work, parameters)
             qsat_liquid[i, k] = qsat_factor[i, k] * qsat_liquid[i, k]
             e_sat_liquid[i, k] = qsat_factor[i, k] * e_sat_liquid[i, k]
         end
-        rh[i, k] = qv[i, k] / max(qsat_liquid[i, k], qsmall)
+        rh[i, k] = qv[i, k] / max(qsat_liquid[i, k], smallest_mixing_ratio)
     end
 
     # 🧹 outputs that do not start at zero
     for k in 1:levels, i in 1:columns
-        precip_fraction[i, k] = mincld
+        precip_fraction[i, k] = minimum_cloud_fraction
         qc_limiter_ratio[i, k] = 1.0
         radius_cloud_liquid[i, k] = 10.0
         radius_cloud_liquid_fixed[i, k] = 10.0

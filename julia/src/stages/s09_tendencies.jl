@@ -11,7 +11,7 @@ diagnostics, and recomputes the rain distribution and `rercld`.
 """
 function process_tendencies!(work, parameters)
     (; settings, hydrometeors) = parameters
-    (; xxlv, xxls, xlf) = host_short_names(parameters)
+    (; Lv, Ls, Lf) = host_constants(parameters)
     (; state, incloud, rates, process_rates, tendencies, diagnostics) = work
     qi_net_deposition = process_rates.cloud_ice.net_deposition.mass  # cmeitot
     qs_sublimation_mean = process_rates.snow.sublimation.mass  # evapsnow
@@ -162,7 +162,7 @@ function process_tendencies!(work, parameters)
     qc_cloud = incloud.cloud_liquid.q  # qcic
     nc_cloud = incloud.cloud_liquid.N  # ncic
     radius_rain_and_cloud = diagnostics.effective_radius.rain_and_cloud  # rercld
-    deltat = work.inputs.time_step
+    Δt = work.inputs.time_step
     graupel_on = settings.do_hail || settings.do_graupel
     columns, levels = grid_size(work)
 
@@ -171,16 +171,16 @@ function process_tendencies!(work, parameters)
                       qi_deposition[i, k] - qs_deposition[i, k] - qi_sublimation[i, k] - qi_nucleation[i, k] -
                       qc_deposition_nucleation[i, k] * liquid_fraction[i, k] - qg_deposition[i, k] * precip_fraction[i, k]
         heating[i, k] = heating[i, k] +
-                     ((qr_evaporation[i, k] * precip_fraction[i, k]) * xxlv +
+                     ((qr_evaporation[i, k] * precip_fraction[i, k]) * Lv +
                       ((qs_sublimation[i, k] + qg_deposition[i, k]) * precip_fraction[i, k] + qi_deposition[i, k] +
                        qs_deposition[i, k] + qi_sublimation[i, k] + qi_nucleation[i, k] +
-                       qc_deposition_nucleation[i, k] * liquid_fraction[i, k]) * xxls +
+                       qc_deposition_nucleation[i, k] * liquid_fraction[i, k]) * Ls +
                       ((qc_bergeron_snow[i, k] + qc_riming_snow[i, k] + qc_immersion_freezing[i, k] + qc_contact_freezing[i, k] +
                         qi_splintering_snow[i, k] + qc_riming_graupel[i, k] + qi_splintering_graupel[i, k] + qg_rimed_snow[i, k]) *
                        liquid_fraction[i, k] +
                        (qr_freezing_snow[i, k] + qr_accretion_snow[i, k] + qr_freezing_ice[i, k] + qr_accretion_graupel[i, k] +
                         qg_rain_snow[i, k] + qi_splintering_rain[i, k]) * precip_fraction[i, k] +
-                       qc_bergeron_ice[i, k]) * xlf)
+                       qc_bergeron_ice[i, k]) * Lf)
         qc_tendency[i, k] = qc_tendency[i, k] +
                        (-qc_accretion[i, k] - qc_autoconversion[i, k] - qc_immersion_freezing[i, k] - qc_contact_freezing[i, k] -
                         qi_splintering_snow[i, k] - qc_riming_snow[i, k] - qc_bergeron_snow[i, k] - qi_splintering_graupel[i, k] -
@@ -281,8 +281,8 @@ function process_tendencies!(work, parameters)
         nr_autoconversion_mean[i, k] = nr_autoconversion[i, k] * liquid_fraction[i, k]
         nr_self_collection_mean[i, k] = nr_self_collection[i, k] * precip_fraction[i, k]
         ni_autoconversion_mean[i, k] = ni_autoconversion[i, k] * ice_fraction[i, k]
-        ns_melting_mean[i, k] = ns_instant_melting[i, k] / deltat
-        ng_melting_mean[i, k] = ng_instant_melting[i, k] / deltat
+        ns_melting_mean[i, k] = ns_instant_melting[i, k] / Δt
+        ng_melting_mean[i, k] = ng_instant_melting[i, k] / Δt
     end
 
     for k in 1:levels, i in 1:columns

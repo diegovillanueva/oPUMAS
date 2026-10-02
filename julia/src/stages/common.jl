@@ -1,34 +1,31 @@
-# 🏷️🔣 PUMAS short names of the constants used by the M4 stages, so that each stage reads
-#    like its Fortran block. The M6 readability pass replaces them by the long names.
+# 💧🧊 Bulk densities of the stages under short readable names (`rhow`, `rhoi`, `rhows`,
+#    `rhosn` in the Fortran).
 
-const qsmall = smallest_mixing_ratio
-const omsm = one_minus_small
-const mincld = minimum_cloud_fraction
-const mi0 = new_ice_crystal_mass
-const mi0l_min = minimum_frozen_droplet_mass
-const rhow = bulk_density.liquid_water
-const rhoi = bulk_density.cloud_ice
-const rhows = bulk_density.solid_water
-const rhosn = bulk_density.snow
-const sublim_factor = number_sublimation_factor
+const ρ_water = bulk_density.liquid_water
+const ρ_cloud_ice = bulk_density.cloud_ice
+const ρ_solid_water = bulk_density.solid_water
+const ρ_snow = bulk_density.snow
 
 "Columns and levels of a workspace (`mgncol`, `nlev`)."
 grid_size(work) = size(work.inputs.T)
 
 """
-    host_short_names(parameters)
+    host_constants(parameters)
 
-🌍🔣 Host constants and derived temperatures under their PUMAS names.
+🌍🔣 Host constants and derived temperatures under the symbols of the equations: `g`,
+`Rd` (`r`), `Rv` (`rv`), `cp` (`cpp`), `T₀` (`tmelt`), `Lv` (`xxlv`), `Lf` (`xlf`), `Ls`
+(`xxls`), `ρ_ref` (`rhosu`), `T_ice_nucleation` (`icenuct`), `T_snow_melt` (`snowmelt`)
+and `T_rain_freeze` (`rainfrze`).
 """
-function host_short_names(parameters)
+function host_constants(parameters)
     h = parameters.host
-    return (g = h.gravity, r = h.gas_constant_dry_air, rv = h.gas_constant_water_vapor,
-        cpp = h.specific_heat_dry_air, tmelt = h.melting_point,
-        xxlv = h.latent_heat_vaporization, xlf = h.latent_heat_fusion,
-        xxls = parameters.latent_heat_sublimation, rhosu = parameters.reference_air_density,
-        icenuct = parameters.ice_nucleation_temperature,
-        snowmelt = parameters.snow_melting_temperature,
-        rainfrze = parameters.rain_freezing_temperature)
+    return (g = h.gravity, Rd = h.gas_constant_dry_air, Rv = h.gas_constant_water_vapor,
+        cp = h.specific_heat_dry_air, T₀ = h.melting_point,
+        Lv = h.latent_heat_vaporization, Lf = h.latent_heat_fusion,
+        Ls = parameters.latent_heat_sublimation, ρ_ref = parameters.reference_air_density,
+        T_ice_nucleation = parameters.ice_nucleation_temperature,
+        T_snow_melt = parameters.snow_melting_temperature,
+        T_rain_freeze = parameters.rain_freezing_temperature)
 end
 
 """

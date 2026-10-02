@@ -37,29 +37,29 @@ function reapply_instant_changes!(work, parameters)
     ng_tendency = tendencies.graupel.N  # ngtend
     precip_evaporation = diagnostics.precipitation.evaporation  # nevapr
     precip_production = diagnostics.precipitation.production  # prain
-    rdeltat = 1.0 / work.inputs.time_step
+    inv_Δt = 1.0 / work.inputs.time_step
     columns, levels = grid_size(work)
     for k in 1:levels, i in 1:columns
         nc[i, k] = nc_in[i, k]
         nc_tendency[i, k] = nc_tendency[i, k] + droplet_activation[i, k]
         number_before[i, k] = qs[i, k]
         qs[i, k] = qs_in[i, k]
-        qs_tendency[i, k] = qs_tendency[i, k] + (number_before[i, k] - qs[i, k]) * rdeltat
+        qs_tendency[i, k] = qs_tendency[i, k] + (number_before[i, k] - qs[i, k]) * inv_Δt
         number_before[i, k] = ns[i, k]
         ns[i, k] = ns_in[i, k]
-        ns_tendency[i, k] = ns_tendency[i, k] + (number_before[i, k] - ns[i, k]) * rdeltat
+        ns_tendency[i, k] = ns_tendency[i, k] + (number_before[i, k] - ns[i, k]) * inv_Δt
         number_before[i, k] = qr[i, k]
         qr[i, k] = qr_in[i, k]
-        qr_tendency[i, k] = qr_tendency[i, k] + (number_before[i, k] - qr[i, k]) * rdeltat
+        qr_tendency[i, k] = qr_tendency[i, k] + (number_before[i, k] - qr[i, k]) * inv_Δt
         number_before[i, k] = nr[i, k]
         nr[i, k] = nr_in[i, k]
-        nr_tendency[i, k] = nr_tendency[i, k] + (number_before[i, k] - nr[i, k]) * rdeltat
+        nr_tendency[i, k] = nr_tendency[i, k] + (number_before[i, k] - nr[i, k]) * inv_Δt
         number_before[i, k] = qg[i, k]
         qg[i, k] = qg_in[i, k]
-        qg_tendency[i, k] = qg_tendency[i, k] + (number_before[i, k] - qg[i, k]) * rdeltat
+        qg_tendency[i, k] = qg_tendency[i, k] + (number_before[i, k] - qg[i, k]) * inv_Δt
         number_before[i, k] = ng[i, k]
         ng[i, k] = ng_in[i, k]
-        ng_tendency[i, k] = ng_tendency[i, k] + (number_before[i, k] - ng[i, k]) * rdeltat
+        ng_tendency[i, k] = ng_tendency[i, k] + (number_before[i, k] - ng[i, k]) * inv_Δt
         precip_evaporation[i, k] = precip_evaporation[i, k] + qs_sublimation_mean[i, k]
         precip_production[i, k] = precip_production[i, k] + qs_production[i, k]
     end

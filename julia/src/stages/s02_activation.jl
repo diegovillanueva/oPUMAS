@@ -9,7 +9,7 @@ unless `ice_nucleation_without_rh`).
 """
 function activation_and_nucleation!(work, parameters)
     (; settings) = parameters
-    (; icenuct) = host_short_names(parameters)
+    (; T_ice_nucleation) = host_constants(parameters)
     (; inputs, state, incloud, rates, diagnostics) = work
     T = inputs.T  # t
     qc = state.cloud_liquid.q
@@ -25,29 +25,29 @@ function activation_and_nucleation!(work, parameters)
     ni_available = diagnostics.cloud_ice.available_nuclei  # ncai
     ni_nucleation = rates.cloud_ice.nucleation_from_vapor.number  # nnuccd
     qi_nucleation = rates.cloud_ice.nucleation_from_vapor.mass  # mnuccd
-    deltat = work.inputs.time_step
+    Δt = work.inputs.time_step
     columns, levels = grid_size(work)
     for k in 1:levels, i in 1:columns
-        if qc[i, k] >= qsmall
-            nc[i, k] = max(nc[i, k] + droplet_activation[i, k] * deltat, 0.0)
+        if qc[i, k] >= smallest_mixing_ratio
+            nc[i, k] = max(nc[i, k] + droplet_activation[i, k] * Δt, 0.0)
             nc_activated[i, k] = droplet_activation[i, k]
         else
             nc_activated[i, k] = 0.0
         end
-        if T[i, k] < icenuct
-            ni_available[i, k] = ice_nuclei[i, k] * deltat * ρ[i, k]
+        if T[i, k] < T_ice_nucleation
+            ni_available[i, k] = ice_nuclei[i, k] * Δt * ρ[i, k]
         else
             ni_available[i, k] = 0.0
         end
         if settings.prognostic_cloud_ice
-            nucleates = ice_nuclei[i, k] > 0.0 && T[i, k] < icenuct
+            nucleates = ice_nuclei[i, k] > 0.0 && T[i, k] < T_ice_nucleation
             if !settings.ice_nucleation_without_rh
                 nucleates = nucleates && rh[i, k] * e_sat_liquid[i, k] / e_sat_ice[i, k] > 1.05
             end
             if nucleates
                 ni_nucleation[i, k] = ice_nuclei[i, k] * ice_fraction[i, k]
                 ni_nucleation[i, k] = max(ni_nucleation[i, k], 0.0)
-                qi_nucleation[i, k] = ni_nucleation[i, k] * mi0
+                qi_nucleation[i, k] = ni_nucleation[i, k] * new_ice_crystal_mass
             else
                 ni_nucleation[i, k] = 0.0
                 qi_nucleation[i, k] = 0.0

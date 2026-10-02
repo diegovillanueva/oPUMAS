@@ -60,7 +60,7 @@ function graupel_processes!(work, parameters)
     qs_sublimation = rates.snow.sublimation.mass  # prds
     qg_deposition = rates.graupel.deposition.mass  # prdg
     evaporation_area = diagnostics.precipitation.evaporation_area  # am_evp_st
-    deltat = work.inputs.time_step
+    Δt = work.inputs.time_step
     iaccr = settings.ice_accretion_factor
     columns, levels = grid_size(work)
     for k in 1:levels, i in 1:columns
@@ -78,8 +78,8 @@ function graupel_processes!(work, parameters)
     end
     for k in 1:levels, i in 1:columns
         rate = rimed_snow_to_graupel(parameters, qc_riming_snow[i, k], qs_precip[i, k], qc_cloud[i, k],
-            ns_precip[i, k], ρ[i, k], rhosn, dense.density, a_snow[i, k], λs[i, k], N₀s[i, k],
-            deltat)
+            ns_precip[i, k], ρ[i, k], ρ_snow, dense.density, a_snow[i, k], λs[i, k], N₀s[i, k],
+            Δt)
         qg_rimed_snow[i, k], ng_rimed_snow[i, k], qc_riming_snow[i, k] = rate.mass, rate.number, rate.riming
     end
     for k in 1:levels, i in 1:columns
@@ -94,7 +94,7 @@ function graupel_processes!(work, parameters)
     for k in 1:levels, i in 1:columns
         rate = rain_snow_collisions_to_graupel(qr_accretion_snow[i, k], nr_accretion_snow[i, k], qs_collection_rain[i, k],
             qs_precip[i, k], qr_precip[i, k], nr_precip[i, k], ns_precip[i, k], N₀s[i, k], λs[i, k],
-            N₀r[i, k], λr[i, k], deltat)
+            N₀r[i, k], λr[i, k], Δt)
         qg_rain_snow[i, k], ng_rain_snow[i, k] = rate.mass, rate.number
         qr_accretion_snow[i, k], nr_accretion_snow[i, k] = rate.rain_by_snow, rate.rain_number_by_snow
         qs_collection_rain[i, k] = rate.snow_by_rain
