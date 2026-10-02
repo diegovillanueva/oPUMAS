@@ -290,9 +290,9 @@ function process_tendencies!(work, parameters)
                        (-nc_immersion_freezing[i, k] - nc_contact_freezing[i, k] - nc_riming_snow[i, k] + nc_evaporation[i, k] -
                         nc_accretion[i, k] - nc_autoconversion[i, k] - nc_riming_graupel[i, k]) * liquid_fraction[i, k]
         if settings.prognostic_cloud_ice
-            tmpfrz = settings.host_heterogeneous_freezing ? nc_immersion_freezing[i, k] : 0.0
+            nc_immersion_counted = settings.host_heterogeneous_freezing ? nc_immersion_freezing[i, k] : 0.0
             ni_tendency[i, k] = ni_tendency[i, k] + ni_nucleation[i, k] +
-                           (nc_contact_freezing[i, k] + tmpfrz + nc_deposition_nucleation[i, k] + ni_splintering_snow[i, k] +
+                           (nc_contact_freezing[i, k] + nc_immersion_counted + nc_deposition_nucleation[i, k] + ni_splintering_snow[i, k] +
                             ni_splintering_graupel[i, k]) * liquid_fraction[i, k] +
                            (ni_sublimation[i, k] - ni_autoconversion[i, k] - ni_accretion_snow[i, k]) * ice_fraction[i, k] +
                            (nr_freezing_ice[i, k] + ni_splintering_rain[i, k]) * precip_fraction[i, k]

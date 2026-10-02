@@ -9,28 +9,28 @@
 writes the cumulative fall-out `flux[i, :]` and returns the surface value.
 """
 function implicit_fall!(q, flux, Δt, i, zint, speed, pdel, levels)
-    dz = Vector{Float64}(undef, levels)
-    dd = Vector{Float64}(undef, levels)
-    qm = Vector{Float64}(undef, levels)
+    layer_depth = Vector{Float64}(undef, levels)
+    fall_depth = Vector{Float64}(undef, levels)
+    q_new = Vector{Float64}(undef, levels)
     for k in 1:levels
-        dz[k] = zint[i, k] - zint[i, k+1]
-        dd[k] = Δt * speed[i, k]
+        layer_depth[k] = zint[i, k] - zint[i, k+1]
+        fall_depth[k] = Δt * speed[i, k]
         q[i, k] = q[i, k] * pdel[i, k]
     end
-    qm[1] = q[i, 1] / (dz[1] + dd[1])
+    q_new[1] = q[i, 1] / (layer_depth[1] + fall_depth[1])
     for k in 2:levels
-        qm[k] = (q[i, k] + dd[k-1] * qm[k-1]) / (dz[k] + dd[k])
+        q_new[k] = (q[i, k] + fall_depth[k-1] * q_new[k-1]) / (layer_depth[k] + fall_depth[k])
     end
     for k in 1:levels
-        qm[k] = qm[k] * dz[k]
+        q_new[k] = q_new[k] * layer_depth[k]
     end
-    flux[i, 1] = q[i, 1] - qm[1]
+    flux[i, 1] = q[i, 1] - q_new[1]
     for k in 2:levels
-        flux[i, k] = flux[i, k-1] + q[i, k] - qm[k]
+        flux[i, k] = flux[i, k-1] + q[i, k] - q_new[k]
     end
     precipitation = flux[i, levels]
     for k in 1:levels
-        q[i, k] = qm[k] / pdel[i, k]
+        q[i, k] = q_new[k] / pdel[i, k]
     end
     return precipitation
 end
@@ -86,7 +86,7 @@ end
 """
     sub_steps(mass_speed, number_speed, work)
 
-⏱️ Explicit sub-steps per column, `nstep` and `rnstep`, so that no level loses more than
+⏱️ Explicit sub-steps per column, `substeps` and `inv_substeps`, so that no level loses more than
 its content in one sub-step.
 """
 function sub_steps(mass_speed, number_speed, work)
@@ -94,26 +94,26 @@ function sub_steps(mass_speed, number_speed, work)
     inv_Δp = scratch.inverse_pressure_thickness  # pdel_inv
     Δt = work.inputs.time_step
     columns, levels = grid_size(work)
-    nstep = Vector{Int}(undef, columns)
-    rnstep = Vector{Float64}(undef, columns)
+    substeps = Vector{Int}(undef, columns)
+    inv_substeps = Vector{Float64}(undef, columns)
     for i in 1:columns
         mass_max = maximum(mass_speed[i, k] * inv_Δp[i, k] for k in 1:levels)
         number_max = maximum(number_speed[i, k] * inv_Δp[i, k] for k in 1:levels)
-        nstep[i] = 1 + trunc(Int, max(mass_max, number_max) * Δt)
-        rnstep[i] = 1.0 / Float64(Float32(nstep[i]))
+        substeps[i] = 1 + trunc(Int, max(mass_max, number_max) * Δt)
+        inv_substeps[i] = 1.0 / Float64(Float32(substeps[i]))
     end
-    return nstep, rnstep
+    return substeps, inv_substeps
 end
 
 """
-    sediment_explicit!(tendency, amount, speed, nstep, rnstep, work, parameters,
+    sediment_explicit!(tendency, amount, speed, substeps, inv_substeps, work, parameters,
                        falls; sedimentation, surface, flux, latent_heat, evaporation,
                        heating, vapor, fraction, surface_ice)
 
-⬇️ Twin of `Sedimentation`: `nstep` forward sub-steps of the flux divergence. With a
+⬇️ Twin of `Sedimentation`: `substeps` forward sub-steps of the flux divergence. With a
 cloud `fraction`, the flux entering the clear part of a level evaporates at once.
 """
-function sediment_explicit!(tendency, amount, speed, nstep, rnstep, work, parameters,
+function sediment_explicit!(tendency, amount, speed, substeps, inv_substeps, work, parameters,
     falls; sedimentation = nothing, surface = nothing, flux = nothing,
     latent_heat = nothing, evaporation = nothing, heating = nothing, vapor = nothing,
     fraction = nothing, surface_ice = nothing)
@@ -122,58 +122,58 @@ function sediment_explicit!(tendency, amount, speed, nstep, rnstep, work, parame
     inv_Δp = scratch.inverse_pressure_thickness  # pdel_inv
     Δt = work.inputs.time_step
     columns, levels = grid_size(work)
-    dum1 = Vector{Float64}(undef, levels)
+    inflow_share = Vector{Float64}(undef, levels)
     fallout = Vector{Float64}(undef, levels + 1)   # fallout[k + 1] is faloutx(i, k)
     for i in 1:columns
-        nstepmax = nstep[i]
-        rnstepmax = rnstep[i]
-        dum1[1] = 0.0
+        steps = substeps[i]
+        inv_steps = inv_substeps[i]
+        inflow_share[1] = 0.0
         if fraction !== nothing
             for k in 2:levels
-                dum1[k] = fraction[i, k] / fraction[i, k-1]
-                dum1[k] = min(dum1[k], 1.0)
+                inflow_share[k] = fraction[i, k] / fraction[i, k-1]
+                inflow_share[k] = min(inflow_share[k], 1.0)
             end
         else
             for k in 2:levels
-                dum1[k] = 1.0
+                inflow_share[k] = 1.0
             end
         end
-        for n in 1:nstepmax
+        for n in 1:steps
             fallout[1] = 0.0
             for k in 1:levels
                 fallout[k+1] = falls ? speed[i, k] * amount[i, k] : 0.0
             end
             for k in 1:levels
-                faltndx = (fallout[k+1] - dum1[k] * fallout[k]) * inv_Δp[i, k]
-                tendency[i, k] = tendency[i, k] - faltndx * rnstepmax
+                flux_divergence = (fallout[k+1] - inflow_share[k] * fallout[k]) * inv_Δp[i, k]
+                tendency[i, k] = tendency[i, k] - flux_divergence * inv_steps
                 if sedimentation !== nothing
-                    sedimentation[i, k] = sedimentation[i, k] - faltndx * rnstepmax
+                    sedimentation[i, k] = sedimentation[i, k] - flux_divergence * inv_steps
                 end
-                amount[i, k] = amount[i, k] - faltndx * Δt * rnstepmax
+                amount[i, k] = amount[i, k] - flux_divergence * Δt * inv_steps
                 if k > 1 && (evaporation !== nothing || vapor !== nothing ||
                              heating !== nothing)
-                    faltndqxe = (fallout[k+1] - fallout[k]) * inv_Δp[i, k]
+                    flux_divergence_unscaled = (fallout[k+1] - fallout[k]) * inv_Δp[i, k]
                     if evaporation !== nothing
                         evaporation[i, k] = evaporation[i, k] -
-                                            (faltndqxe - faltndx) * rnstepmax
+                                            (flux_divergence_unscaled - flux_divergence) * inv_steps
                     end
                     if vapor !== nothing
-                        vapor[i, k] = vapor[i, k] - (faltndqxe - faltndx) * rnstepmax
+                        vapor[i, k] = vapor[i, k] - (flux_divergence_unscaled - flux_divergence) * inv_steps
                     end
                     if heating !== nothing
                         heating[i, k] = heating[i, k] +
-                                        (faltndqxe - faltndx) * latent_heat * rnstepmax
+                                        (flux_divergence_unscaled - flux_divergence) * latent_heat * inv_steps
                     end
                 end
                 if flux !== nothing
-                    flux[i, k+1] = flux[i, k+1] + fallout[k+1] / g * rnstepmax
+                    flux[i, k+1] = flux[i, k+1] + fallout[k+1] / g * inv_steps
                 end
             end
             if surface !== nothing
-                surface[i] = surface[i] + fallout[levels+1] / g * rnstepmax / 1000.0
+                surface[i] = surface[i] + fallout[levels+1] / g * inv_steps / 1000.0
             end
             if surface_ice !== nothing
-                surface_ice[i] = surface_ice[i] + fallout[levels+1] / g * rnstepmax / 1000.0
+                surface_ice[i] = surface_ice[i] + fallout[levels+1] / g * inv_steps / 1000.0
             end
         end
     end
@@ -288,36 +288,36 @@ function sedimentation!(work, parameters)
             sedimentation = ng_sedimentation)
     else
         ice_on = settings.prognostic_cloud_ice
-        nstep, rnstep = sub_steps(fall_qi, fall_ni, work)
-        sediment_explicit!(qi_tendency, qi_sed, fall_qi, nstep, rnstep, work, parameters, ice_on;
+        substeps, inv_substeps = sub_steps(fall_qi, fall_ni, work)
+        sediment_explicit!(qi_tendency, qi_sed, fall_qi, substeps, inv_substeps, work, parameters, ice_on;
             sedimentation = qi_sedimentation, surface = surface_cloud_ice, flux = flux_cloud_ice,
             latent_heat = Ls, evaporation = qi_sedimentation_sublimation, heating = heating_sed_ice,
             vapor = qv_sed_ice, fraction = ice_fraction, surface_ice = surface_frozen_cloud_ice)
-        sediment_explicit!(ni_tendency, ni_sed, fall_ni, nstep, rnstep, work, parameters, ice_on;
+        sediment_explicit!(ni_tendency, ni_sed, fall_ni, substeps, inv_substeps, work, parameters, ice_on;
             fraction = ice_fraction, sedimentation = ni_sedimentation)
-        nstep, rnstep = sub_steps(fall_qc, fall_nc, work)
-        sediment_explicit!(qc_tendency, qc_sed, fall_qc, nstep, rnstep, work, parameters, true;
+        substeps, inv_substeps = sub_steps(fall_qc, fall_nc, work)
+        sediment_explicit!(qc_tendency, qc_sed, fall_qc, substeps, inv_substeps, work, parameters, true;
             sedimentation = qc_sedimentation, surface = surface_cloud_liquid, flux = flux_cloud_liquid,
             latent_heat = Lv, evaporation = qc_sedimentation_evaporation, heating = heating_sed_liquid,
             vapor = qv_sed_liquid, fraction = liquid_fraction)
-        sediment_explicit!(nc_tendency, nc_sed, fall_nc, nstep, rnstep, work, parameters, true;
+        sediment_explicit!(nc_tendency, nc_sed, fall_nc, substeps, inv_substeps, work, parameters, true;
             fraction = liquid_fraction, sedimentation = nc_sedimentation)
-        nstep, rnstep = sub_steps(fall_qr, fall_nr, work)
-        sediment_explicit!(qr_tendency, qr_sed, fall_qr, nstep, rnstep, work, parameters, true;
+        substeps, inv_substeps = sub_steps(fall_qr, fall_nr, work)
+        sediment_explicit!(qr_tendency, qr_sed, fall_qr, substeps, inv_substeps, work, parameters, true;
             sedimentation = qr_sedimentation, surface = surface_rain, flux = flux_rain)
-        sediment_explicit!(nr_tendency, nr_sed, fall_nr, nstep, rnstep, work, parameters, true;
+        sediment_explicit!(nr_tendency, nr_sed, fall_nr, substeps, inv_substeps, work, parameters, true;
             sedimentation = nr_sedimentation)
-        nstep, rnstep = sub_steps(fall_qs, fall_ns, work)
-        sediment_explicit!(qs_tendency, qs_sed, fall_qs, nstep, rnstep, work, parameters, true;
+        substeps, inv_substeps = sub_steps(fall_qs, fall_ns, work)
+        sediment_explicit!(qs_tendency, qs_sed, fall_qs, substeps, inv_substeps, work, parameters, true;
             sedimentation = qs_sedimentation, surface = surface_snow, flux = flux_snow,
             surface_ice = surface_frozen_snow)
-        sediment_explicit!(ns_tendency, ns_sed, fall_ns, nstep, rnstep, work, parameters, true;
+        sediment_explicit!(ns_tendency, ns_sed, fall_ns, substeps, inv_substeps, work, parameters, true;
             sedimentation = ns_sedimentation)
-        nstep, rnstep = sub_steps(fall_qg, fall_ng, work)
-        sediment_explicit!(qg_tendency, qg_sed, fall_qg, nstep, rnstep, work, parameters, true;
+        substeps, inv_substeps = sub_steps(fall_qg, fall_ng, work)
+        sediment_explicit!(qg_tendency, qg_sed, fall_qg, substeps, inv_substeps, work, parameters, true;
             sedimentation = qg_sedimentation, surface = surface_graupel, flux = flux_graupel,
             surface_ice = surface_frozen_graupel)
-        sediment_explicit!(ng_tendency, ng_sed, fall_ng, nstep, rnstep, work, parameters, true;
+        sediment_explicit!(ng_tendency, ng_sed, fall_ng, substeps, inv_substeps, work, parameters, true;
             sedimentation = ng_sedimentation)
     end
 

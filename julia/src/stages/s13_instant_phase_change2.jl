@@ -11,7 +11,7 @@ end-of-step temperature across its threshold; tendencies and `tlat` are updated.
 function instant_phase_change_after_sedimentation!(work, parameters)
     (; settings, saturation, hydrometeors) = parameters
     (; cp, Rv, Lv, Ls, Lf, T₀, T_snow_melt, T_rain_freeze) = host_constants(parameters)
-    xxlv_squared = Lv^2
+    Lv_squared = Lv^2
     (; inputs, state, incloud, process_rates, tendencies, diagnostics, scratch) = work
     liquid_fraction = incloud.liquid_fraction  # lcldm
     heating_snow_melting = process_rates.heating.snow_melting  # meltsdttot
@@ -53,7 +53,7 @@ function instant_phase_change_after_sedimentation!(work, parameters)
     ng_tendency = tendencies.graupel.N  # ngtend
     net_condensation = diagnostics.vapor.net_condensation  # cmeout
     λr = incloud.rain.λ  # lamr
-    number_before = scratch.number_before  # dum_2D
+    qv_after_step = scratch.number_before  # dum_2D, here the vapor after the step
     T_estimate = scratch.temperature_estimate  # ttmpA
     qsat_adjusted = scratch.q_sat_adjusted  # qvnA
     qc_sed = scratch.sedimenting.cloud_liquid.q  # dumc
@@ -110,44 +110,44 @@ function instant_phase_change_after_sedimentation!(work, parameters)
         # ❄️💧 melting of snow at +2 °C
         if T[i, k] + heating[i, k] / cp * Δt > T_snow_melt
             if qs_sed[i, k] > 0.0
-                dum = -Lf / cp * qs_sed[i, k]
-                if T[i, k] + heating[i, k] / cp * Δt + dum < T_snow_melt
-                    dum = (T[i, k] + heating[i, k] / cp * Δt - T_snow_melt) * cp / Lf
-                    dum = dum / qs_sed[i, k]
-                    dum = max(0.0, dum)
-                    dum = min(1.0, dum)
+                ΔT_all = -Lf / cp * qs_sed[i, k]  # dum, if all of it changed phase
+                if T[i, k] + heating[i, k] / cp * Δt + ΔT_all < T_snow_melt
+                    melt_fraction = (T[i, k] + heating[i, k] / cp * Δt - T_snow_melt) * cp / Lf
+                    melt_fraction = melt_fraction / qs_sed[i, k]
+                    melt_fraction = max(0.0, melt_fraction)
+                    melt_fraction = min(1.0, melt_fraction)
                 else
-                    dum = 1.0
+                    melt_fraction = 1.0
                 end
-                qs_tendency[i, k] = qs_tendency[i, k] - dum * qs_sed[i, k] * inv_Δt
-                ns_tendency[i, k] = ns_tendency[i, k] - dum * ns_sed[i, k] * inv_Δt
-                qr_tendency[i, k] = qr_tendency[i, k] + dum * qs_sed[i, k] * inv_Δt
-                nr_tendency[i, k] = nr_tendency[i, k] + dum * ns_sed[i, k] * inv_Δt
-                dum1 = -Lf * dum * qs_sed[i, k] * inv_Δt
-                heating[i, k] = heating[i, k] + dum1
-                heating_snow_melting[i, k] = heating_snow_melting[i, k] + dum1
+                qs_tendency[i, k] = qs_tendency[i, k] - melt_fraction * qs_sed[i, k] * inv_Δt
+                ns_tendency[i, k] = ns_tendency[i, k] - melt_fraction * ns_sed[i, k] * inv_Δt
+                qr_tendency[i, k] = qr_tendency[i, k] + melt_fraction * qs_sed[i, k] * inv_Δt
+                nr_tendency[i, k] = nr_tendency[i, k] + melt_fraction * ns_sed[i, k] * inv_Δt
+                latent_heating = -Lf * melt_fraction * qs_sed[i, k] * inv_Δt
+                heating[i, k] = heating[i, k] + latent_heating
+                heating_snow_melting[i, k] = heating_snow_melting[i, k] + latent_heating
             end
         end
 
         # 🟤💧 melting of graupel at +2 °C
         if T[i, k] + heating[i, k] / cp * Δt > T_snow_melt
             if qg_sed[i, k] > 0.0
-                dum = -Lf / cp * qg_sed[i, k]
-                if T[i, k] + heating[i, k] / cp * Δt + dum < T_snow_melt
-                    dum = (T[i, k] + heating[i, k] / cp * Δt - T_snow_melt) * cp / Lf
-                    dum = dum / qg_sed[i, k]
-                    dum = max(0.0, dum)
-                    dum = min(1.0, dum)
+                ΔT_all = -Lf / cp * qg_sed[i, k]  # dum, if all of it changed phase
+                if T[i, k] + heating[i, k] / cp * Δt + ΔT_all < T_snow_melt
+                    melt_fraction = (T[i, k] + heating[i, k] / cp * Δt - T_snow_melt) * cp / Lf
+                    melt_fraction = melt_fraction / qg_sed[i, k]
+                    melt_fraction = max(0.0, melt_fraction)
+                    melt_fraction = min(1.0, melt_fraction)
                 else
-                    dum = 1.0
+                    melt_fraction = 1.0
                 end
-                qg_tendency[i, k] = qg_tendency[i, k] - dum * qg_sed[i, k] * inv_Δt
-                ng_tendency[i, k] = ng_tendency[i, k] - dum * ng_sed[i, k] * inv_Δt
-                qr_tendency[i, k] = qr_tendency[i, k] + dum * qg_sed[i, k] * inv_Δt
-                nr_tendency[i, k] = nr_tendency[i, k] + dum * ng_sed[i, k] * inv_Δt
-                dum1 = -Lf * dum * qg_sed[i, k] * inv_Δt
-                heating[i, k] = heating[i, k] + dum1
-                heating_snow_melting[i, k] = heating_snow_melting[i, k] + dum1
+                qg_tendency[i, k] = qg_tendency[i, k] - melt_fraction * qg_sed[i, k] * inv_Δt
+                ng_tendency[i, k] = ng_tendency[i, k] - melt_fraction * ng_sed[i, k] * inv_Δt
+                qr_tendency[i, k] = qr_tendency[i, k] + melt_fraction * qg_sed[i, k] * inv_Δt
+                nr_tendency[i, k] = nr_tendency[i, k] + melt_fraction * ng_sed[i, k] * inv_Δt
+                latent_heating = -Lf * melt_fraction * qg_sed[i, k] * inv_Δt
+                heating[i, k] = heating[i, k] + latent_heating
+                heating_snow_melting[i, k] = heating_snow_melting[i, k] + latent_heating
                 if settings.constant_graupel_number && (ng[i, k] + ng_tendency[i, k] * Δt) < 0.0
                     ng_tendency[i, k] = -ng[i, k] * inv_Δt
                 end
@@ -165,32 +165,32 @@ function instant_phase_change_after_sedimentation!(work, parameters)
     for k in 1:levels, i in 1:columns
         if T[i, k] + heating[i, k] / cp * Δt < T_rain_freeze
             if qr_sed[i, k] > 0.0
-                dum = Lf / cp * qr_sed[i, k]
-                if T[i, k] + heating[i, k] / cp * Δt + dum > T_rain_freeze
-                    dum = -(T[i, k] + heating[i, k] / cp * Δt - T_rain_freeze) * cp / Lf
-                    dum = dum / qr_sed[i, k]
-                    dum = max(0.0, dum)
-                    dum = min(1.0, dum)
+                ΔT_all = Lf / cp * qr_sed[i, k]  # dum, if all of it changed phase
+                if T[i, k] + heating[i, k] / cp * Δt + ΔT_all > T_rain_freeze
+                    freeze_fraction = -(T[i, k] + heating[i, k] / cp * Δt - T_rain_freeze) * cp / Lf
+                    freeze_fraction = freeze_fraction / qr_sed[i, k]
+                    freeze_fraction = max(0.0, freeze_fraction)
+                    freeze_fraction = min(1.0, freeze_fraction)
                 else
-                    dum = 1.0
+                    freeze_fraction = 1.0
                 end
-                qr_tendency[i, k] = qr_tendency[i, k] - dum * qr_sed[i, k] * inv_Δt
-                nr_tendency[i, k] = nr_tendency[i, k] - dum * nr_sed[i, k] * inv_Δt
+                qr_tendency[i, k] = qr_tendency[i, k] - freeze_fraction * qr_sed[i, k] * inv_Δt
+                nr_tendency[i, k] = nr_tendency[i, k] - freeze_fraction * nr_sed[i, k] * inv_Δt
                 if λr[i, k] < 1.0 / Dcs
                     if settings.do_hail || settings.do_graupel
-                        qg_tendency[i, k] = qg_tendency[i, k] + dum * qr_sed[i, k] * inv_Δt
-                        ng_tendency[i, k] = ng_tendency[i, k] + dum * nr_sed[i, k] * inv_Δt
+                        qg_tendency[i, k] = qg_tendency[i, k] + freeze_fraction * qr_sed[i, k] * inv_Δt
+                        ng_tendency[i, k] = ng_tendency[i, k] + freeze_fraction * nr_sed[i, k] * inv_Δt
                     else
-                        qs_tendency[i, k] = qs_tendency[i, k] + dum * qr_sed[i, k] * inv_Δt
-                        ns_tendency[i, k] = ns_tendency[i, k] + dum * nr_sed[i, k] * inv_Δt
+                        qs_tendency[i, k] = qs_tendency[i, k] + freeze_fraction * qr_sed[i, k] * inv_Δt
+                        ns_tendency[i, k] = ns_tendency[i, k] + freeze_fraction * nr_sed[i, k] * inv_Δt
                     end
                 else
-                    qi_tendency[i, k] = qi_tendency[i, k] + dum * qr_sed[i, k] * inv_Δt
-                    ni_tendency[i, k] = ni_tendency[i, k] + dum * nr_sed[i, k] * inv_Δt
+                    qi_tendency[i, k] = qi_tendency[i, k] + freeze_fraction * qr_sed[i, k] * inv_Δt
+                    ni_tendency[i, k] = ni_tendency[i, k] + freeze_fraction * nr_sed[i, k] * inv_Δt
                 end
-                dum1 = Lf * dum * qr_sed[i, k] * inv_Δt
-                heating_rain_freezing[i, k] = heating_rain_freezing[i, k] + dum1
-                heating[i, k] = heating[i, k] + dum1
+                latent_heating = Lf * freeze_fraction * qr_sed[i, k] * inv_Δt
+                heating_rain_freezing[i, k] = heating_rain_freezing[i, k] + latent_heating
+                heating[i, k] = heating[i, k] + latent_heating
             end
         end
     end
@@ -202,46 +202,46 @@ function instant_phase_change_after_sedimentation!(work, parameters)
         # 🧊💧 melting of cloud ice
         if T[i, k] + heating[i, k] / cp * Δt > T₀
             if qi_sed[i, k] > 0.0
-                dum = -qi_sed[i, k] * Lf / cp
-                if T[i, k] + heating[i, k] / cp * Δt + dum < T₀
-                    dum = (T[i, k] + heating[i, k] / cp * Δt - T₀) * cp / Lf
-                    dum = dum / qi_sed[i, k]
-                    dum = max(0.0, dum)
-                    dum = min(1.0, dum)
+                ΔT_all = -qi_sed[i, k] * Lf / cp  # dum, if all of it changed phase
+                if T[i, k] + heating[i, k] / cp * Δt + ΔT_all < T₀
+                    melt_fraction = (T[i, k] + heating[i, k] / cp * Δt - T₀) * cp / Lf
+                    melt_fraction = melt_fraction / qi_sed[i, k]
+                    melt_fraction = max(0.0, melt_fraction)
+                    melt_fraction = min(1.0, melt_fraction)
                 else
-                    dum = 1.0
+                    melt_fraction = 1.0
                 end
-                qc_tendency[i, k] = qc_tendency[i, k] + dum * qi_sed[i, k] * inv_Δt
-                qi_melting_mean[i, k] = dum * qi_sed[i, k] * inv_Δt
-                ni_melting_mean[i, k] = 3.0 * dum * qi_sed[i, k] * inv_Δt /
+                qc_tendency[i, k] = qc_tendency[i, k] + melt_fraction * qi_sed[i, k] * inv_Δt
+                qi_melting_mean[i, k] = melt_fraction * qi_sed[i, k] * inv_Δt
+                ni_melting_mean[i, k] = 3.0 * melt_fraction * qi_sed[i, k] * inv_Δt /
                                    (4.0 * π * 5.12e-16 * ρ_water)
                 nc_tendency[i, k] = nc_tendency[i, k] + ni_melting_mean[i, k]
-                qi_tendency[i, k] = ((1.0 - dum) * qi_sed[i, k] - qi[i, k]) * inv_Δt
-                ni_tendency[i, k] = ((1.0 - dum) * ni_sed[i, k] - ni[i, k]) * inv_Δt
-                heating[i, k] = heating[i, k] - Lf * dum * qi_sed[i, k] * inv_Δt
+                qi_tendency[i, k] = ((1.0 - melt_fraction) * qi_sed[i, k] - qi[i, k]) * inv_Δt
+                ni_tendency[i, k] = ((1.0 - melt_fraction) * ni_sed[i, k] - ni[i, k]) * inv_Δt
+                heating[i, k] = heating[i, k] - Lf * melt_fraction * qi_sed[i, k] * inv_Δt
             end
         end
 
         # 💧➡️🧊 homogeneous freezing of droplets at -40 °C
         if T[i, k] + heating[i, k] / cp * Δt < 233.15
             if qc_sed[i, k] > 0.0
-                dum = qc_sed[i, k] * Lf / cp
-                if T[i, k] + heating[i, k] / cp * Δt + dum > 233.15
-                    dum = -(T[i, k] + heating[i, k] / cp * Δt - 233.15) * cp / Lf
-                    dum = dum / qc_sed[i, k]
-                    dum = max(0.0, dum)
-                    dum = min(1.0, dum)
+                ΔT_all = qc_sed[i, k] * Lf / cp  # dum, if all of it changed phase
+                if T[i, k] + heating[i, k] / cp * Δt + ΔT_all > 233.15
+                    freeze_fraction = -(T[i, k] + heating[i, k] / cp * Δt - 233.15) * cp / Lf
+                    freeze_fraction = freeze_fraction / qc_sed[i, k]
+                    freeze_fraction = max(0.0, freeze_fraction)
+                    freeze_fraction = min(1.0, freeze_fraction)
                 else
-                    dum = 1.0
+                    freeze_fraction = 1.0
                 end
-                qi_tendency[i, k] = qi_tendency[i, k] + dum * qc_sed[i, k] * inv_Δt
-                qc_homogeneous_freezing_mean[i, k] = dum * qc_sed[i, k] * inv_Δt
-                nc_homogeneous_freezing_mean[i, k] = dum * 3.0 * qc_sed[i, k] /
+                qi_tendency[i, k] = qi_tendency[i, k] + freeze_fraction * qc_sed[i, k] * inv_Δt
+                qc_homogeneous_freezing_mean[i, k] = freeze_fraction * qc_sed[i, k] * inv_Δt
+                nc_homogeneous_freezing_mean[i, k] = freeze_fraction * 3.0 * qc_sed[i, k] /
                                    (4.0 * 3.14 * homog_size^3.0 * 500.0) * inv_Δt
                 ni_tendency[i, k] = ni_tendency[i, k] + nc_homogeneous_freezing_mean[i, k]
-                qc_tendency[i, k] = ((1.0 - dum) * qc_sed[i, k] - qc[i, k]) * inv_Δt
-                nc_tendency[i, k] = ((1.0 - dum) * nc_sed[i, k] - nc[i, k]) * inv_Δt
-                heating[i, k] = heating[i, k] + Lf * dum * qc_sed[i, k] * inv_Δt
+                qc_tendency[i, k] = ((1.0 - freeze_fraction) * qc_sed[i, k] - qc[i, k]) * inv_Δt
+                nc_tendency[i, k] = ((1.0 - freeze_fraction) * nc_sed[i, k] - nc[i, k]) * inv_Δt
+                heating[i, k] = heating[i, k] + Lf * freeze_fraction * qc_sed[i, k] * inv_Δt
             end
         end
 
@@ -251,7 +251,7 @@ function instant_phase_change_after_sedimentation!(work, parameters)
             ni_tendency[i, k] = max(0.0, (max_nicons * ice_fraction[i, k] / ρ[i, k] - ni[i, k]) / Δt)
         end
 
-        number_before[i, k] = qv[i, k] + qv_tendency[i, k] * Δt
+        qv_after_step[i, k] = qv[i, k] + qv_tendency[i, k] * Δt
         T_estimate[i, k] = T[i, k] + heating[i, k] / cp * Δt
     end
 
@@ -261,29 +261,29 @@ function instant_phase_change_after_sedimentation!(work, parameters)
 
     # 🌫️ remove the supersaturation left by the sum of all processes
     for k in 1:levels, i in 1:columns
-        if number_before[i, k] > qsat_adjusted[i, k] && qsat_adjusted[i, k] > 0 && settings.remove_supersaturation
-            dum = (number_before[i, k] - qsat_adjusted[i, k]) /
-                  (1.0 + xxlv_squared * qsat_adjusted[i, k] / (cp * Rv * (T_estimate[i, k] * T_estimate[i, k]))) *
+        if qv_after_step[i, k] > qsat_adjusted[i, k] && qsat_adjusted[i, k] > 0 && settings.remove_supersaturation
+            condensation_liquid = (qv_after_step[i, k] - qsat_adjusted[i, k]) /
+                  (1.0 + Lv_squared * qsat_adjusted[i, k] / (cp * Rv * (T_estimate[i, k] * T_estimate[i, k]))) *
                   inv_Δt
-            net_condensation[i, k] = net_condensation[i, k] + dum
+            net_condensation[i, k] = net_condensation[i, k] + condensation_liquid
             if T_estimate[i, k] > 268.15
-                dum1 = 0.0
+                ice_share = 0.0
             elseif T_estimate[i, k] < 238.15
-                dum1 = 1.0
+                ice_share = 1.0
             else
-                dum1 = (268.15 - T_estimate[i, k]) / 30.0
+                ice_share = (268.15 - T_estimate[i, k]) / 30.0
             end
-            latent = Ls * dum1 + Lv * (1.0 - dum1)
-            dum = (number_before[i, k] - qsat_adjusted[i, k]) /
+            latent = Ls * ice_share + Lv * (1.0 - ice_share)
+            condensation = (qv_after_step[i, k] - qsat_adjusted[i, k]) /
                   (1.0 + latent * latent * qsat_adjusted[i, k] / (cp * Rv * (T_estimate[i, k] * T_estimate[i, k]))) *
                   inv_Δt
-            qc_tendency[i, k] = qc_tendency[i, k] + dum * (1.0 - dum1)
-            qc_residual_condensation[i, k] = dum * (1.0 - dum1)
-            qi_tendency[i, k] = qi_tendency[i, k] + dum * dum1
-            qi_residual_deposition[i, k] = dum * dum1
-            qv_tendency[i, k] = qv_tendency[i, k] - dum
-            qv_residual_condensation[i, k] = -dum
-            heating[i, k] = heating[i, k] + dum * (1.0 - dum1) * Lv + dum * dum1 * Ls
+            qc_tendency[i, k] = qc_tendency[i, k] + condensation * (1.0 - ice_share)
+            qc_residual_condensation[i, k] = condensation * (1.0 - ice_share)
+            qi_tendency[i, k] = qi_tendency[i, k] + condensation * ice_share
+            qi_residual_deposition[i, k] = condensation * ice_share
+            qv_tendency[i, k] = qv_tendency[i, k] - condensation
+            qv_residual_condensation[i, k] = -condensation
+            heating[i, k] = heating[i, k] + condensation * (1.0 - ice_share) * Lv + condensation * ice_share * Ls
         end
     end
     return nothing

@@ -47,7 +47,7 @@ function ice_snow_processes!(work, parameters)
     qg = state.graupel.q
     ng = state.graupel.N
     precip_fraction = incloud.precipitation_fraction  # precip_frac
-    number_before = scratch.number_before  # dum_2D
+    λ_power = scratch.number_before  # dum_2D, here λ to the fall speed exponent
     qc_cloud = incloud.cloud_liquid.q  # qcic
     nc_cloud = incloud.cloud_liquid.N  # ncic
     μc = incloud.cloud_liquid.μ  # pgam
@@ -149,9 +149,9 @@ function ice_snow_processes!(work, parameters)
     br = fall_speed_law.rain.b
     for k in 1:levels, i in 1:columns
         if λr[i, k] >= smallest_mixing_ratio
-            number_before[i, k] = λr[i, k]^br
-            vr_number[i, k] = min(a_rain[i, k] * gamma.rain_plus1 / number_before[i, k], 9.1 * ρ_correction[i, k])
-            vr_mass[i, k] = min(a_rain[i, k] * gamma.rain_plus4 / (6.0 * number_before[i, k]),
+            λ_power[i, k] = λr[i, k]^br
+            vr_number[i, k] = min(a_rain[i, k] * gamma.rain_plus1 / λ_power[i, k], 9.1 * ρ_correction[i, k])
+            vr_mass[i, k] = min(a_rain[i, k] * gamma.rain_plus4 / (6.0 * λ_power[i, k]),
                 9.1 * ρ_correction[i, k])
         else
             vr_mass[i, k] = 0.0
@@ -170,11 +170,11 @@ function ice_snow_processes!(work, parameters)
             vs_mass[i, k] = λs[i, k] > 0.0 ? 1.0 : 0.0
             vs_number[i, k] = λs[i, k] > 0.0 ? 1.0 : 0.0
         elseif λs[i, k] > 0.0
-            number_before[i, k] = λs[i, k]^bs
-            vs_mass[i, k] = min(a_snow[i, k] * gamma.snow_plus4 / (6.0 * number_before[i, k]),
+            λ_power[i, k] = λs[i, k]^bs
+            vs_mass[i, k] = min(a_snow[i, k] * gamma.snow_plus4 / (6.0 * λ_power[i, k]),
                 1.2 * ρ_correction[i, k])
             vs_mass[i, k] = vs_mass[i, k] * settings.snow_fall_speed_factor
-            vs_number[i, k] = min(a_snow[i, k] * gamma.snow_plus1 / number_before[i, k], 1.2 * ρ_correction[i, k])
+            vs_number[i, k] = min(a_snow[i, k] * gamma.snow_plus1 / λ_power[i, k], 1.2 * ρ_correction[i, k])
         else
             vs_mass[i, k] = 0.0
             vs_number[i, k] = 0.0
@@ -192,10 +192,10 @@ function ice_snow_processes!(work, parameters)
     end
     for k in 1:levels, i in 1:columns
         if λg[i, k] > 0.0
-            number_before[i, k] = λg[i, k]^dense.b
-            vg_mass[i, k] = min(a_graupel[i, k] * gamma.graupel_plus4 / (6.0 * number_before[i, k]),
+            λ_power[i, k] = λg[i, k]^dense.b
+            vg_mass[i, k] = min(a_graupel[i, k] * gamma.graupel_plus4 / (6.0 * λ_power[i, k]),
                 20.0 * ρ_correction[i, k])
-            vg_number[i, k] = min(a_graupel[i, k] * gamma.graupel_plus1 / number_before[i, k],
+            vg_number[i, k] = min(a_graupel[i, k] * gamma.graupel_plus1 / λ_power[i, k],
                 20.0 * ρ_correction[i, k])
         else
             vg_mass[i, k] = 0.0
@@ -292,15 +292,15 @@ function ice_snow_processes!(work, parameters)
         qr_kk2000 = process_rates.rain.warm_rain_kk2000.mass  # qrtend_KK2000
         nr_kk2000 = process_rates.rain.warm_rain_kk2000.number  # nrtend_KK2000
         for k in 1:levels, i in 1:columns
-            rtmp = qr_precip[i, k]
-            ctmp = qc_cloud[i, k]
-            ntmp = nc_cloud[i, k]
+            qr_for_accretion = qr_precip[i, k]
+            qc_for_accretion = qc_cloud[i, k]
+            nc_for_accretion = nc_cloud[i, k]
             if settings.accretion_sees_autoconversion
-                rtmp = rtmp + qc_autoconversion[i, k] * Δt
-                ctmp = ctmp - qc_autoconversion[i, k] * Δt
-                ntmp = ntmp - nr_autoconversion[i, k] * Δt
+                qr_for_accretion = qr_for_accretion + qc_autoconversion[i, k] * Δt
+                qc_for_accretion = qc_for_accretion - qc_autoconversion[i, k] * Δt
+                nc_for_accretion = nc_for_accretion - nr_autoconversion[i, k] * Δt
             end
-            rate = accretion(parameters, rtmp, ctmp, ntmp, relative_variance[i, k], accretion_enhancement[i, k])
+            rate = accretion(parameters, qr_for_accretion, qc_for_accretion, nc_for_accretion, relative_variance[i, k], accretion_enhancement[i, k])
             qc_accretion[i, k], nc_accretion[i, k] = rate.mass, rate.droplet_number
         end
         for k in 1:levels, i in 1:columns

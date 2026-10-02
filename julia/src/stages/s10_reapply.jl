@@ -27,7 +27,7 @@ function reapply_instant_changes!(work, parameters)
     qg_in = inputs.graupel.q  # qgr
     ng_in = inputs.graupel.N  # ngr
     droplet_activation = inputs.activated_droplets  # npccn
-    number_before = scratch.number_before  # dum_2D
+    before = scratch.number_before  # dum_2D, here the value before the reset
     nc_tendency = tendencies.cloud_liquid.N  # nctend
     qs_tendency = tendencies.snow.q  # qstend
     ns_tendency = tendencies.snow.N  # nstend
@@ -42,24 +42,24 @@ function reapply_instant_changes!(work, parameters)
     for k in 1:levels, i in 1:columns
         nc[i, k] = nc_in[i, k]
         nc_tendency[i, k] = nc_tendency[i, k] + droplet_activation[i, k]
-        number_before[i, k] = qs[i, k]
+        before[i, k] = qs[i, k]
         qs[i, k] = qs_in[i, k]
-        qs_tendency[i, k] = qs_tendency[i, k] + (number_before[i, k] - qs[i, k]) * inv_Δt
-        number_before[i, k] = ns[i, k]
+        qs_tendency[i, k] = qs_tendency[i, k] + (before[i, k] - qs[i, k]) * inv_Δt
+        before[i, k] = ns[i, k]
         ns[i, k] = ns_in[i, k]
-        ns_tendency[i, k] = ns_tendency[i, k] + (number_before[i, k] - ns[i, k]) * inv_Δt
-        number_before[i, k] = qr[i, k]
+        ns_tendency[i, k] = ns_tendency[i, k] + (before[i, k] - ns[i, k]) * inv_Δt
+        before[i, k] = qr[i, k]
         qr[i, k] = qr_in[i, k]
-        qr_tendency[i, k] = qr_tendency[i, k] + (number_before[i, k] - qr[i, k]) * inv_Δt
-        number_before[i, k] = nr[i, k]
+        qr_tendency[i, k] = qr_tendency[i, k] + (before[i, k] - qr[i, k]) * inv_Δt
+        before[i, k] = nr[i, k]
         nr[i, k] = nr_in[i, k]
-        nr_tendency[i, k] = nr_tendency[i, k] + (number_before[i, k] - nr[i, k]) * inv_Δt
-        number_before[i, k] = qg[i, k]
+        nr_tendency[i, k] = nr_tendency[i, k] + (before[i, k] - nr[i, k]) * inv_Δt
+        before[i, k] = qg[i, k]
         qg[i, k] = qg_in[i, k]
-        qg_tendency[i, k] = qg_tendency[i, k] + (number_before[i, k] - qg[i, k]) * inv_Δt
-        number_before[i, k] = ng[i, k]
+        qg_tendency[i, k] = qg_tendency[i, k] + (before[i, k] - qg[i, k]) * inv_Δt
+        before[i, k] = ng[i, k]
         ng[i, k] = ng_in[i, k]
-        ng_tendency[i, k] = ng_tendency[i, k] + (number_before[i, k] - ng[i, k]) * inv_Δt
+        ng_tendency[i, k] = ng_tendency[i, k] + (before[i, k] - ng[i, k]) * inv_Δt
         precip_evaporation[i, k] = precip_evaporation[i, k] + qs_sublimation_mean[i, k]
         precip_production[i, k] = precip_production[i, k] + qs_production[i, k]
     end

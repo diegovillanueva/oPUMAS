@@ -148,19 +148,19 @@ function sedimentation_fall_speeds!(work, parameters)
     bc = fall_speed_law.cloud_liquid.b
     for k in 1:levels, i in 1:columns
         if qc_sed[i, k] >= smallest_mixing_ratio
-            dum1 = 4.0 + bc + μc[i, k]
-            dum2 = μc[i, k] + 4.0
-            vc_mass[i, k] = a_cloud_liquid[i, k] * gamma_function(dum1) /
-                          (λc[i, k]^bc * gamma_function(dum2))
+            mass_gamma_top = 4.0 + bc + μc[i, k]
+            mass_gamma_bottom = μc[i, k] + 4.0
+            vc_mass[i, k] = a_cloud_liquid[i, k] * gamma_function(mass_gamma_top) /
+                          (λc[i, k]^bc * gamma_function(mass_gamma_bottom))
             if settings.ifs_snow_fall_speed
                 fall_qc[i, k] = 0.0
                 fall_nc[i, k] = 0.0
             else
-                dum3 = 1.0 + bc + μc[i, k]
-                dum4 = μc[i, k] + 1.0
+                number_gamma_top = 1.0 + bc + μc[i, k]
+                number_gamma_bottom = μc[i, k] + 1.0
                 fall_qc[i, k] = g * ρ[i, k] * vc_mass[i, k]
-                fall_nc[i, k] = g * ρ[i, k] * a_cloud_liquid[i, k] * gamma_function(dum3) /
-                            (λc[i, k]^bc * gamma_function(dum4))
+                fall_nc[i, k] = g * ρ[i, k] * a_cloud_liquid[i, k] * gamma_function(number_gamma_top) /
+                            (λc[i, k]^bc * gamma_function(number_gamma_bottom))
             end
         else
             fall_qc[i, k] = 0.0
@@ -218,10 +218,10 @@ function sedimentation_fall_speeds!(work, parameters)
     br = fall_speed_law.rain.b
     for i in 1:columns, k in 1:levels
         if λr[i, k] >= smallest_mixing_ratio
-            qtmp = λr[i, k]^br
-            vr_number[i, k] = min(a_rain[i, k] * gamma.rain_plus1 / qtmp, 9.1 * ρ_correction[i, k])
+            λ_power = λr[i, k]^br
+            vr_number[i, k] = min(a_rain[i, k] * gamma.rain_plus1 / λ_power, 9.1 * ρ_correction[i, k])
             fall_nr[i, k] = g * ρ[i, k] * vr_number[i, k]
-            vr_mass[i, k] = min(a_rain[i, k] * gamma.rain_plus4 / (6.0 * qtmp), 9.1 * ρ_correction[i, k])
+            vr_mass[i, k] = min(a_rain[i, k] * gamma.rain_plus4 / (6.0 * λ_power), 9.1 * ρ_correction[i, k])
             fall_qr[i, k] = g * ρ[i, k] * vr_mass[i, k]
         else
             fall_qr[i, k] = 0.0
@@ -242,11 +242,11 @@ function sedimentation_fall_speeds!(work, parameters)
     bs = fall_speed_law.snow.b
     for i in 1:columns, k in 1:levels
         if λs[i, k] >= smallest_mixing_ratio
-            qtmp = λs[i, k]^bs
-            vs_mass[i, k] = min(a_snow[i, k] * gamma.snow_plus4 / (6.0 * qtmp), 1.2 * ρ_correction[i, k])
+            λ_power = λs[i, k]^bs
+            vs_mass[i, k] = min(a_snow[i, k] * gamma.snow_plus4 / (6.0 * λ_power), 1.2 * ρ_correction[i, k])
             vs_mass[i, k] = vs_mass[i, k] * settings.snow_fall_speed_factor
             fall_qs[i, k] = g * ρ[i, k] * vs_mass[i, k]
-            vs_number[i, k] = min(a_snow[i, k] * gamma.snow_plus1 / qtmp, 1.2 * ρ_correction[i, k])
+            vs_number[i, k] = min(a_snow[i, k] * gamma.snow_plus1 / λ_power, 1.2 * ρ_correction[i, k])
             fall_ns[i, k] = g * ρ[i, k] * vs_number[i, k]
             if settings.ifs_snow_fall_speed
                 vs_mass[i, k] = 1.0
@@ -270,11 +270,11 @@ function sedimentation_fall_speeds!(work, parameters)
     # 🟤 graupel or hail
     for i in 1:columns, k in 1:levels
         if λg[i, k] >= smallest_mixing_ratio
-            qtmp = λg[i, k]^dense.b
-            vg_mass[i, k] = min(a_graupel[i, k] * gamma.graupel_plus4 / (6.0 * qtmp),
+            λ_power = λg[i, k]^dense.b
+            vg_mass[i, k] = min(a_graupel[i, k] * gamma.graupel_plus4 / (6.0 * λ_power),
                 20.0 * ρ_correction[i, k])
             fall_qg[i, k] = g * ρ[i, k] * vg_mass[i, k]
-            vg_number[i, k] = min(a_graupel[i, k] * gamma.graupel_plus1 / qtmp, 20.0 * ρ_correction[i, k])
+            vg_number[i, k] = min(a_graupel[i, k] * gamma.graupel_plus1 / λ_power, 20.0 * ρ_correction[i, k])
             fall_ng[i, k] = g * ρ[i, k] * vg_number[i, k]
         else
             fall_qg[i, k] = 0.0
