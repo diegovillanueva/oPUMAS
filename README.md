@@ -54,3 +54,4 @@ python3 translation/check.py --branches   # CF-CCPP is exactly the translation o
 
 - 📝 `code_analysis/` holds per-topic notes on where schemes live in the source (e.g. `code_analysis/PUMAS_immersion_freezing.md`).
 - 🗺️ Start with the stage map of `micro_pumas_tend`: [`code_analysis/PUMAS_stage_map.md`](code_analysis/PUMAS_stage_map.md) (16 stages with line ranges, search anchors and a checklist for adding a process).
+- 🖥️👓 Vim-friendly emoji twin without tables: [`code_analysis/PUMAS_stage_map.em.md`](code_analysis/PUMAS_stage_map.em.md) (`*.em.md` = plain-text layout, readable in a terminal).
