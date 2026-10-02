@@ -2,3 +2,7 @@ __pycache__/
 .pytest_cache/
 *.o
 *.mod
+tests/column/build/
+tests/column/data/
+tests/column/dump/make_case.log
+*.swp

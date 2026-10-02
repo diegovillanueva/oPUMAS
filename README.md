@@ -7,8 +7,9 @@
 - 📘📄 Original upstream README (checkout, running with CAM): [`README_PUMAS.md`](README_PUMAS.md)
 - 🐙🔁 Git setup, daily upstream sync, and (disabled) PR recipe: [`git_work.md`](git_work.md)
 - 🤖📋 Agent rules: [`AGENTS.md`](AGENTS.md)
-- 🧪♻️ Compile check, bit-for-bit test and switch matrix: [`tests/README.md`](tests/README.md)
+- 🧪♻️ Compile check, bit-for-bit test and switch matrix: [`tests/README.md`](tests/README.md); column driver and golden data: [`tests/column/README.md`](tests/column/README.md)
 - 🤝📂 Handoffs of all topics: [`handoffs/`](handoffs/)
+- 🟣📖 Readable Julia twin (in progress): [`julia/README.md`](julia/README.md); plan in [`handoffs/julia.plan.md`](handoffs/julia.plan.md)
 - 🧊🔌 Run oPUMAS inside CESM 2.1.5 CAM (`micro_mg_version = 3`): [`interface/cesm215/README.md`](interface/cesm215/README.md)
 
 ## Remotes and branches
@@ -38,6 +39,7 @@
 ```bash
 tests/compile_check.sh                    # PUMAS files and CAM overrides compile (about 40 s, herdr-compute)
 tests/bfb.sh run                          # 1-day CESM 2.1.5 run is bit-for-bit with the baseline (about 15 min)
+tests/column/run.sh                       # column driver self-check and golden files for julia/ (under 1 min)
 python3 -m pytest -q translation          # translator tests
 python3 translation/check.py              # dictionary against the sources
 python3 translation/check.py --branches   # CF-CCPP is exactly the translation of main_cam_interface

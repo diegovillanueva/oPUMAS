@@ -29,3 +29,10 @@
 
 - 📝🔎 Where a scheme lives and what it does is documented in `code_analysis/`, next to the code.
 - 🧾📌 Every interface documents its switches, defaults and reference versions in its own `README.md`, and its open work in a `TODO.md`.
+
+## 5. 🟣📖 The Julia twin is a reader's edition
+
+- 🟣🪞 `julia/` holds a hand-written Julia twin of `micro_pumas_v1` and the parts of `micro_pumas_utils` it uses, written for reading and experimenting offline.
+- ⚖️🧪 It is verified numerically against the Fortran (standalone column driver in `tests/column/`), never run inside CESM; the Fortran stays the code CESM runs.
+- 🔗🏷️ Every Julia function names its Fortran twin in its docstring, and `julia/TWINS.csv` lists the pairs, so a change on one side can be carried to the other.
+- 🧮🔁 Same arithmetic in the same order as the Fortran: no physics changes, no fused multiply-add; oddities found while translating go to `julia/FINDINGS.md`.
