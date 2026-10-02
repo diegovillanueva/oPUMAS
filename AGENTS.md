@@ -9,3 +9,4 @@
 🌿🔁 Two editable branches: `main_cam_interface` (PUMAS names) and `CF-CCPP` (translated). Run `translation/sync.sh` before and after working on `CF-CCPP`, then `python3 translation/check.py --branches`, then push both to `origin`. Upstream merges and dictionary edits go to `main_cam_interface` only.
 🤝📂 Handoffs live in `handoffs/<topic>.<shorthash or name>.md` at the repo root, not next to the scripts (this overrides the global rule).
 🧪♻️ Before committing Fortran changes run `tests/compile_check.sh`; before committing anything that could change results run `tests/bfb.sh run` (see `tests/README.md`).
+🟣🧪 Julia twin: run `julia/tools/julia.sh -e 'using Pkg; Pkg.test()'` before committing anything in `julia/`; follow `handoffs/julia.plan.md` and principle 5 of `PHILOSOPHY.md`.

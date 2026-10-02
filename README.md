@@ -9,7 +9,7 @@
 - 🤖📋 Agent rules: [`AGENTS.md`](AGENTS.md)
 - 🧪♻️ Compile check, bit-for-bit test and switch matrix: [`tests/README.md`](tests/README.md)
 - 🤝📂 Handoffs of all topics: [`handoffs/`](handoffs/)
-- 🟣📖 Plan for the readable Julia twin (not started): [`handoffs/julia.plan.md`](handoffs/julia.plan.md)
+- 🟣📖 Readable Julia twin (in progress): [`julia/README.md`](julia/README.md); plan in [`handoffs/julia.plan.md`](handoffs/julia.plan.md)
 - 🧊🔌 Run oPUMAS inside CESM 2.1.5 CAM (`micro_mg_version = 3`): [`interface/cesm215/README.md`](interface/cesm215/README.md)
 
 ## Remotes and branches
