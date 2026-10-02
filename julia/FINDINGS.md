@@ -64,3 +64,8 @@
 - 📍 `pumas_stochastic_collect_tau.F90`, `cam_bin_distribute`: the bin of least mass between the cloud and rain peaks is only searched if `(max_qc/max_qr < 10._r8) .or. (max_qc/max_qr > 0.1_r8)`, which holds for every positive ratio.
 - 🐛🤔 An `.and.` (peaks within a factor 10 of each other) was probably meant. The search loop also runs from the cloud peak to the rain peak only, so when the rain peak lies below the cloud peak the cut stays at 40 μm.
 - 🟣 The twin keeps the `.or.` and says so in a comment.
+
+## 📊🚫 The MG4 lookup-table routines are never called
+- 📍 `micro_pumas_utils.F90` defines and exports `init_lookup_table`, `access_lookup_table`, `access_lookup_table_coll`, `ice_deposition_sublimation_mg4`, `evaporate_sublimate_precip_mg4`, `evaporate_sublimate_precip_graupel_mg4`, `ice_self_aggregation`, `accrete_cloud_water_ice` and `accrete_rain_ice`, left from the MG4 branch (`b6df45d`).
+- 🔎 Nothing calls them: not `micro_pumas_v1.F90`, not `micro_pumas_ccpp.F90`, not `interface/*`, not CAM. No lookup table file ships with PUMAS either.
+- 🟣 So they have no twin: without a call site there is nothing to check a translation against. Milestone M8 lists them as dropped.

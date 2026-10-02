@@ -42,6 +42,7 @@ include("stages/s13_instant_phase_change2.jl")
 include("stages/s14_effective_radius.jl")
 include("stages/s15_output_diagnostics.jl")
 include("step.jl")
+include("time_loop.jl")
 
 export gamma_function
 export SaturationConstants, saturation_over_water, saturation_over_ice
@@ -61,6 +62,6 @@ export snow_collection_by_rain, droplet_collection_by_graupel, rimed_snow_to_gra
 export rain_collection_by_graupel, rain_snow_collisions_to_graupel
 export rime_splintering_by_graupel, add_rain_cloud_effective_radius
 export ColumnInputs, read_inputs, allocate, output_paths, field_at
-export microphysics_step!
+export microphysics_step!, advance_state!, time_loop!
 
 end

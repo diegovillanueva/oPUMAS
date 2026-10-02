@@ -65,6 +65,9 @@ if [[ "${SPPE_ROWS:-1}" == 1 ]]; then
 	golden_rows "${here}/build/sppe/pumas_column_sppe" "${here}/switches_sppe.csv"
 	python3 "${here}/compare.py" --quiet golden_sppe_base.nc golden_base.nc
 fi
+# ⏱️📈 Time loop: 48 steps (8 h) of the base settings with forward Euler between calls.
+"${driver}" settings_base.nml golden_inputs.nc golden_loop.nc 48 >/dev/null
+echo "${DATA}/golden_loop.nc"
 # 🔬🧷 Process-level data: arguments of every process call in the base step.
 PUMAS_CAPTURE_FILE="${DATA}/golden_processes.nc" "${capture}" "${SOURCE}/settings.nml" \
 	golden_inputs.nc capture_base.nc >/dev/null

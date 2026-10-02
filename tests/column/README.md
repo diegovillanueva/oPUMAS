@@ -6,7 +6,7 @@
 
 | File | What it does |
 |---|---|
-| `driver.F90` | 🛠️ Standalone program: reads `settings.nml` and an inputs file, calls `micro_pumas_init` and `micro_pumas_tend` exactly as `interface/cesm215/micro_mg_cam.F90` does, writes all outputs and every allocated `proc_rates` field. |
+| `driver.F90` | 🛠️ Standalone program: reads `settings.nml` and an inputs file, calls `micro_pumas_init` and `micro_pumas_tend` exactly as `interface/cesm215/micro_mg_cam.F90` does, writes all outputs and every allocated `proc_rates` field. An optional fourth argument `nsteps` repeats the call with forward Euler between calls (twin of `time_loop!` in `julia/src/time_loop.jl`). |
 | `pumas_column_io.F90` | 📤 Shared NetCDF writer used by the driver and by the CAM dump, so both files have the same layout. |
 | `build.sh` | 🧱 Builds the driver with gfortran 12.2 at `-O0 -ffp-contract=off` (about 30 s). `OPT=-O2` mimics the CESM build; `CAPTURE=1` builds the capture variant. |
 | `capture/` | 🔬 `patch_v1.py` copies `micro_pumas_v1.F90` with a record of every process call (76 call sites) before and after the call; `pumas_column_capture.F90` writes them. |
@@ -28,7 +28,7 @@ tests/column/run.sh
 ```
 
 📂 Stored columns (`SOURCE`): `/cluster/work/climate/dvillanueva/opumas_column/source/` with `inputs.nc`, `cam_outputs.nc`, `synthetic_inputs.nc`, `settings.nml` and `coverage.csv`.
-📂 Golden files (`DATA`, git-ignored): `tests/column/data/` with `golden_inputs.nc`, `golden_<label>.nc` per switch row, `golden_processes.nc` (base settings), `golden_processes_sb2001.nc` (Seifert-Beheng warm rain, whose routines never run in the base settings) and `selfcheck.log`.
+📂 Golden files (`DATA`, git-ignored): `tests/column/data/` with `golden_inputs.nc`, `golden_<label>.nc` per switch row, `golden_processes.nc` (base settings), `golden_processes_sb2001.nc` (Seifert-Beheng warm rain, whose routines never run in the base settings), `golden_loop.nc` (outputs of step 48 of the base settings with `nsteps = 48`) and `selfcheck.log`.
 
 ## ✅🔁 Checks done by `run.sh`
 

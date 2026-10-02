@@ -10,6 +10,7 @@ include("processes.jl")
     include("test_warm_rain.jl")
     include("test_ice_processes.jl")
     include("test_step.jl")
+    include("test_time_loop.jl")
     include("test_physics.jl")
 end
 

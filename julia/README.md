@@ -20,12 +20,12 @@ julia/tools/julia.sh -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
 ## 📂 Layout
 
 - 📦 `src/`: the package (`oPUMAS.jl` includes everything; `libm.jl` first). Foundations (constants, saturation, hydrometeors, parameters, namelist, size distributions) at the top, one file per process family in `src/processes/`: `warm_rain`, `aggregation` (ice and snow), `riming` (snow collecting droplets and rain), `freezing`, `deposition` (vapor growth, Bergeron, evaporation), `graupel`, `effective_radius`.
-- 🪜 The time step: `names.jl` (PUMAS name → container path tables, `output_paths()`), `workspace.jl` (`ColumnInputs`, `read_inputs`, `allocate`), `stages/s01_…s15_*.jl` (one file per stage of `micro_pumas_tend`; each binds its fields to readable locals with the PUMAS name in a comment, `qc_autoconversion = rates.cloud_liquid.autoconversion_to_rain.mass  # prc`; constants and densities in `stages/common.jl`) and `step.jl` (`microphysics_step!`).
-- 🧪 `test/`: tests against the golden files from `tests/column/`. `processes.jl` replays captured Fortran calls; one `test_<topic>.jl` per topic (`test_ice_processes.jl` covers every ice, snow, graupel and vapor process; `test_step.jl` runs the full step against every `golden_<label>.nc`; `test_physics.jl` checks water and energy budgets, negative mixing ratios and a clear dry column without the Fortran).
+- 🪜 The time step: `names.jl` (PUMAS name → container path tables, `output_paths()`), `workspace.jl` (`ColumnInputs`, `read_inputs`, `allocate`), `stages/s01_…s15_*.jl` (one file per stage of `micro_pumas_tend`; each binds its fields to readable locals with the PUMAS name in a comment, `qc_autoconversion = rates.cloud_liquid.autoconversion_to_rain.mass  # prc`; constants and densities in `stages/common.jl`) `step.jl` (`microphysics_step!`) and `time_loop.jl` (`time_loop!`, `advance_state!`).
+- 🧪 `test/`: tests against the golden files from `tests/column/`. `processes.jl` replays captured Fortran calls; one `test_<topic>.jl` per topic (`test_ice_processes.jl` covers every ice, snow, graupel and vapor process; `test_step.jl` runs the full step against every `golden_<label>.nc`; `test_time_loop.jl` runs 48 steps against `golden_loop.nc`; `test_physics.jl` checks water and energy budgets, negative mixing ratios and a clear dry column without the Fortran).
 - 📋 `TWINS.csv`: Julia function, Fortran file and routine, upstream commit translated.
 - 🔣 `SYMBOLS.md`: every short symbol used inside functions, every stage local with its container path and PUMAS name.
 - 🐛 `FINDINGS.md`: oddities of the Fortran met while translating.
-- 🛠️ `tools/`: the `julia.sh` wrapper, `format.sh`, `check_twins.sh <old>..<new>`, which lists the twins whose Fortran routines changed between two commits, and `check_names.jl` (`julia/tools/julia.sh --project=julia julia/tools/check_names.jl`), which checks that every `Julia` path of `translation/dictionary.csv` exists and every exported twin names its Fortran routine in a `Fortran twin:` docstring line.
+- 🛠️ `tools/`: the `julia.sh` wrapper, `format.sh`, `check_twins.sh <old>..<new>`, which lists the twins whose Fortran routines changed between two commits, and `check_names.jl` (`julia/tools/julia.sh --project=julia julia/tools/check_names.jl`), which checks that every `Julia` path of `translation/dictionary.csv` exists and every exported twin names its Fortran routine in a `Fortran twin:` docstring line; `column_loop.jl` and `plot_column_loop.py` for the offline time loop (below).
 - 📐🧱 `DESIGN.md`: the container design of the time step and how it was built.
 - 🗺️ Plan and milestones: [`../handoffs/julia.plan.md`](../handoffs/julia.plan.md).
 
@@ -45,6 +45,19 @@ field_at(work, Dict(output_paths())[:qrout])  # any output by its PUMAS name
 - 📥 `read_inputs` reads a file in the layout of `golden_inputs.nc` (`tests/column/run.sh` writes one from the CAM column dump); for other data call `ColumnInputs(; time_step, t, q, qcn, ...)` with (column, level) matrices, level 1 at the top.
 - 🎛️ `read_settings` reads a `&pumas_settings` namelist as `tests/column/run.sh` writes it (`name = value` per line, CAM namelist names); entries left out keep the `Settings` defaults, unknown entries are an error.
 - 🔁 The workspace is allocated once and overwritten by every call, so a time loop calls `microphysics_step!` again after updating `work.inputs` in place.
+
+## ⏱️📈 Offline single-column time loop
+
+🔁🧊 `time_loop!(work, parameters, steps)` calls `microphysics_step!` `steps` times and, between calls, applies the tendencies to the state in `work.inputs` with forward Euler (`advance_state!`: `T += tlat / cpair * Δt`, `x = max(x + tendency * Δt, 0)` for vapor and every q and N). 🌍🔒 Host forcing (cloud fractions, activated nuclei, pressure) stays fixed, so this is a microphysics box model, not a forecast. 🧪✅ Its twin is the `nsteps` argument of `tests/column/driver.F90`; 48 steps under the base settings are bit-for-bit on all 155 outputs (`golden_loop.nc`).
+
+```bash
+# inside herdr-compute, from the repo root; one day of 600 s steps, 209 columns, about 30 s
+julia/tools/julia.sh julia/tools/column_loop.jl tests/column/data/settings_base.nml \
+    tests/column/data/golden_inputs.nc tests/column/data/loop/column_loop_base.nc 144
+source ~/conda; python3 julia/tools/plot_column_loop.py tests/column/data/loop/column_loop_base.nc
+```
+
+🖼️📝 The plot shows the three wettest columns (`--columns 3 17` to choose) as time-pressure panels of ΔT, cloud liquid, cloud ice, rain and snow, plus surface precipitation; its notes go to the companion `.md`.
 
 ## ➕🧩 Add a process
 

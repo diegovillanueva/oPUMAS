@@ -2,6 +2,9 @@
 ! 🔁🧊 Reads one inputs NetCDF and one settings namelist, calls micro_pumas_init and
 ! micro_pumas_tend exactly as CAM does (interface/cesm215/micro_mg_cam.F90), and writes
 ! every output and every allocated proc_rates component to one NetCDF file.
+! ⏱️📈 An optional fourth argument nsteps repeats the call, applying the tendencies to the
+! state with forward Euler between calls (host forcing held fixed); the outputs are those
+! of the last call. The Julia twin is time_loop! in julia/src/time_loop.jl.
 ! 🛠️📐 Build and run: tests/column/build.sh, tests/column/run.sh (see tests/column/README.md).
 program pumas_column_driver
   use pumas_kinds, only: r8 => kind_r8
@@ -78,7 +81,8 @@ program pumas_column_driver
 
   character(len=1024) :: settings_file, inputs_file, output_file
   character(len=128) :: errstring
-  integer :: ncid, ncol, nlev, ndust, unit, ios
+  character(len=32) :: nsteps_arg
+  integer :: ncid, ncol, nlev, ndust, unit, ios, istep, nsteps
   real(r8) :: deltat
   type(proc_rates_type) :: pr
 
@@ -186,8 +190,13 @@ program pumas_column_driver
   call get_command_argument(2, inputs_file)
   call get_command_argument(3, output_file)
   if (len_trim(output_file) == 0) then
-     write(*,*) 'usage: pumas_column_driver settings.nml inputs.nc output.nc'
+     write(*,*) 'usage: pumas_column_driver settings.nml inputs.nc output.nc [nsteps]'
      stop 2
+  end if
+  nsteps = 1
+  if (command_argument_count() >= 4) then
+     call get_command_argument(4, nsteps_arg)
+     read(nsteps_arg, *) nsteps
   end if
 
   open(newunit=unit, file=trim(settings_file), status='old', action='read', iostat=ios)
@@ -338,6 +347,8 @@ program pumas_column_driver
   call pr%allocate(ncol, nlev, ncd, micro_pumas_warm_rain, errstring)
   call check_err(errstring, 'proc_rates%allocate')
 
+  do istep = 1, nsteps
+  if (istep > 1) call advance_state()
   call micro_pumas_tend( &
        ncol, nlev, deltat, &
        t, q, qcn, qin, ncn, nin, qrn, qsn, nrn, nsn, qgr, ngr, &
@@ -359,6 +370,7 @@ program pumas_column_driver
        tnd_qsnow, tnd_nsnow, re_ice, prer_evap, &
        frzimm, frzcnt, frzdep)
   call check_err(errstring, 'micro_pumas_tend')
+  end do
 #ifdef CAPTURE
   call capture_close()
 #endif
@@ -374,6 +386,24 @@ program pumas_column_driver
   write(*,'(a)') trim(output_file)
 
 contains
+
+  ! ⏱️📈 Forward Euler with the tendencies of the last call; negative q and N become zero.
+  subroutine advance_state()
+    t = t + tlat/cpair*deltat
+    call euler(q, qvlat)
+    call euler(qcn, qctend); call euler(ncn, nctend)
+    call euler(qin, qitend); call euler(nin, nitend)
+    call euler(qrn, qrtend); call euler(nrn, nrtend)
+    call euler(qsn, qstend); call euler(nsn, nstend)
+    call euler(qgr, qgtend); call euler(ngr, ngtend)
+  end subroutine advance_state
+
+  subroutine euler(x, tendency)
+    real(r8), intent(inout) :: x(:,:)
+    real(r8), intent(in) :: tendency(:,:)
+    x = x + tendency*deltat
+    where (x < 0._r8) x = 0._r8
+  end subroutine euler
 
   subroutine die(msg)
     character(len=*), intent(in) :: msg
