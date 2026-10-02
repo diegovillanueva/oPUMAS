@@ -44,6 +44,11 @@
 - 📍 `tests/column/data/golden_inputs.nc` has NaN in 5 points of `tnd_nsnow` and 1 of `re_ice`, and `_FillValue = NaN`, so NCDatasets reads them as `missing`.
 - 🟣 `read_inputs` reads the raw values (`.var`) and the step test treats NaN against NaN as equal. The Fortran outputs are reproduced bit for bit, so the NaNs do not reach any output with these settings.
 
+## ➖💧 Conservation limiters skip sink rates below `qsmall`
+- 📍 The rain limiter (`micro_pumas_v1.F90` ~l. 2721) only rescales sinks whose summed rate is `>= qsmall`, which compares a rate (kg kg⁻¹ s⁻¹) with a mixing ratio threshold. The snow mass limiter has the same test; cloud liquid, cloud ice and graupel mass are limited whenever the sink exceeds the mixing ratio.
+- 🔢 A smaller sink is never limited, so over `Δt` it may remove up to `qsmall Δt` (6e-16 kg kg⁻¹ at 600 s) more than is present. In `golden_inputs.nc` column 156, level 22, rain freezing to ice (`mnuccri` = 2.0e-19 kg kg⁻¹ s⁻¹) meets 1.6e-17 kg kg⁻¹ of rain and leaves −1.07e-16 kg kg⁻¹, in every switch row.
+- 🧪 `test_physics.jl` therefore allows negatives down to `qsmall Δt` plus rounding. Column water still closes to ≤ 3e-18 kg m⁻² s⁻¹ and energy to 1e-15 relative: the overdraft is booked in the tendencies, not lost.
+
 ## 🧊🪜 Quirks of the time step (stages 11–15 of `micro_pumas_tend`)
 - 🧊 The ice fall speed factor `vtrmi_factor` multiplies `vtrmi` and then again the blended small-ice speed when the ice fraction is below 1, so blended points get the factor twice.
 - 🪂 The precipitation fall correction starts at `k > 2`, so the second level never takes the speed of the level above.

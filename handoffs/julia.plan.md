@@ -131,6 +131,7 @@ tests/column/
 - 🟣 Run `test_step.jl` over every in-scope golden file from M1.5.
 - ⚖️ Add physical tests that need no Fortran: total water and energy conservation of one step, no negative mixing ratios, zero tendencies for a clear dry column.
 - ✅ Accept: all in-scope switch rows pass the M4 tolerance; conservation holds to rounding.
+- 📌 Status (2026-10-02): done. All 16 switch rows with a golden file are bit-for-bit (155 fields, 159 for sb2001; `tau` and `wsub_default` have no golden file). Column water closes to ≤ 3e-18 kg m⁻² s⁻¹ and energy to ≤ 2e-12 W m⁻² (relative 1e-15); negative mixing ratios stay within `qsmall Δt` (a PUMAS limiter threshold, FINDINGS.md); a clear dry column has zero tendencies.
 
 ### M6 📖✨ Readability pass (after the numbers are locked)
 - 🎨 Run JuliaFormatter; no line over 92 columns (`tools/` check greps for it).
@@ -163,7 +164,7 @@ tests/column/
 - 🎯 Purpose: readable and runnable offline; Fortran remains production.
 - 🔤 Names: `CF-CCPP` vocabulary, struct paths, no unit suffixes, Unicode symbols allowed inside functions, 92 columns.
 - 📂 Location: `julia/` on branch `dev/julia` (from `main_cam_interface`), merged back when M5 passes.
-- 📏 Agreement target: 1e-10 relative for the full step against a `-O0` gfortran build, not bit-for-bit.
+- 📏 Agreement target: 1e-10 relative for the full step against a `-O0` gfortran build; reached bit-for-bit in M4/M5 once real powers, exp and log come from libm.
 
 ## 7. 📊🧾 What to report at each milestone
 

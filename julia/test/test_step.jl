@@ -1,4 +1,5 @@
-# 🔁🧪 M4: one full microphysics_step! against the Fortran outputs of golden_base.nc.
+# 🔁🧪 M4/M5: one full microphysics_step! against the Fortran outputs of every switch row
+#    of tests/switches.csv that has a golden file (tau and wsub_default have none).
 
 """
     compare_step(work, ds) -> Vector of (name, error, column, level, identical)
@@ -28,19 +29,40 @@ function compare_step(work, ds)
     return results
 end
 
-@testset "M4 full step against golden_base.nc" begin
-    parameters = setup(read_settings(golden_path("settings_base.nml")))
+"""
+    switch_labels() -> Vector{String}
+
+🎛️ Labels of tests/switches.csv whose golden file and settings exist, in table order.
+"""
+function switch_labels()
+    rows = readlines(joinpath(@__DIR__, "..", "..", "tests", "switches.csv"))[2:end]
+    labels = [first(split(row, ',')) for row in rows if !isempty(strip(row))]
+    return filter(l -> isfile(joinpath(GOLDEN, "golden_$l.nc")) &&
+                       isfile(joinpath(GOLDEN, "settings_$l.nml")), labels)
+end
+
+"🪜 Workspace after one step of the golden inputs under the settings of switch row `label`."
+function stepped(label)
+    parameters = setup(read_settings(golden_path("settings_$label.nml")))
     work = allocate(read_inputs(golden_path("golden_inputs.nc")))
-    microphysics_step!(work, parameters)
-    NCDataset(golden_path("golden_base.nc")) do ds
-        results = compare_step(work, ds)
-        @test length(results) > 100
-        for (name, err, column, level, _) in results
-            err <= 1e-10 || println("❌ $name worst error $err at column $column level $level")
-            @test err <= 1e-10
+    return microphysics_step!(work, parameters), parameters
+end
+
+@testset "M5 full step against golden_<label>.nc" begin
+    labels = switch_labels()
+    @test "base" in labels && length(labels) >= 16
+    for label in labels
+        work, _ = stepped(label)
+        NCDataset(golden_path("golden_$label.nc")) do ds
+            results = compare_step(work, ds)
+            @test length(results) > 100
+            for (name, err, column, level, _) in results
+                err <= 1e-10 || println("❌ $label $name error $err at column $column level $level")
+                @test err <= 1e-10
+            end
+            name, err, _, _, _ = results[argmax([r[2] for r in results])]
+            println("🔁 $(rpad(label, 20)) bit-for-bit $(count(last, results)) of ",
+                "$(length(results)), worst $name: $err")
         end
-        name, err, column, level, _ = results[argmax([r[2] for r in results])]
-        println("🔁 worst step variable $name: $err (column $column, level $level)")
-        println("🔁 bit-for-bit identical: $(count(last, results)) of $(length(results))")
     end
 end
