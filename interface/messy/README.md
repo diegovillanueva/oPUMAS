@@ -18,16 +18,16 @@
 | `cldn, liqcldf, icecldf` | liquid fraction from a uniform-PDF condensation step (width from ECHAM `rhc`), ice fraction = host `aclc` with a floor where ice exists | PUMAS does no condensation and no cover |
 | `naai` (1/kg/s) | Meyers (1992) at the actual ice supersaturation capped at water saturation, only where supersaturated and `icecldf > 0`, number capped at `nin_max` | the core's `micro_mg_icenuc_use_meyers` flag does nothing |
 | `npccn, rndst, nacon, frz*` | 0 | no activation tendency, no contact freezing (aerosol constant) |
-| `pint, pdel, p` | ECHAM interfaces, **top interface forced positive** | see pitfall 1 |
+| `pint, pdel, p` | ECHAM interfaces; top interface 0 Pa handled by `implicit_fall_top_guard` | see pitfall 1 |
 | `relvar, accre_enhan, qsatfac` | constants 2, 1, 1 | CAM values without CLUBB |
 
 ## ⚠️ Pitfalls
 
-1. 🧊 **0 Pa model top kills sedimentation.** With `micro_mg_implicit_fall` the layer heights come from `log(pint(k+1)/pint(k))`; a 0 Pa top interface (ECHAM5) makes the top layer infinitely thick, every flux is exactly 0 and rain/snow mass is lost silently. Guard: `pint(:,1) = MAX(pint(:,1), 0.5*p(:,1))`. ICON's top is about 40 hPa and is safe.
-2. ❄️ **Meyers at water saturation nucleates far too much ice** (about 2e5 m-3 at -37 C) in clear supersaturated air; use the actual S_i, require supersaturation, cap at 1e5 m-3 (EMAC IWP 25.5 to 19.5 g/m2, reference 20.5).
+1. 🧊 **0 Pa model top kills sedimentation.** With `micro_mg_implicit_fall` the layer heights come from `log(pint(k+1)/pint(k))`; a 0 Pa top interface (ECHAM5) makes the top layer infinitely thick, every flux is exactly 0 and rain/snow mass is lost silently. Guard: set the module logical `implicit_fall_top_guard = .TRUE.` (`micro_pumas_v1`, commit 14e37aa) before `micro_pumas_init`; the core then uses `max(pint(:,1), 0.5*p(:,1))` for the top-layer depth only. EMAC sets it and no longer floors `pint` in the glue (3-day run bit-identical to the old glue floor). ICON's top is about 40 hPa and runs with the guard off (default).
+2. ❄️ **Meyers at water saturation nucleates far too much ice** (about 2e5 m-3 at -37 C) in clear supersaturated air; use the actual S_i, require supersaturation, cap at 1e5 m-3 (`nin_max`; EMAC IWP 25.5 to 19.5 g/m2). These are limiters on the nucleation input, listed in messy_pumas `ASSUMPTIONS.md`, not a fit to a reference.
 3. 📏 **`effi` blows up** (1/lami) where `ni -> 0`; clip effective radii before output (ICON glue: `reffc` 1-50 um, `reffi` 5-300 um).
 4. 🔤 `warm_rain` and `micro_mg_precip_frac_method` must be `character(len=16)` actuals (ifort error #7938 otherwise).
-5. 🧮 `dcs` (ice-to-snow autoconversion size) is host dependent: ICON needs 350e-6 to match its two-moment reference, EMAC is right at 500e-6 after the nucleation fix.
+5. 🧮 `dcs` (ice-to-snow autoconversion size) stays at the PUMAS default 500e-6 m in both hosts (no tuning during development). In ICON it gives about 2x the IWP of ICON's two-moment scheme (open finding, messy_pumas `figures/pumas_icon_dcs500.md`); 350e-6 is kept only as the sensitivity case `pumas_dcs350.nml`.
 
 ## 🧪 Validation
 
