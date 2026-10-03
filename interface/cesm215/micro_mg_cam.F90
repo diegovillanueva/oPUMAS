@@ -822,6 +822,12 @@ subroutine micro_mg_cam_init(pbuf2d)
    use micro_mg2_0, only: micro_mg_init2_0 => micro_mg_init
    use micro_pumas_v1, only: micro_pumas_init
    use pumas_stochastic_collect_tau, only: pumas_stochastic_kernel_init
+   use micro_pumas_sppe, only: micro_pumas_sppe_set
+   use micro_dv_nml, only: dv_naai_het_also_in_mpc => naai_het_also_in_mpc, dv_enable_nimax => enable_nimax, &
+        dv_detrainment_ramp_liq => detrainment_ramp_liq, dv_onoff_contact_freezing => onoff_contact_freezing, &
+        dv_onoff_sip => onoff_sip, dv_rain_freeze => rain_freeze, dv_auto_liq_factor => auto_liq_factor, &
+        dv_riming_factor => riming_factor, dv_berg_ice_factor => micro_mg_ice_berg_ice_factor, &
+        dv_berg_snow_factor => micro_mg_ice_berg_snow_factor, dv_factor_HM => factor_HM
 
    !-----------------------------------------------------------------------
    !
@@ -926,6 +932,14 @@ subroutine micro_mg_cam_init(pbuf2d)
            micro_mg_nccons, micro_mg_nicons, micro_mg_ncnst, micro_mg_ninst, &
            micro_mg_ngcons, micro_mg_ngnst, .false., 0._r8, .false., 0._r8, &
            '', '', '', iulog, errstring)
+
+      ! oPUMAS Sppe: hand the micro_dv_nl controls (read in microp_aero_readnl) to PUMAS.
+      call micro_pumas_sppe_set( &
+           naai_het_also_in_mpc_in=dv_naai_het_also_in_mpc, enable_nimax_in=dv_enable_nimax, &
+           detrainment_ramp_liq_in=dv_detrainment_ramp_liq, onoff_contact_freezing_in=dv_onoff_contact_freezing, &
+           onoff_sip_in=dv_onoff_sip, rain_freeze_in=dv_rain_freeze, auto_liq_factor_in=dv_auto_liq_factor, &
+           riming_factor_in=dv_riming_factor, micro_mg_ice_berg_ice_factor_in=dv_berg_ice_factor, &
+           micro_mg_ice_berg_snow_factor_in=dv_berg_snow_factor, factor_HM_in=dv_factor_HM)
 
       if (trim(micro_pumas_warm_rain) == 'tau') then
          call pumas_stochastic_kernel_init(trim(micro_pumas_kernel_file))

@@ -10,16 +10,20 @@ CASE="${CASE:-cesm215_pumas.F2000climo.bfb_dev}"
 EXEROOT="${EXEROOT:-/cluster/work/climate/${USER}/cesm_runs/${CASE}/bld}"
 OBJ="${EXEROOT}/atm/obj"
 # 🪜📐 Dependency order: PUMAS core first, then the CAM overrides.
-FILES=(pumas_kinds pumas_gamma_function micro_pumas_utils micro_pumas_diags pumas_stochastic_collect_tau
+FILES=(pumas_kinds pumas_gamma_function micro_pumas_sppe micro_pumas_utils micro_pumas_diags pumas_stochastic_collect_tau
 	module_neural_net tau_neural_net_quantile ML_fixer_check micro_pumas_v1
-	wv_sat_methods ndrop microp_aero check_energy micro_mg_cam)
+	wv_sat_methods micro_dv_nml hetfrz_classnuc hetfrz_classnuc_cam ndrop microp_aero check_energy
+	macrop_driver clubb_intr micro_mg_cam)
 
 case "$(hostname)" in eu-login-*) echo "ERROR: login node, run inside herdr-compute" >&2; exit 1 ;; esac
 IFACE="$(cd "${IFACE}" && pwd)"
-log="$(ls -t "${EXEROOT}"/atm.bldlog.*.gz 2>/dev/null | head -1 || true)"
-[[ -n "${log}" ]] || { echo "ERROR: no atm.bldlog.*.gz in ${EXEROOT} (set CASE= or EXEROOT= to a built case)" >&2; exit 1; }
-line="$(zcat "${log}" | grep mpif90 | grep '/micro_mg_cam.F90' | head -1)"
-[[ -n "${line}" ]] || { echo "ERROR: no micro_mg_cam.F90 compile line in ${log}" >&2; exit 1; }
+# 🔎📜 Newest build log that compiled micro_mg_cam.F90 (an incremental build may have skipped it).
+line=""
+for log in $(ls -t "${EXEROOT}"/atm.bldlog.*.gz 2>/dev/null); do
+	line="$(zcat "${log}" | grep mpif90 | grep -m1 '/micro_mg_cam.F90' || true)"
+	[[ -n "${line}" ]] && break
+done
+[[ -n "${line}" ]] || { echo "ERROR: no micro_mg_cam.F90 compile line in ${EXEROOT}/atm.bldlog.*.gz (set CASE= or EXEROOT= to a built case)" >&2; exit 1; }
 line="${line% *}"                                    # drop the source file
 
 module load stack/2024-06 gcc/12.2.0 openmpi/4.1.6 netcdf-c 2>/dev/null || true

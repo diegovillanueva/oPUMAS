@@ -1,0 +1,21 @@
+diff --git a/src/physics/cam/clubb_intr.F90 b/src/physics/cam/clubb_intr.F90
+index 92ea2bd..b7f957d 100644
+--- a/src/physics/cam/clubb_intr.F90
++++ b/src/physics/cam/clubb_intr.F90
+@@ -29,6 +29,7 @@ module clubb_intr
+   use atmos_phys_pbl_utils,only: calc_friction_velocity, calc_kinematic_heat_flux, calc_ideal_gas_rrho, &
+                                  calc_kinematic_water_vapor_flux, calc_kinematic_buoyancy_flux, calc_obukhov_length
+   use ref_pres,            only: top_lev => trop_cloud_top_lev
++  use micro_dv_nml,        only: detrainment_ramp_liq
+   use scamMOD,             only: single_column, scm_clubb_iop_name, scm_cambfb_mode
+ 
+ #ifdef CLUBB_SGS
+@@ -4483,6 +4484,8 @@ end subroutine clubb_init_cnst
+           dum1 = 0.0_r8
+         elseif ( state_loc%t(i,k) < dt_low ) then
+           dum1 = 1.0_r8
++        else if( detrainment_ramp_liq ) then
++          dum1 = 0.0_r8
+         else
+           dum1 = ( meltpt_temp - state_loc%t(i,k) ) / ( meltpt_temp - dt_low )
+         endif

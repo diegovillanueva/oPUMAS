@@ -1,0 +1,79 @@
+diff --git a/src/physics/cam/hetfrz_classnuc.F90 b/src/physics/cam/hetfrz_classnuc.F90
+index 01ec5a5..331d62f 100644
+--- a/src/physics/cam/hetfrz_classnuc.F90
++++ b/src/physics/cam/hetfrz_classnuc.F90
+@@ -25,6 +25,7 @@ use wv_saturation, only: svp_water
+ use shr_spfn_mod,  only: erf => shr_spfn_erf
+ 
+ use physconst,     only: pi, planck, boltz, mwso4, amu, pstd
++use micro_dv_nml,  only: depr_point_frz, limfacdu_niemand_continuous
+ 
+ implicit none
+ private
+@@ -387,6 +388,8 @@ subroutine hetfrz_classnuc_calc(ntypes, types,&
+    real(r8) :: sum_imm
+    real(r8) :: dim_Jimm(pdf_n_theta)
+ 
++   real(r8) :: ns_niemand                  ! Niemand et al. (2012) ice-active surface site density n_s(T) [m-2]
++   real(r8) :: ff_niemand                  ! Niemand et al. (2012) frozen fraction [ ]
+    logical :: do_frz
+    logical :: do_imm
+ 
+@@ -428,11 +431,14 @@ subroutine hetfrz_classnuc_calc(ntypes, types,&
+ 
+    ! if aw*Si<=1, the freezing point depression is strong enough to prevent freezing
+ 
+-   do_frz = aw*supersatice > 1._r8
+-   if (do_frz) then
+-      rgimm_aer = 2*vwice*sigma_iw/(boltz*T*LOG(aw*supersatice))
+-   else
+-      return
++   ! DV: depr_point_frz = .false. switches the freezing point depression off
++   if (depr_point_frz) then
++      do_frz = aw*supersatice > 1._r8
++      if (do_frz) then
++         rgimm_aer = 2*vwice*sigma_iw/(boltz*T*LOG(aw*supersatice))
++      else
++         return
++      endif
+    endif
+ 
+    do_imm = T <= 263.15_r8 ! temperature threshold for immersion freezing (-10 C)
+@@ -486,9 +492,25 @@ subroutine hetfrz_classnuc_calc(ntypes, types,&
+    ! nucleation rate per particle
+    Jcnt = Acnt*mradius**2*EXP((-dga_dep-f_cnt*dg0cnt)/(boltz*T))*Kcoll*icnlx
+ 
++   ! DV: Niemand et al. (2012) frozen fraction of immersed dust:
++   !   FF(T,r) = 1 - exp(-4*pi*r^2 * n_s(T)),  n_s(T) = exp(-0.517*(T-273.15) + 8.934) [m-2]
++   ! with n_s = 0 below 233 K. With limfacdu_niemand_continuous, FF*N_dust freezes every
++   ! call and replaces the limfac-capped classical-nucleation-theory immersion rate.
++   if (limfacdu_niemand_continuous .and. pdf_imm .and. do_imm) then
++      if (T < 233._r8) then
++         ns_niemand = 0._r8
++      else
++         ns_niemand = EXP(-0.517_r8*(T-273.15_r8) + 8.934_r8)
++      end if
++      ff_niemand = 1._r8-EXP(-4._r8*pi*mradius**2*ns_niemand)
++      sum_imm = 1._r8-ff_niemand
++   end if
++
+    ! Limit to 1% of available potential IN (for BC), no limit for dust
+    if (tot_in) then
+-      if (do_imm) then
++      if (do_imm .and. limfacdu_niemand_continuous .and. pdf_imm) then
++         frzimm = fn*total_aer_num/deltat*(1._r8-sum_imm)
++      else if (do_imm) then
+          frzimm = MIN(limfac*fn*total_aer_num/deltat, fn*total_aer_num/deltat*(1._r8-sum_imm))
+       end if
+       frzdep = MIN(limfac*(1._r8-fn)*(1._r8-dstcoat)*total_aer_num/deltat, &
+@@ -496,7 +518,9 @@ subroutine hetfrz_classnuc_calc(ntypes, types,&
+       frzcnt = MIN(limfac*(1._r8-fn)*(1._r8-dstcoat)*total_aer_num/deltat, &
+                    (1._r8-fn)*(1._r8-dstcoat)*total_aer_num/deltat*(1._r8-exp(-Jcnt*deltat)))
+    else
+-      if (do_imm) then
++      if (do_imm .and. limfacdu_niemand_continuous .and. pdf_imm) then
++         frzimm = total_cloudborne_aer_num/deltat*(1._r8-sum_imm)
++      else if (do_imm) then
+          frzimm = MIN(limfac*total_cloudborne_aer_num /deltat, total_cloudborne_aer_num/deltat*(1._r8-sum_imm))
+       end if
+       frzdep = MIN(limfac*uncoated_aer_num/deltat, uncoated_aer_num/deltat*(1._r8-exp(-Jdep*deltat)))

@@ -127,6 +127,10 @@ use micro_pumas_utils, only: &
      rising_factorial, &
      VLENS
 
+! oPUMAS Sppe process controls (defaults = upstream PUMAS).
+use micro_pumas_sppe, only: naai_het_also_in_mpc, enable_nimax, detrainment_ramp_liq, &
+     auto_liq_factor, riming_factor, micro_mg_ice_berg_ice_factor, micro_mg_ice_berg_snow_factor
+
 implicit none
 private
 save
@@ -1747,7 +1751,8 @@ subroutine micro_pumas_tend ( &
 
         if (do_cldice) then
            if (icenuc_rh_off) then
-              if (naai(i,k) > 0._r8 .and. t(i,k) < icenuct) then
+              if (naai(i,k) > 0._r8 .and. t(i,k) < icenuct .and. &
+                 (naai_het_also_in_mpc .or. t(i,k) < 233.15_r8)) then
                  !if NAAI > 0. then set numice = naai (as before)
                  !note: this is gridbox averaged
                  nnuccd(i,k) = naai(i,k)*icldm(i,k)
@@ -1762,7 +1767,8 @@ subroutine micro_pumas_tend ( &
               end if
            else
               if (naai(i,k) > 0._r8 .and. t(i,k) < icenuct .and. &
-                 relhum(i,k)*esl(i,k)/esi(i,k) > 1.05_r8) then
+                 relhum(i,k)*esl(i,k)/esi(i,k) > 1.05_r8 .and. &
+                 (naai_het_also_in_mpc .or. t(i,k) < 233.15_r8)) then
                  !if NAAI > 0. then set numice = naai (as before)
                  !note: this is gridbox averaged
                  nnuccd(i,k) = naai(i,k)*icldm(i,k)
@@ -2163,6 +2169,20 @@ subroutine micro_pumas_tend ( &
      !$acc end parallel
   end if
 
+  ! oPUMAS Sppe: scale liquid autoconversion (kk2000 and sb2001; tau and emulated already applied their tendencies)
+  if (auto_liq_factor /= 1._r8 .and. (trim(warm_rain) == 'kk2000' .or. trim(warm_rain) == 'sb2001')) then
+     !$acc parallel vector_length(VLENS) default(present)
+     !$acc loop gang vector collapse(2)
+     do k=1,nlev
+        do i=1,mgncol
+           prc(i,k)   = prc(i,k)*auto_liq_factor
+           nprc(i,k)  = nprc(i,k)*auto_liq_factor
+           nprc1(i,k) = nprc1(i,k)*auto_liq_factor
+        end do
+     end do
+     !$acc end parallel
+  end if
+
   ! Get size distribution parameters for cloud ice
   call size_dist_param_basic(mg_ice_props, qiic, niic, lami, mgncol, nlev, n0=n0i)
 
@@ -2392,6 +2412,19 @@ subroutine micro_pumas_tend ( &
   end do
   !$acc end parallel
 
+  ! oPUMAS Sppe: scale snow riming before Hallett-Mossop, so splinters scale too
+  if (riming_factor /= 1._r8) then
+     !$acc parallel vector_length(VLENS) default(present)
+     !$acc loop gang vector collapse(2)
+     do k=1,nlev
+        do i=1,mgncol
+           psacws(i,k) = psacws(i,k)*riming_factor
+           npsacws(i,k) = npsacws(i,k)*riming_factor
+        end do
+     end do
+     !$acc end parallel
+  end if
+
   if (do_cldice) then
      call secondary_ice_production(t, psacws, msacwi, nsacwi, mgncol*nlev)
   else
@@ -2495,6 +2528,7 @@ subroutine micro_pumas_tend ( &
   do k=1,nlev
      do i=1,mgncol
         bergs(i,k)=bergs(i,k)*micro_mg_berg_eff_factor
+        if (micro_mg_ice_berg_snow_factor /= 1._r8) bergs(i,k)=bergs(i,k)*micro_mg_ice_berg_snow_factor
      end do
   end do
   !$acc end parallel
@@ -2512,6 +2546,7 @@ subroutine micro_pumas_tend ( &
      do k=1,nlev
         do i=1,mgncol
            berg(i,k)=berg(i,k)*micro_mg_berg_eff_factor
+           if (micro_mg_ice_berg_ice_factor /= 1._r8) berg(i,k)=berg(i,k)*micro_mg_ice_berg_ice_factor
            if (ice_sublim(i,k) < 0._r8 .and. qi(i,k) > qsmall .and. icldm(i,k) > mincld) then
               nsubi(i,k) = sublim_factor*ice_sublim(i,k) / qi(i,k) * ni(i,k) / icldm(i,k)
            else
@@ -3966,7 +4001,7 @@ end if
            end if
 
            ! ice number limiter
-           if (do_cldice .and. nitend(i,k).gt.0._r8.and.ni(i,k)+nitend(i,k)*deltat.gt.micro_mg_max_nicons*icldm(i,k)/rho(i,k)) then
+           if (enable_nimax .and. do_cldice .and. nitend(i,k).gt.0._r8.and.ni(i,k)+nitend(i,k)*deltat.gt.micro_mg_max_nicons*icldm(i,k)/rho(i,k)) then
               nitend(i,k)=max(0._r8,(micro_mg_max_nicons*icldm(i,k)/rho(i,k)-ni(i,k))/deltat)
            end if
 
@@ -4000,6 +4035,8 @@ end if
                  !-------------------------------------------------------
               else if (ttmpA(i,k) < 238.15_r8) then
                  dum1=1.0_r8
+              else if (detrainment_ramp_liq) then
+                 dum1=0.0_r8
               else
                  dum1=(268.15_r8-ttmpA(i,k))/30._r8
               end if

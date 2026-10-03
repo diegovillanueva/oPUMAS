@@ -1,0 +1,21 @@
+diff --git a/src/physics/cam/macrop_driver.F90 b/src/physics/cam/macrop_driver.F90
+index 8c3dec6..62df209 100644
+--- a/src/physics/cam/macrop_driver.F90
++++ b/src/physics/cam/macrop_driver.F90
+@@ -22,6 +22,7 @@
+   use perf_mod,          only: t_startf, t_stopf
+   use cam_logfile,       only: iulog
+   use cam_abortutils,    only: endrun
++  use micro_dv_nml,      only: detrainment_ramp_liq
+ 
+   implicit none
+   private
+@@ -682,6 +683,8 @@ end subroutine macrop_driver_readnl
+           dum1 = 0.0_r8
+       elseif( state_loc%t(i,k) < 238.15_r8 ) then
+           dum1 = 1.0_r8
++      else if( detrainment_ramp_liq ) then
++          dum1 = 0.0_r8
+       else
+           dum1 = ( 268.15_r8 - state_loc%t(i,k) ) / 30._r8
+       endif

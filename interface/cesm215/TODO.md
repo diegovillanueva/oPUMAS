@@ -39,6 +39,12 @@
 | 10 cm radar reflectivity (`refl10cm`, `reflz10cm`) | Computed by PUMAS, discarded | small | open |
 | COSP sees graupel | rel_60 `cospsimulator_intr` knows only rain and snow; the graupel flux is folded into `LS_FLXSNW` | medium | open |
 
+## 🧊🎛️ Sppe controls on PUMAS-only paths (branch `dev/Sppe`)
+
+- 🧊❄️ Graupel riming (`psacwg`, `pgsacw`) is not scaled by `riming_factor`, and graupel Hallett–Mossop (`qmultg`, `qmultrg`) ignores `onoff_sip`/`factor_HM`; the MG2 patches never had graupel.
+- 🌧️🧊 `micro_mg_rainfreeze_ifs` freezes rain outside `heterogeneous_rain_freezing`, so `rain_freeze = .false.` does not stop it.
+- 🔢🌧️ `auto_liq_factor` does not touch the TAU bin warm rain.
+
 ## 🧪⏳ Wired but not yet run in CESM 2.1.5
 
 | Feature | Namelist | Status |

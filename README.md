@@ -11,6 +11,7 @@
 - 🤝📂 Handoffs of all topics: [`handoffs/`](handoffs/)
 - 🟣📖 Readable Julia twin (in progress): [`julia/README.md`](julia/README.md); plan in [`handoffs/julia.plan.md`](handoffs/julia.plan.md)
 - 🧊🔌 Run oPUMAS inside CESM 2.1.5 CAM (`micro_mg_version = 3`): [`interface/cesm215/README.md`](interface/cesm215/README.md)
+- 🌍🩹 Sppe CAM-side patches for CESM 3 / CAM7 (checked, untested): [`interface/cesm3/README.md`](interface/cesm3/README.md)
 
 ## Remotes and branches
 
@@ -21,6 +22,9 @@
 | `main_cam` | mirror of `upstream/main_cam` | fast-forward only, never commit |
 | `main_cam_interface` | Diego's development in PUMAS names (default branch) | merge `main_cam` in regularly; dictionary edits happen here |
 | `CF-CCPP` | the same code in CF-CCPP names, editable | run `translation/sync.sh` before and after working on it |
+| `dev/Sppe` | `main_cam_interface` plus the Sppe process controls (`micro_pumas_sppe.F90`, group `micro_dv_nl`), all off by default | not synced to `CF-CCPP`; merge `main_cam_interface` in |
+
+🔤🌿 Branch names used by the translation scripts come from `translation/languages.csv`. 🧪🏷️ `bfb_dev` in `tests/` is a CESM case name, not a branch.
 
 ## Local clone
 
@@ -38,7 +42,8 @@
 
 ```bash
 tests/compile_check.sh                    # PUMAS files and CAM overrides compile (about 40 s, herdr-compute)
-tests/bfb.sh run                          # 1-day CESM 2.1.5 run is bit-for-bit with the baseline (about 15 min)
+tests/bfb.sh run                          # 3-step CESM 2.1.5 run is bit-for-bit with the baseline
+tests/bfb.sh par sppe_                     # switch rows in parallel, one --keepexe clone each
 tests/column/run.sh                       # column driver self-check and golden files for julia/ (under 1 min)
 python3 -m pytest -q translation          # translator tests
 python3 translation/check.py              # dictionary against the sources
@@ -51,3 +56,4 @@ python3 translation/check.py --branches   # CF-CCPP is exactly the translation o
 
 - 📝 `code_analysis/` holds per-topic notes on where schemes live in the source (e.g. `code_analysis/PUMAS_immersion_freezing.md`).
 - 🗺️ Start with the stage map of `micro_pumas_tend`: [`code_analysis/PUMAS_stage_map.md`](code_analysis/PUMAS_stage_map.md) (16 stages with line ranges, search anchors and a checklist for adding a process).
+- 🖥️👓 Vim-friendly emoji twin without tables: [`code_analysis/PUMAS_stage_map.em.md`](code_analysis/PUMAS_stage_map.em.md) (`*.em.md` = plain-text layout, readable in a terminal).

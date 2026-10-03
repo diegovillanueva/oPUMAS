@@ -1,0 +1,25 @@
+! 🧊🎛️ oPUMAS + Sppe microphysics revision (pass with --cam-namelist=); controls from github.com/diegovillanueva/Sppe_revision_public
+ micro_mg_version = 3
+ micro_mg_sub_version = 0
+factor_HM = 0 ! disable hallet-mossop
+onoff_sip = .false.
+
+depr_point_frz = .false.      ! avoid solubility effect depressing freezing
+
+enable_nimax = .false.              ! as PUMAS paper 2.21, but omiting Ni cap to 100/cm3
+limfacdu = 0.05                     ! max. aerosol fraction as INP (PUMAS paper 2.22); inactive for dust while limfacdu_niemand_continuous = .true.
+limfacdu_niemand_continuous = .true. ! dust immersion freezing after Niemand et al. (2012): FF(T,r)*N_dust freezes every call
+
+micro_mg_num_steps = 8               ! as suggested in 10.1029/2021MS002776
+naai_het_also_in_mpc = .false.       ! no leak from cirrus to mpc
+
+hclas_du_dep = 0.0  ! only immersion freezing of dust is allowed
+hclas_du_cnt = 0.0
+hclas_bc_imm = 0.0
+hclas_bc_dep = 0.0
+hclas_bc_cnt = 0.0
+
+onoff_contact_freezing = .false.       ! legacy contact freezing
+rain_freeze = .false.                   ! legacy ice from freezing rain
+detrainment_ramp_liq = .true.              ! otherwise inp-unaware cloud ice
+
