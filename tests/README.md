@@ -6,7 +6,7 @@
 ## 🚀📋 Commands
 
 ```bash
-tests/compile_check.sh            # 14 files (9 PUMAS + 5 CAM overrides), about 40 s, no Slurm job
+tests/compile_check.sh            # 20 files (PUMAS core + CAM overrides), about 45 s, no Slurm job
 tests/bfb.sh run                  # rebuild the reference case, run 3 time steps, compare cam.r with the baseline
 tests/bfb.sh run sb2001           # the same with one switch from switches.csv set
 tests/bfb.sh list                 # switch matrix and which baselines exist
@@ -15,7 +15,7 @@ STOP_OPTION=ndays STOP_N=3 WALLTIME=01:00:00 tests/bfb.sh par all   # 3-day chec
 python3 tests/cmp_restart.py a.cam.r.nc b.cam.r.nc   # compare any two restarts, also across cases
 ```
 
-- 🧮✅ `compile_check.sh` reuses the compile line and `.mod` files of a built case (`CASE=`, default `cesm215_pumas.F2000climo.bfb_dev`). `IFACE=<worktree>/interface/cesm215` checks another branch.
+- 🧮✅ `compile_check.sh` reuses the compile line and `.mod` files of a built case (`CASE=`, default `cesm215_pumas.F2000climo.bfb_dev`). `IFACE=<worktree>/interface/cesm215` checks another branch. Right after `case.build --clean` the `.mod` files are gone, so it fails (`Cannot open module file`) until the case is built again.
 - ♻️🧊 `bfb.sh` uses the case `cesm215_pumas.F2000climo.bfb_dev` (CESM 3-like namelist, graupel on, `-usr_src` = this repo). It submits one build job and one run job, so mind the 16-job limit.
 - 📦📂 Baselines are restart files and live outside the repo: `/cluster/work/climate/$USER/cesm_runs/opumas_bfb_baselines/<case>/<STOP_OPTION><STOP_N>/<label>.cam.r.nc` (default `nsteps3`; 1-day baselines in `ndays1/`; 3-day baselines of every row, made before the single-`main` merge of 2026-10-03, in `ndays3/`).
 - ⏱️🎚️ Run length: `STOP_OPTION=nsteps STOP_N=3` by default (1.5 model hours); set e.g. `STOP_OPTION=ndays STOP_N=1` for a longer check. The run job asks for `WALLTIME=00:30:00` so it backfills fast.
