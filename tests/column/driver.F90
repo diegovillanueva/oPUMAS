@@ -17,9 +17,7 @@ program pumas_column_driver
 #ifdef CAPTURE
   use pumas_column_capture, only: capture_close
 #endif
-#ifdef SPPE
   use micro_pumas_sppe, only: micro_pumas_sppe_set
-#endif
   implicit none
 
   ! 🌍📏 CESM 2.1.5 constants (cime/src/share/util/shr_const_mod.F90, cam physconst.F90).
@@ -68,8 +66,7 @@ program pumas_column_driver
        micro_mg_accre_sees_auto, micro_mg_implicit_fall, micro_mg_nccons, micro_mg_nicons, &
        micro_mg_ncnst, micro_mg_ninst, micro_mg_ngcons, micro_mg_ngnst, &
        micro_pumas_kernel_file
-#ifdef SPPE
-  ! 🧊🎛️ Sppe process controls of dev/Sppe (micro_pumas_sppe.F90); defaults are upstream PUMAS.
+  ! 🧊🎛️ Sppe process controls (micro_pumas_sppe.F90); defaults are upstream PUMAS.
   logical :: naai_het_also_in_mpc = .true., enable_nimax = .true., detrainment_ramp_liq = .false.
   logical :: onoff_contact_freezing = .true., onoff_sip = .true., rain_freeze = .true.
   real(r8) :: auto_liq_factor = 1._r8, riming_factor = 1._r8, factor_HM = 1._r8
@@ -77,7 +74,6 @@ program pumas_column_driver
   namelist /pumas_settings/ naai_het_also_in_mpc, enable_nimax, detrainment_ramp_liq, &
        onoff_contact_freezing, onoff_sip, rain_freeze, auto_liq_factor, riming_factor, &
        micro_mg_ice_berg_ice_factor, micro_mg_ice_berg_snow_factor, factor_HM
-#endif
 
   character(len=1024) :: settings_file, inputs_file, output_file
   character(len=128) :: errstring
@@ -228,12 +224,10 @@ program pumas_column_driver
        micro_mg_ngcons, micro_mg_ngnst, .false., 0._r8, .false., 0._r8, &
        '', '', '', 6, errstring)
   call check_err(errstring, 'micro_pumas_init')
-#ifdef SPPE
-  ! 🧊🎛️ As micro_mg_cam_init on dev/Sppe: the controls are set once, after micro_pumas_init.
+  ! 🧊🎛️ As micro_mg_cam_init: the controls are set once, after micro_pumas_init.
   call micro_pumas_sppe_set(naai_het_also_in_mpc, enable_nimax, detrainment_ramp_liq, &
        onoff_contact_freezing, onoff_sip, rain_freeze, auto_liq_factor, riming_factor, &
        micro_mg_ice_berg_ice_factor, micro_mg_ice_berg_snow_factor, factor_HM)
-#endif
   if (trim(micro_pumas_warm_rain) == 'tau') &
        call pumas_stochastic_kernel_init(trim(micro_pumas_kernel_file))
 

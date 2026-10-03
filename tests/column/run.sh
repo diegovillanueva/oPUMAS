@@ -46,9 +46,10 @@ PY
 
 # 🎛️📄 One golden file per in-scope switch row: settings.nml plus the row's overrides.
 golden_rows() {
-	local driver="$1" table="$2" label expect nl
+	local driver="$1" table="$2" skip_prefix="${3:-}" label expect nl
 	while IFS=, read -r label expect nl; do
 		[[ "${label}" == label ]] && continue
+		[[ -n "${skip_prefix}" && "${label}" == "${skip_prefix}"* ]] && continue
 		[[ " ${SKIP} " == *" ${label} "* ]] && { echo "skip ${label}"; continue; }
 		sed '$d' "${SOURCE}/settings.nml" >"settings_${label}.nml"
 		[[ -n "${nl}" ]] && tr ';' '\n' <<<"${nl//@REPO@/${REPO}}" >>"settings_${label}.nml"
@@ -57,16 +58,18 @@ golden_rows() {
 		echo "${DATA}/golden_${label}.nc"
 	done <"${table}"
 }
-golden_rows "${driver}" "${here}/../switches.csv"
-# 🧊🎛️ Sppe rows: the driver built from dev/Sppe (SPPE_ROWS=0 skips them). Its defaults
-#    must reproduce golden_base.nc bit for bit, and each row adds Sppe namelist values.
-if [[ "${SPPE_ROWS:-1}" == 1 ]]; then
-	SPPE=1 "${here}/build.sh" >/dev/null
-	golden_rows "${here}/build/sppe/pumas_column_sppe" "${here}/switches_sppe.csv"
-	python3 "${here}/compare.py" --quiet golden_sppe_base.nc golden_base.nc
-fi
-# ⏱️📈 Time loop: 48 steps (8 h) of the base settings with forward Euler between calls.
-"${driver}" settings_base.nml golden_inputs.nc golden_loop.nc 48 >/dev/null
+# 🧊🔀 The sppe_ rows of the CESM table also set CAM-side controls (hetfrz); the column has
+#    its own Sppe table below.
+golden_rows "${driver}" "${here}/../switches.csv" sppe_
+# 🧊🎛️ Sppe rows: Sppe namelist values on top of settings.nml (column-only table).
+golden_rows "${driver}" "${here}/switches_sppe.csv"
+python3 "${here}/compare.py" --quiet golden_sppe_base.nc golden_base.nc
+# ⏱️📈 Time loop: 432 steps of 600 s (3 days) of the base settings, forward Euler between
+#    calls; the step count is stored as attribute nsteps for the Julia test.
+nsteps="${LOOP_STEPS:-432}"
+"${driver}" settings_base.nml golden_inputs.nc golden_loop.nc "${nsteps}" >/dev/null
+python3 -c 'import sys, netCDF4; d = netCDF4.Dataset(sys.argv[1], "a"); d.nsteps = int(sys.argv[2]); d.close()' \
+	golden_loop.nc "${nsteps}"
 echo "${DATA}/golden_loop.nc"
 # 🔬🧷 Process-level data: arguments of every process call in the base step.
 PUMAS_CAPTURE_FILE="${DATA}/golden_processes.nc" "${capture}" "${SOURCE}/settings.nml" \

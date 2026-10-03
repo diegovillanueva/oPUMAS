@@ -29,7 +29,7 @@ tests/column/run.sh
 ```
 
 📂 Stored columns (`SOURCE`): `/cluster/work/climate/dvillanueva/opumas_column/source/` with `inputs.nc`, `cam_outputs.nc`, `synthetic_inputs.nc`, `settings.nml` and `coverage.csv`.
-📂 Golden files (`DATA`, git-ignored): `tests/column/data/` with `golden_inputs.nc`, `golden_<label>.nc` per switch row, `golden_processes.nc` (base settings), `golden_processes_sb2001.nc` (Seifert-Beheng warm rain, whose routines never run in the base settings), `golden_loop.nc` (outputs of step 48 of the base settings with `nsteps = 48`) and `selfcheck.log`.
+📂 Golden files (`DATA`, git-ignored): `tests/column/data/` with `golden_inputs.nc`, `golden_<label>.nc` per switch row, `golden_processes.nc` (base settings), `golden_processes_sb2001.nc` (Seifert-Beheng warm rain, whose routines never run in the base settings), `golden_loop.nc` (outputs after 432 steps of 600 s = 3 days of the base settings; attribute `nsteps`, `LOOP_STEPS` to change it) and `selfcheck.log`.
 
 ## ✅🔁 Checks done by `run.sh`
 
@@ -56,7 +56,7 @@ tests/column/run.sh
 ## 🎛️🚫 Switch rows
 
 🎛️ Every row of `tests/switches.csv` gets `golden_<label>.nc`, made from `settings.nml` plus the row's namelist overrides.
-🧊🎛️ Sppe rows: `switches_sppe.csv` lists the 11 process controls of `dev/Sppe` (`micro_pumas_sppe.F90`). `run.sh` builds a second driver with `SPPE=1 build.sh` (into `build/sppe`), which takes `micro_pumas_sppe.F90`, `micro_pumas_utils.F90` and `micro_pumas_v1.F90` from `git archive dev/Sppe` (`SPPE_REF` to change it) without merging that branch, and checks that `golden_sppe_base.nc` is bit-for-bit with `golden_base.nc`. `SPPE_ROWS=0 run.sh` skips them. `sppe_no_cnt_frz` equals base by design: `onoff_contact_freezing` only acts on the Bigg path used without host freezing, which the Julia twin does not translate.
+🧊🎛️ Sppe rows: `switches_sppe.csv` lists the 11 process controls of `micro_pumas_sppe.F90`, which the driver always builds and sets after `micro_pumas_init` (as `micro_mg_cam_init`). `run.sh` checks that `golden_sppe_base.nc` is bit-for-bit with `golden_base.nc`. The `sppe_*` rows of `tests/switches.csv` are skipped in the column, because several of them set CAM-side `hetfrz` controls. `sppe_no_cnt_frz` equals base by design: `onoff_contact_freezing` only acts on the Bigg path used without host freezing, which the Julia twin does not translate.
 
 🌧️🧮 The `tau` row reads `KBARF_tau_kernel.dat` from the repo root (`@REPO@` in `switches.csv` becomes the repo path in `settings_tau.nml`).
 
