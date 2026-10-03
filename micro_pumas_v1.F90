@@ -168,6 +168,9 @@ logical :: evap_sed_off
 logical :: icenuc_rh_off
 
 ! Internally: Meyers Ice Nucleation
+! Note: not used anywhere in this module (also unused upstream, ESCOMP/PUMAS e7377ae).
+! Kept so that the init/CCPP interface stays unchanged; the host must compute the
+! nucleation rate itself (naai), for example with Meyers (1992) as the MESSy glue does.
 logical :: icenuc_use_meyers
 
 ! Scale evaporation as IFS does (*0.3)
@@ -293,6 +296,14 @@ real(r8), parameter :: vfac_ice  = 1.0_r8      ! Cloud Ice Factor
 
 logical           :: do_implicit_fall !   = .true.
 
+! Safety guard for hosts whose model top interface is at 0 Pa (e.g. ECHAM5/EMAC):
+! the hypsometric layer depth log(pint(k+1)/pint(k)) of the top layer is infinite
+! there and the implicit fall silently returns zero fluxes. With the guard on, the
+! top interface pressure is raised to at least half the top mid-level pressure
+! in the depth calculation only. Off by default (results unchanged); the host sets
+! it before calling micro_pumas_init. Not a tuning parameter.
+logical, public   :: implicit_fall_top_guard = .false.
+
 logical           :: accre_sees_auto  != .true.
 
 !$acc declare create (nccons,nicons,ngcons,nrcons,nscons,ncnst,ninst,ngnst,    &
@@ -312,7 +323,7 @@ logical           :: accre_sees_auto  != .true.
 !$acc                 micro_mg_vtrms_factor,                                   &
 !$acc                 micro_mg_effi_factor,micro_mg_iaccr_factor,              &
 !$acc                 micro_mg_max_nicons,remove_supersat,do_implicit_fall,    &
-!$acc                 accre_sees_auto)
+!$acc                 accre_sees_auto,implicit_fall_top_guard)
 
 !===============================================================================
 contains
@@ -563,7 +574,7 @@ subroutine micro_pumas_init( &
   !$acc                micro_mg_vtrms_factor,                                  &
   !$acc                micro_mg_effi_factor,micro_mg_iaccr_factor,             &
   !$acc                micro_mg_max_nicons,remove_supersat,do_implicit_fall,   &
-  !$acc                accre_sees_auto)
+  !$acc                accre_sees_auto,implicit_fall_top_guard)
 
   if (trim(warm_rain) == 'emulated') then
       call initialize_tau_emulators(stochastic_emulated_filename_quantile, stochastic_emulated_filename_input_scale, &
@@ -3298,7 +3309,11 @@ subroutine micro_pumas_tend ( &
         zint(i,nlev+1)=0._r8
         !$acc loop seq
         do k = nlev,1,-1
-           H = r*t(i,k)/g*log(pint(i,k+1)/pint(i,k))
+           if (implicit_fall_top_guard .and. k == 1) then
+              H = r*t(i,k)/g*log(pint(i,k+1)/max(pint(i,k), 0.5_r8*p(i,k)))
+           else
+              H = r*t(i,k)/g*log(pint(i,k+1)/pint(i,k))
+           end if
            zint(i,k)=zint(i,k+1)+H
         enddo
      enddo
