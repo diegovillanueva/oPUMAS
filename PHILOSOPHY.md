@@ -7,13 +7,12 @@
 
 - 🔤✨ oPUMAS offers variable and function names that minimise the effort of understanding what they mean.
 - 📖🔁 Every such name keeps a dictionary entry that maps it to its reference name in PUMAS, so that syncing PUMAS commits into oPUMAS (and sending changes back) stays easy.
-- 🌿🌿 The same code lives on two editable branches: `main_cam_interface` in the PUMAS language and `CF-CCPP` in a language built from CCPP and CF standard names and AMS Glossary process words. `translation/sync.sh` keeps them equivalent, so everybody works in the language they read best.
-- 📄🗂️ The dictionary is [`translation/dictionary.csv`](translation/dictionary.csv): one row per concept, one column per language. A new language is a new column plus a row in `translation/languages.csv`. Details: [`translation/README.md`](translation/README.md).
-- 🧮🏷️ Units are part of the name: the dictionary has a `units` column and the translator appends the suffix (`npracs` becomes `local_rain_number_tend_accretion_by_snow_per_kg_per_s`). `--no-units` switches the suffix off.
-- 🤖🔄 The translation is done by a script (`translation/translate.py`), never by hand, in both directions.
-- ⚖️🧪 A translation never changes results: `CF-CCPP` is verified bit-for-bit against `main_cam_interface` in CESM 2.1.5, and `translation/check.py --branches` verifies that `CF-CCPP` is exactly the translation of `main_cam_interface`.
-- 🎛️🤝 Names that users and host models see (module names, namelist variables, history field names, `micro_pumas_init`/`micro_pumas_tend` and their argument lists) keep their PUMAS spelling in every language, so existing namelists, scripts and host interfaces keep working. The components of `proc_rates_type` are translated, together with the host files that read them.
-- 🚧📅 Status (2026-10-01): 219 names are in the dictionary (process rates, hydrometeor state, size-distribution, fall-speed and sedimentation names). Scratch variables and about 600 further identifiers still carry their PUMAS names on both branches.
+- 🧊🔤 The Fortran keeps the upstream PUMAS names. The readable names live in the Julia twin (principle 5), which is the reader's edition of the same code.
+- 📄🗂️ The dictionary is [`translation/dictionary.csv`](translation/dictionary.csv): one row per concept, with the `Fortran` name, the `Julia` path, units and meaning. Details: [`translation/README.md`](translation/README.md).
+- 🔁✅ Dictionary, Julia twin and Fortran are kept in sync by a test (`julia/test/names_check.jl`, part of `Pkg.test()`): every Julia path exists, every Julia name table entry has its row, and every Fortran name still exists in the sources.
+- 🎛️🤝 Names that users and host models see (module names, namelist variables, history field names, `micro_pumas_init`/`micro_pumas_tend` and their argument lists) are never renamed.
+- 🗄️🌿 History: until 2026-10-03 a translator kept a second Fortran branch `CF-CCPP` in long names (tag `archive/CF-CCPP`). It was retired because the Julia twin already serves readers, and one Fortran spelling keeps upstream merges simple.
+- 🚧📅 Status (2026-10-03): 352 rows (process rates, state, size distributions, fall speeds, sedimentation, outputs of `micro_pumas_tend`, namelist settings).
 
 ## 2. 🎛️🔕 Everything new is switchable and defaults to PUMAS
 

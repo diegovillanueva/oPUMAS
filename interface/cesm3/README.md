@@ -30,7 +30,7 @@ interface/cesm3/make_interface.sh apply <cesm3>/components/cam # 🩹 in a CAM7 
 ```
 
 🔗🧊 Then point CAM's PUMAS submodule (`src/physics/pumas-frozen` in `.gitmodules`, `fxtag =
-pumas_cam-release_v1.17_rename`) at oPUMAS `dev/Sppe`, so `micro_pumas_sppe.F90` and the core hooks are compiled.
+pumas_cam-release_v1.17_rename`) at oPUMAS `main`, so `micro_pumas_sppe.F90` and the core hooks are compiled.
 
 ## 🗺️ Differences from CESM 2.1.5
 

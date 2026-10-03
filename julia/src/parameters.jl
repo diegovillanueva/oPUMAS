@@ -110,7 +110,7 @@ Base.@kwdef struct Settings
     constant_graupel_number::Bool = false
     "Graupel number when held constant, m⁻³ (`micro_mg_ngnst`)."
     graupel_number::Float64 = 0.0005e6
-    # 🧊🎛️ Sppe process controls (`micro_pumas_sppe.F90` on branch `dev/Sppe`, namelist
+    # 🧊🎛️ Sppe process controls (`micro_pumas_sppe.F90`, namelist
     #    group `micro_dv_nl` in CAM). The defaults are upstream PUMAS.
     "🧊🌫️ Nucleation from `naai` also above -40 °C (`naai_het_also_in_mpc`)."
     nucleation_in_mixed_phase::Bool = true

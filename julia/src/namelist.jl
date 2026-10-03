@@ -41,7 +41,7 @@ const NAMELIST_FIELDS = Dict(
     "micro_mg_ninst" => :ice_number,
     "micro_mg_ngcons" => :constant_graupel_number,
     "micro_mg_ngnst" => :graupel_number,
-    # 🧊🎛️ Sppe controls (dev/Sppe)
+    # 🧊🎛️ Sppe controls (micro_pumas_sppe.F90)
     "naai_het_also_in_mpc" => :nucleation_in_mixed_phase,
     "enable_nimax" => :cap_ice_number,
     "detrainment_ramp_liq" => :supersaturation_to_liquid,

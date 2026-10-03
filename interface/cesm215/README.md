@@ -30,7 +30,7 @@ cesmvvv=cesm215_pumas_worktrees/cesm215_pumas CAM_USR_SRC=$I \
 - 🗂️🔝 CAM `configure -usr_src <dir>` puts `<dir>` first in `Buildconf/camconf/Filepath`, so a file here replaces the CAM file of the same name.
 - 🔗🧊 The ten PUMAS files CAM compiles are relative symlinks to the repo root: `pumas_kinds`, `pumas_gamma_function`, `micro_pumas_sppe`, `micro_pumas_utils`, `micro_pumas_diags`, `pumas_stochastic_collect_tau`, `module_neural_net`, `tau_neural_net_quantile`, `ML_fixer_check`, `micro_pumas_v1`.
 - 🚫📄 `micro_pumas_ccpp`, `micro_pumas_tempfix` and the repo-root `micro_mg1_0` are never linked, because they need CCPP or clash with CAM.
-- 🛠️📄 Five CAM files (nine on `dev/Sppe`, see below) are overridden with full copies of the rel_60 file plus additions. `./make_interface.sh diff` prints the exact patch against the tag.
+- 🛠️📄 Nine CAM files (five for PUMAS, four more for the Sppe controls, see below) are overridden with full copies of the rel_60 file plus additions. `./make_interface.sh diff` prints the exact patch against the tag.
   - 🌧️🧊 `micro_mg_cam.F90` gains a `case (3)` in readnl, init, get_cols and tend_pack, and reads the extra namelist group `micro_pumas_nl`.
   - 💧📐 `wv_sat_methods.F90` gains `wv_sat_qsat_water_vect` and `wv_sat_qsat_ice_vect`, thin wrappers around the elemental rel_60 routines.
   - ⚖️❄️ `check_energy.F90` counts `GRAUQM` in the ice water budget and excludes it from the dry-mass fixer, so graupel conserves mass and energy.
@@ -58,7 +58,7 @@ cesmvvv=cesm215_pumas_worktrees/cesm215_pumas CAM_USR_SRC=$I \
 
 🧊❄️ `user_nl_cam.pumas_graupel` is the same plus `micro_mg_do_graupel = .true.` (10 constituents). 🔢⚠️ CAM's `configure` counts tracers before it sees this switch, so a graupel case also needs `./xmlchange --append CAM_CONFIG_OPTS="-nadv 35"` (the case's `nadv` in `Buildconf/camconf/config_cache.xml` plus 2) before `case.setup --reset` and a `case.build --clean-all` rebuild (make does not notice the changed `-DPCNST`, so an incremental build keeps the old executable); otherwise init aborts with `cnst_add: advected tracer index greater than pcnst`. 🌍🧊 `user_nl_cam.pumas_cesm3like` sets everything CESM 3 (CAM7) switches on out of the box: graupel, implicit fall, `accre_sees_auto`, `precip_fall_corr`, the CAM7 tuning factors and the `microp_aero_wsub_*` values. 📌🔖 Reference: ESCOMP/CESM `cesm3_0_beta10`, which pins ESCOMP/CAM `cam6_4_203` (microphysics defaults identical in `cam6_4_204`); CAM7 itself runs PUMAS `pumas_cam-release_v1.17_rename`, this repo is at v1.41+. It needs the same `-nadv 35` and clean rebuild as the graupel case. 🤖🚫 `emulated` warm rain is not wired. The existing MG2 namelist (`micro_mg_dcs`, `micro_mg_berg_eff_factor`, number constants, `micro_mg_num_steps`) is passed through unchanged.
 
-## 🧊🎛️ Sppe controls (branch `dev/Sppe`)
+## 🧊🎛️ Sppe controls (`micro_pumas_sppe.F90`)
 
 📦🔗 The 20 controls of [Sppe_revision_public](https://github.com/diegovillanueva/Sppe_revision_public) (namelist group `micro_dv_nl`, module `micro_dv_nml.F90`, read in `microp_aero_readnl`). 🔕✅ Every default reproduces upstream PUMAS (`tests/bfb.sh run` passes). 🧊🎛️ `user_nl_cam.pumas_sppe` is `user_nl_cam.pumas` plus the full Sppe set.
 
@@ -105,8 +105,8 @@ cesmvvv=cesm215_pumas_worktrees/cesm215_pumas CAM_USR_SRC=$I \
 
 - 🧬⚠️ `create_clone` resets `SRCROOT` to `$W/cesm215/cime/..`. After cloning a PUMAS case, set it back to `$W/cesm215_pumas_worktrees/cesm215_pumas` in `env_case.xml` and `LockedFiles/env_case.xml`, otherwise `build-namelist` rejects the oPUMAS variables.
 - 🏗️⚠️ A clone of a case that was itself created with `--keepexe` inherits the `EXEROOT` of the original case. Before building such a clone, run `./xmlchange EXEROOT=<cesm_runs>/<case>/bld`, otherwise the build overwrites the executable of the other case.
-- 🔤🧪 Bit-for-bit check of the `CF-CCPP` branch: cases `cesm215_pumas.F2000climo.bfb_dev` and `bfb_cfccpp` (clones of `pumas_c3like`, 1 day); the second one has `-usr_src $W/cesm215_pumas_worktrees/opumas_CF-CCPP/interface/cesm215`. After a dictionary change, sync, rebuild `bfb_cfccpp` with `case.build --clean-all`, rerun, and compare the two `cam.r` restarts variable by variable (`netCDF4`, `tobytes()`). `cmp` cannot be used across two cases, because the header holds the case name; only `hrestpath` and the global attribute `caseid` may differ. Result on 2026-10-01: 236 of 237 variables bit-identical, `hrestpath` differs as expected.
-- ♻️✅ Bit-for-bit check for a new switch: `../../tests/bfb.sh run` (rebuilds `bfb_dev`, runs 1 day, compares `cam.r` with the stored baseline). Switch matrix and strategy: `../../tests/README.md`.
+- 🗄️🔤 The case `bfb_cfccpp` checked the retired `CF-CCPP` branch (tag `archive/CF-CCPP`); it is no longer used. Restarts of two different cases are compared with `tests/cmp_restart.py` (`cmp` fails because the header holds the case name).
+- ♻️✅ Bit-for-bit check for a new switch: `../../tests/bfb.sh run` (rebuilds `bfb_dev`, runs 3 time steps, compares `cam.r` with the stored baseline). Switch matrix and strategy: `../../tests/README.md`.
 
 ## 📝🧭 Open work
 

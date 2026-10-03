@@ -3,6 +3,7 @@ using oPUMAS
 
 include("golden.jl")
 include("processes.jl")
+include("names_check.jl")
 
 @testset "oPUMAS" begin
     include("test_foundations.jl")
@@ -12,6 +13,7 @@ include("processes.jl")
     include("test_step.jl")
     include("test_time_loop.jl")
     include("test_physics.jl")
+    include("test_names.jl")
 end
 
 println("🔬 worst relative error per routine")

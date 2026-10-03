@@ -1,7 +1,7 @@
 # 🗺️🧊 Stage map of `micro_pumas_tend` — 🖥️👓 Vim edition
 
 📜🔁 Plain-text twin of `PUMAS_stage_map.md`: no tables, no wide lines, readable in Vim.
-📍📂 Routine: `micro_pumas_tend` in `micro_pumas_v1.F90` (branch `main_cam_interface`, 2026-10-01).
+📍📂 Routine: `micro_pumas_tend` in `micro_pumas_v1.F90` (branch `main`, then called `main_cam_interface`, 2026-10-01).
 🎯📖 The code stays identical to upstream; this map shows where each stage lives.
 🔎⚓ Line numbers drift with merges, so jump with the anchor: `/! Sedimentation` in Vim.
 🧮📌 No sub-step loop inside: the host calls it once per sub-step (`micro_mg_num_steps`).

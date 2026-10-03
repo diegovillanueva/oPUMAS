@@ -9,7 +9,7 @@
 - 🔬 **Scalar physics, looping stages.** The M3 process functions stay scalar. A stage is a plain function `stage_name!(work, parameters)` that loops `for k in levels, i in columns` (Fortran order) and stores the scalar results.
 - 🗃️ **Species first, then quantity.** Paths read like the plan's style contract: `state.rain.q`, `incloud.snow.λ`, `rates.rain.accretion_by_snow.mass`.
 - 🧊 **Immutable structs of mutable arrays.** Allocated once by `allocate(columns, levels)`, then overwritten in place every step. No module globals; the about 280 Fortran work arrays become fields or stage locals.
-- 🔤 **Names from the dictionary.** Each rate's path follows the CF-CCPP name in `translation/dictionary.csv` (`local_rain_mass_tend_accretion_by_snow` → `rates.rain.accretion_by_snow.mass`). A dictionary `Julia` column records the path (plan, rule 9, done on `main_cam_interface`).
+- 🔤 **Names from the dictionary.** Each rate's path is built from the CF/CCPP and AMS Glossary words of the retired CF-CCPP names (`local_rain_mass_tend_accretion_by_snow` → `rates.rain.accretion_by_snow.mass`). The `Julia` column of `translation/dictionary.csv` records the path next to the `Fortran` name, and `test/names_check.jl` keeps both in sync.
 
 ## 2. 📦🧩 The seven containers
 
@@ -94,7 +94,7 @@ struct Rate
 end
 
 # 🧮 LocalRates: species that loses the mass → process → Rate, following the
-#    CF-CCPP dictionary names. Built as nested NamedTuples by allocate(), e.g.
+#    dictionary names (translation/dictionary.csv). Built as nested NamedTuples by allocate(), e.g.
 #      rates.cloud_liquid.autoconversion       (prc, nprc)
 #      rates.cloud_liquid.accretion_by_rain     (pra, npra)
 #      rates.cloud_liquid.accretion_by_snow     (psacws, npsacws)

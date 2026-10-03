@@ -3,7 +3,7 @@
 🧊🌧️ Diego's private development copy of [ESCOMP/PUMAS](https://github.com/ESCOMP/PUMAS) (Parameterization for Unified Microphysics Across Scales).
 🔄🌿 It tracks upstream fixes continuously; changes that should go upstream will later be sent as a single PR to ESCOMP/PUMAS.
 
-- 🧭🧊 What separates oPUMAS from PUMAS (naming, defaults, sync): [`PHILOSOPHY.md`](PHILOSOPHY.md); name dictionary, translation scripts and the `CF-CCPP` branch: [`translation/README.md`](translation/README.md)
+- 🧭🧊 What separates oPUMAS from PUMAS (naming, defaults, sync): [`PHILOSOPHY.md`](PHILOSOPHY.md); Fortran ↔ Julia name dictionary: [`translation/README.md`](translation/README.md)
 - 📘📄 Original upstream README (checkout, running with CAM): [`README_PUMAS.md`](README_PUMAS.md)
 - 🐙🔁 Git setup, daily upstream sync, and (disabled) PR recipe: [`git_work.md`](git_work.md)
 - 🤖📋 Agent rules: [`AGENTS.md`](AGENTS.md)
@@ -20,11 +20,10 @@
 | `origin` | github.com/diegovillanueva/oPUMAS (private) | push freely |
 | `upstream` | github.com/ESCOMP/PUMAS | fetch only (push URL = `DISABLED`) |
 | `main_cam` | mirror of `upstream/main_cam` | fast-forward only, never commit |
-| `main_cam_interface` | Diego's development in PUMAS names (default branch) | merge `main_cam` in regularly; dictionary edits happen here |
-| `CF-CCPP` | the same code in CF-CCPP names, editable | run `translation/sync.sh` before and after working on it |
-| `dev/Sppe` | `main_cam_interface` plus the Sppe process controls (`micro_pumas_sppe.F90`, group `micro_dv_nl`), all off by default | not synced to `CF-CCPP`; merge `main_cam_interface` in |
+| `main` | Diego's development (default branch): upstream PUMAS plus Sppe controls (`micro_pumas_sppe.F90`, group `micro_dv_nl`, all off by default), tests, dictionary and the Julia twin | merge `main_cam` in regularly; `feat/*` branches merge back here |
+| `archive/*` (tags) | `archive/CF-CCPP` (retired long-name Fortran branch), `archive/dev-Sppe`, `archive/dev-julia` | read only |
 
-🔤🌿 Branch names used by the translation scripts come from `translation/languages.csv`. 🧪🏷️ `bfb_dev` in `tests/` is a CESM case name, not a branch.
+🧪🏷️ `bfb_dev` in `tests/` is a CESM case name, not a branch. 🗓️🌿 Until 2026-10-03 the development branch was called `main_cam_interface`.
 
 ## Local clone
 
@@ -32,25 +31,17 @@
 /cluster/work/climate/dvillanueva/work/CESM/PUMAS
 ```
 
-🌿📂 Worktree of `CF-CCPP` (complete `-usr_src` directory for CESM 2.1.5 under `interface/cesm215`):
-
-```
-/cluster/work/climate/dvillanueva/work/CESM/cesm215_pumas_worktrees/opumas_CF-CCPP
-```
-
 ## ✅🧪 Validate
 
 ```bash
 tests/compile_check.sh                    # PUMAS files and CAM overrides compile (about 40 s, herdr-compute)
 tests/bfb.sh run                          # 3-step CESM 2.1.5 run is bit-for-bit with the baseline
-tests/bfb.sh par sppe_                     # switch rows in parallel, one --keepexe clone each
-tests/column/run.sh                       # column driver self-check and golden files for julia/ (under 1 min)
-python3 -m pytest -q translation          # translator tests
-python3 translation/check.py              # dictionary against the sources
-python3 translation/check.py --branches   # CF-CCPP is exactly the translation of main_cam_interface
+tests/bfb.sh par all                      # every switch row in parallel, one --keepexe clone each
+tests/column/run.sh                       # column driver self-check, golden files and 3-day loop for julia/ (about 1 min)
+julia/tools/julia.sh -e 'using Pkg; Pkg.test()'   # Julia twin against the golden files, dictionary in sync
 ```
 
-🧊♻️ Bit-for-bit test in CESM 2.1.5 (cases `bfb_dev` and `bfb_cfccpp`): see [`interface/cesm215/README.md`](interface/cesm215/README.md).
+🧊♻️ Bit-for-bit test in CESM 2.1.5 (case `bfb_dev`): see [`interface/cesm215/README.md`](interface/cesm215/README.md).
 
 ## 🔬📂 Code analysis notes
 

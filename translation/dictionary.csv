@@ -1,220 +1,353 @@
-id,kind,scope,units,meaning,PUMAS,CF-CCPP,cf_ccpp_source,standard_name,notes,Julia
-prc,rate,global,kg kg-1 s-1,"autoconversion of cloud liquid to rain, mass; local (in-cloud or in-precipitation) rate",prc,local_cldliq_mass_tend_autoconversion_to_rain,constructed,,,rates.cloud_liquid.autoconversion_to_rain.mass
-proc_rates%prctot,rate,type:proc_rates_type,kg kg-1 s-1,"autoconversion of cloud liquid to rain, mass; grid-mean (local rate times lcldm)",prctot,cldliq_mass_tend_autoconversion_to_rain,constructed,,,process_rates.cloud_liquid.autoconversion_to_rain.mass
-nprc,rate,global,kg-1 s-1,"autoconversion of cloud liquid to rain, rain number source; local (in-cloud or in-precipitation) rate",nprc,local_rain_number_tend_autoconversion_from_cldliq,constructed,,,rates.rain.autoconversion_from_cloud_liquid.number
-proc_rates%nprctot,rate,type:proc_rates_type,kg-1 s-1,"autoconversion of cloud liquid to rain, rain number source; grid-mean (local rate times lcldm)",nprctot,rain_number_tend_autoconversion_from_cldliq,constructed,,,process_rates.rain.autoconversion_from_cloud_liquid.number
-nprc1,rate,global,kg-1 s-1,"autoconversion of cloud liquid to rain, droplet number sink; local (in-cloud or in-precipitation) rate",nprc1,local_cldliq_number_tend_autoconversion_to_rain,constructed,,,rates.cloud_liquid.autoconversion_to_rain.number
-pra,rate,global,kg kg-1 s-1,"accretion of cloud liquid by rain, mass; local (in-cloud or in-precipitation) rate",pra,local_cldliq_mass_tend_accretion_by_rain,constructed,,,rates.cloud_liquid.accretion_by_rain.mass
-proc_rates%pratot,rate,type:proc_rates_type,kg kg-1 s-1,"accretion of cloud liquid by rain, mass; grid-mean (local rate times lcldm)",pratot,cldliq_mass_tend_accretion_by_rain,constructed,,,process_rates.cloud_liquid.accretion_by_rain.mass
-npra,rate,global,kg-1 s-1,"accretion of cloud liquid by rain, number; local (in-cloud or in-precipitation) rate",npra,local_cldliq_number_tend_accretion_by_rain,constructed,,,rates.cloud_liquid.accretion_by_rain.number
-proc_rates%npratot,rate,type:proc_rates_type,kg-1 s-1,"accretion of cloud liquid by rain, number; grid-mean (local rate times lcldm)",npratot,cldliq_number_tend_accretion_by_rain,constructed,,,process_rates.cloud_liquid.accretion_by_rain.number
-nragg,rate,global,kg-1 s-1,"self-collection of rain, number; local (in-cloud or in-precipitation) rate",nragg,local_rain_number_tend_self_collection,constructed,,,rates.rain.self_collection.number
-proc_rates%nraggtot,rate,type:proc_rates_type,kg-1 s-1,"self-collection of rain, number; grid-mean (local rate times precip_frac)",nraggtot,rain_number_tend_self_collection,constructed,,,process_rates.rain.self_collection.number
-nsagg,rate,global,kg-1 s-1,"aggregation (self-collection) of snow, number; local (in-cloud or in-precipitation) rate",nsagg,local_snow_number_tend_aggregation,constructed,,,rates.snow.aggregation.number
-psacws,rate,global,kg kg-1 s-1,"accretion (riming) of cloud liquid by snow, mass; local (in-cloud or in-precipitation) rate",psacws,local_cldliq_mass_tend_riming_by_snow,constructed,,,rates.cloud_liquid.riming_by_snow.mass
-proc_rates%psacwstot,rate,type:proc_rates_type,kg kg-1 s-1,"accretion (riming) of cloud liquid by snow, mass; grid-mean (local rate times lcldm)",psacwstot,cldliq_mass_tend_riming_by_snow,constructed,,,process_rates.cloud_liquid.riming_by_snow.mass
-npsacws,rate,global,kg-1 s-1,"accretion (riming) of cloud liquid by snow, number; local (in-cloud or in-precipitation) rate",npsacws,local_cldliq_number_tend_riming_by_snow,constructed,,,rates.cloud_liquid.riming_by_snow.number
-proc_rates%npsacwstot,rate,type:proc_rates_type,kg-1 s-1,"accretion (riming) of cloud liquid by snow, number; grid-mean (local rate times lcldm)",npsacwstot,cldliq_number_tend_riming_by_snow,constructed,,,process_rates.cloud_liquid.riming_by_snow.number
-pracs,rate,global,kg kg-1 s-1,"accretion of rain by snow, mass; local (in-cloud or in-precipitation) rate",pracs,local_rain_mass_tend_accretion_by_snow,constructed,,,rates.rain.accretion_by_snow.mass
-proc_rates%pracstot,rate,type:proc_rates_type,kg kg-1 s-1,"accretion of rain by snow, mass; grid-mean (local rate times precip_frac)",pracstot,rain_mass_tend_accretion_by_snow,constructed,,,process_rates.rain.accretion_by_snow.mass
-npracs,rate,global,kg-1 s-1,"accretion of rain by snow, number; local (in-cloud or in-precipitation) rate",npracs,local_rain_number_tend_accretion_by_snow,constructed,,,rates.rain.accretion_by_snow.number
-proc_rates%npracstot,rate,type:proc_rates_type,kg-1 s-1,"accretion of rain by snow, number; grid-mean (local rate times precip_frac)",npracstot,rain_number_tend_accretion_by_snow,constructed,,,process_rates.rain.accretion_by_snow.number
-mnuccc,rate,global,kg kg-1 s-1,"immersion freezing of cloud liquid, mass; local (in-cloud or in-precipitation) rate",mnuccc,local_cldliq_mass_tend_immersion_freezing,constructed,,,rates.cloud_liquid.immersion_freezing.mass
-proc_rates%mnuccctot,rate,type:proc_rates_type,kg kg-1 s-1,"immersion freezing of cloud liquid, mass; grid-mean (local rate times lcldm)",mnuccctot,cldliq_mass_tend_immersion_freezing,constructed,,,process_rates.cloud_liquid.immersion_freezing.mass
-nnuccc,rate,global,kg-1 s-1,"immersion freezing of cloud liquid, number; local (in-cloud or in-precipitation) rate",nnuccc,local_cldliq_number_tend_immersion_freezing,constructed,,,rates.cloud_liquid.immersion_freezing.number
-proc_rates%nnuccctot,rate,type:proc_rates_type,kg-1 s-1,"immersion freezing of cloud liquid, number; grid-mean (local rate times lcldm)",nnuccctot,cldliq_number_tend_immersion_freezing,constructed,,,process_rates.cloud_liquid.immersion_freezing.number
-mnucct,rate,global,kg kg-1 s-1,"contact freezing of cloud liquid, mass; local (in-cloud or in-precipitation) rate",mnucct,local_cldliq_mass_tend_contact_freezing,constructed,,,rates.cloud_liquid.contact_freezing.mass
-proc_rates%mnuccttot,rate,type:proc_rates_type,kg kg-1 s-1,"contact freezing of cloud liquid, mass; grid-mean (local rate times lcldm)",mnuccttot,cldliq_mass_tend_contact_freezing,constructed,,,process_rates.cloud_liquid.contact_freezing.mass
-nnucct,rate,global,kg-1 s-1,"contact freezing of cloud liquid, number; local (in-cloud or in-precipitation) rate",nnucct,local_cldliq_number_tend_contact_freezing,constructed,,,rates.cloud_liquid.contact_freezing.number
-proc_rates%nnuccttot,rate,type:proc_rates_type,kg-1 s-1,"contact freezing of cloud liquid, number; grid-mean (local rate times lcldm)",nnuccttot,cldliq_number_tend_contact_freezing,constructed,,,process_rates.cloud_liquid.contact_freezing.number
-mnudep,rate,global,kg kg-1 s-1,"deposition nucleation in mixed-phase cloud, mass; local (in-cloud or in-precipitation) rate",mnudep,local_cldliq_mass_tend_deposition_nucleation,constructed,,,rates.cloud_liquid.deposition_nucleation.mass
-proc_rates%mnudeptot,rate,type:proc_rates_type,kg kg-1 s-1,"deposition nucleation in mixed-phase cloud, mass; grid-mean (local rate times lcldm)",mnudeptot,cldliq_mass_tend_deposition_nucleation,constructed,,,process_rates.cloud_liquid.deposition_nucleation.mass
-nnudep,rate,global,kg-1 s-1,"deposition nucleation in mixed-phase cloud, number; local (in-cloud or in-precipitation) rate",nnudep,local_cldliq_number_tend_deposition_nucleation,constructed,,,rates.cloud_liquid.deposition_nucleation.number
-proc_rates%nnudeptot,rate,type:proc_rates_type,kg-1 s-1,"deposition nucleation in mixed-phase cloud, number; grid-mean (local rate times lcldm)",nnudeptot,cldliq_number_tend_deposition_nucleation,constructed,,,process_rates.cloud_liquid.deposition_nucleation.number
-mnuccd,rate,global,kg kg-1 s-1,"ice nucleation by deposition/condensation freezing, mass; local (in-cloud or in-precipitation) rate",mnuccd,local_cldice_mass_tend_nucleation_from_vapor,constructed,,,rates.cloud_ice.nucleation_from_vapor.mass
-proc_rates%mnuccdtot,rate,type:proc_rates_type,kg kg-1 s-1,"ice nucleation by deposition/condensation freezing, mass; grid-mean (local rate times icldm)",mnuccdtot,cldice_mass_tend_nucleation_from_vapor,constructed,,,process_rates.cloud_ice.nucleation_from_vapor.mass
-nnuccd,rate,global,kg-1 s-1,"ice nucleation by deposition/condensation freezing, number; local (in-cloud or in-precipitation) rate",nnuccd,local_cldice_number_tend_nucleation_from_vapor,constructed,,,rates.cloud_ice.nucleation_from_vapor.number
-proc_rates%nnuccdtot,rate,type:proc_rates_type,kg-1 s-1,"ice nucleation by deposition/condensation freezing, number; grid-mean (local rate times icldm)",nnuccdtot,cldice_number_tend_nucleation_from_vapor,constructed,,,process_rates.cloud_ice.nucleation_from_vapor.number
-msacwi,rate,global,kg kg-1 s-1,"rime splintering (Hallett-Mossop) during riming of snow, mass to cloud ice; local (in-cloud or in-precipitation) rate",msacwi,local_cldice_mass_tend_splintering_by_snow,constructed,,,rates.cloud_ice.splintering_by_snow.mass
-proc_rates%msacwitot,rate,type:proc_rates_type,kg kg-1 s-1,"rime splintering (Hallett-Mossop) during riming of snow, mass to cloud ice; grid-mean (local rate times lcldm)",msacwitot,cldice_mass_tend_splintering_by_snow,constructed,,,process_rates.cloud_ice.splintering_by_snow.mass
-nsacwi,rate,global,kg-1 s-1,"rime splintering (Hallett-Mossop) during riming of snow, number to cloud ice; local (in-cloud or in-precipitation) rate",nsacwi,local_cldice_number_tend_splintering_by_snow,constructed,,,rates.cloud_ice.splintering_by_snow.number
-proc_rates%nsacwitot,rate,type:proc_rates_type,kg-1 s-1,"rime splintering (Hallett-Mossop) during riming of snow, number to cloud ice; grid-mean (local rate times lcldm)",nsacwitot,cldice_number_tend_splintering_by_snow,constructed,,,process_rates.cloud_ice.splintering_by_snow.number
-mnuccr,rate,global,kg kg-1 s-1,"heterogeneous freezing of rain to snow, mass; local (in-cloud or in-precipitation) rate",mnuccr,local_rain_mass_tend_freezing_to_snow,constructed,,,rates.rain.freezing_to_snow.mass
-proc_rates%mnuccrtot,rate,type:proc_rates_type,kg kg-1 s-1,"heterogeneous freezing of rain to snow, mass; grid-mean (local rate times precip_frac)",mnuccrtot,rain_mass_tend_freezing_to_snow,constructed,,,process_rates.rain.freezing_to_snow.mass
-nnuccr,rate,global,kg-1 s-1,"heterogeneous freezing of rain to snow, number; local (in-cloud or in-precipitation) rate",nnuccr,local_rain_number_tend_freezing_to_snow,constructed,,,rates.rain.freezing_to_snow.number
-proc_rates%nnuccrtot,rate,type:proc_rates_type,kg-1 s-1,"heterogeneous freezing of rain to snow, number; grid-mean (local rate times precip_frac)",nnuccrtot,rain_number_tend_freezing_to_snow,constructed,,,process_rates.rain.freezing_to_snow.number
-mnuccri,rate,global,kg kg-1 s-1,"heterogeneous freezing of rain to cloud ice, mass; local (in-cloud or in-precipitation) rate",mnuccri,local_rain_mass_tend_freezing_to_cldice,constructed,,,rates.rain.freezing_to_cloud_ice.mass
-proc_rates%mnuccritot,rate,type:proc_rates_type,kg kg-1 s-1,"heterogeneous freezing of rain to cloud ice, mass; grid-mean (local rate times precip_frac)",mnuccritot,rain_mass_tend_freezing_to_cldice,constructed,,,process_rates.rain.freezing_to_cloud_ice.mass
-nnuccri,rate,global,kg-1 s-1,"heterogeneous freezing of rain to cloud ice, number; local (in-cloud or in-precipitation) rate",nnuccri,local_rain_number_tend_freezing_to_cldice,constructed,,,rates.rain.freezing_to_cloud_ice.number
-proc_rates%nnuccritot,rate,type:proc_rates_type,kg-1 s-1,"heterogeneous freezing of rain to cloud ice, number; grid-mean (local rate times precip_frac)",nnuccritot,rain_number_tend_freezing_to_cldice,constructed,,,process_rates.rain.freezing_to_cloud_ice.number
-prci,rate,global,kg kg-1 s-1,"autoconversion of cloud ice to snow, mass; local (in-cloud or in-precipitation) rate",prci,local_cldice_mass_tend_autoconversion_to_snow,constructed,,,rates.cloud_ice.autoconversion_to_snow.mass
-proc_rates%prcitot,rate,type:proc_rates_type,kg kg-1 s-1,"autoconversion of cloud ice to snow, mass; grid-mean (local rate times icldm)",prcitot,cldice_mass_tend_autoconversion_to_snow,constructed,,,process_rates.cloud_ice.autoconversion_to_snow.mass
-nprci,rate,global,kg-1 s-1,"autoconversion of cloud ice to snow, number; local (in-cloud or in-precipitation) rate",nprci,local_cldice_number_tend_autoconversion_to_snow,constructed,,,rates.cloud_ice.autoconversion_to_snow.number
-proc_rates%nprcitot,rate,type:proc_rates_type,kg-1 s-1,"autoconversion of cloud ice to snow, number; grid-mean (local rate times icldm)",nprcitot,cldice_number_tend_autoconversion_to_snow,constructed,,,process_rates.cloud_ice.autoconversion_to_snow.number
-prai,rate,global,kg kg-1 s-1,"accretion of cloud ice by snow, mass; local (in-cloud or in-precipitation) rate",prai,local_cldice_mass_tend_accretion_by_snow,constructed,,,rates.cloud_ice.accretion_by_snow.mass
-proc_rates%praitot,rate,type:proc_rates_type,kg kg-1 s-1,"accretion of cloud ice by snow, mass; grid-mean (local rate times icldm)",praitot,cldice_mass_tend_accretion_by_snow,constructed,,,process_rates.cloud_ice.accretion_by_snow.mass
-nprai,rate,global,kg-1 s-1,"accretion of cloud ice by snow, number; local (in-cloud or in-precipitation) rate",nprai,local_cldice_number_tend_accretion_by_snow,constructed,,,rates.cloud_ice.accretion_by_snow.number
-proc_rates%npraitot,rate,type:proc_rates_type,kg-1 s-1,"accretion of cloud ice by snow, number; grid-mean (local rate times icldm)",npraitot,cldice_number_tend_accretion_by_snow,constructed,,,process_rates.cloud_ice.accretion_by_snow.number
-pre,rate,global,kg kg-1 s-1,"evaporation of rain, mass; local (in-cloud or in-precipitation) rate",pre,local_rain_mass_tend_evaporation,constructed,,,rates.rain.evaporation.mass
-prds,rate,global,kg kg-1 s-1,"sublimation of snow, mass; local (in-cloud or in-precipitation) rate",prds,local_snow_mass_tend_sublimation,constructed,,,rates.snow.sublimation.mass
-vap_dep,rate,global,kg kg-1 s-1,"vapor deposition onto cloud ice, mass; local (in-cloud or in-precipitation) rate",vap_dep,local_cldice_mass_tend_deposition,constructed,,,rates.cloud_ice.deposition.mass
-ice_sublim,rate,global,kg kg-1 s-1,"sublimation of cloud ice, mass; local (in-cloud or in-precipitation) rate",ice_sublim,local_cldice_mass_tend_sublimation,constructed,,,rates.cloud_ice.sublimation.mass
-vap_deps,rate,global,kg kg-1 s-1,"vapor deposition onto snow, mass; local (in-cloud or in-precipitation) rate",vap_deps,local_snow_mass_tend_deposition,constructed,,,rates.snow.deposition.mass
-proc_rates%vapdepstot,rate,type:proc_rates_type,kg kg-1 s-1,"vapor deposition onto snow, mass; grid-mean (equal to the local rate)",vapdepstot,snow_mass_tend_deposition,constructed,,,process_rates.snow.deposition.mass
-nsubi,rate,global,kg-1 s-1,"sublimation of cloud ice, number; local (in-cloud or in-precipitation) rate",nsubi,local_cldice_number_tend_sublimation,constructed,,,rates.cloud_ice.sublimation.number
-nsubc,rate,global,kg-1 s-1,"evaporation of cloud droplets, number; local (in-cloud or in-precipitation) rate",nsubc,local_cldliq_number_tend_evaporation,constructed,,,rates.cloud_liquid.evaporation.number
-nsubs,rate,global,kg-1 s-1,"sublimation of snow, number; local (in-cloud or in-precipitation) rate",nsubs,local_snow_number_tend_sublimation,constructed,,,rates.snow.sublimation.number
-nsubr,rate,global,kg-1 s-1,"evaporation of rain, number; local (in-cloud or in-precipitation) rate",nsubr,local_rain_number_tend_evaporation,constructed,,,rates.rain.evaporation.number
-berg,rate,global,kg kg-1 s-1,"Wegener-Bergeron-Findeisen transfer of cloud liquid to cloud ice, mass; local (in-cloud or in-precipitation) rate",berg,local_cldliq_mass_tend_bergeron_to_cldice,constructed,,,rates.cloud_liquid.bergeron_to_cloud_ice.mass
-proc_rates%bergtot,rate,type:proc_rates_type,kg kg-1 s-1,"Wegener-Bergeron-Findeisen transfer of cloud liquid to cloud ice, mass; grid-mean (equal to the local rate)",bergtot,cldliq_mass_tend_bergeron_to_cldice,constructed,,,process_rates.cloud_liquid.bergeron_to_cloud_ice.mass
-bergs,rate,global,kg kg-1 s-1,"Wegener-Bergeron-Findeisen transfer of cloud liquid to snow, mass; local (in-cloud or in-precipitation) rate",bergs,local_cldliq_mass_tend_bergeron_to_snow,constructed,,,rates.cloud_liquid.bergeron_to_snow.mass
-proc_rates%bergstot,rate,type:proc_rates_type,kg kg-1 s-1,"Wegener-Bergeron-Findeisen transfer of cloud liquid to snow, mass; grid-mean (local rate times lcldm)",bergstot,cldliq_mass_tend_bergeron_to_snow,constructed,,,process_rates.cloud_liquid.bergeron_to_snow.mass
-pracg,rate,global,kg kg-1 s-1,"collection of rain by graupel, mass; local (in-cloud or in-precipitation) rate",pracg,local_rain_mass_tend_accretion_by_graupel,constructed,,,rates.rain.accretion_by_graupel.mass
-proc_rates%pracgtot,rate,type:proc_rates_type,kg kg-1 s-1,"collection of rain by graupel, mass; grid-mean (local rate times precip_frac)",pracgtot,rain_mass_tend_accretion_by_graupel,constructed,,,process_rates.rain.accretion_by_graupel.mass
-npracg,rate,global,kg-1 s-1,"collection of rain by graupel, number; local (in-cloud or in-precipitation) rate",npracg,local_rain_number_tend_accretion_by_graupel,constructed,,,rates.rain.accretion_by_graupel.number
-proc_rates%npracgtot,rate,type:proc_rates_type,kg-1 s-1,"collection of rain by graupel, number; grid-mean (local rate times precip_frac)",npracgtot,rain_number_tend_accretion_by_graupel,constructed,,,process_rates.rain.accretion_by_graupel.number
-psacwg,rate,global,kg kg-1 s-1,"collection (riming) of cloud droplets by graupel, mass; local (in-cloud or in-precipitation) rate",psacwg,local_cldliq_mass_tend_riming_by_graupel,constructed,,,rates.cloud_liquid.riming_by_graupel.mass
-proc_rates%psacwgtot,rate,type:proc_rates_type,kg kg-1 s-1,"collection (riming) of cloud droplets by graupel, mass; grid-mean (local rate times lcldm)",psacwgtot,cldliq_mass_tend_riming_by_graupel,constructed,,,process_rates.cloud_liquid.riming_by_graupel.mass
-npsacwg,rate,global,kg-1 s-1,"collection (riming) of cloud droplets by graupel, number; local (in-cloud or in-precipitation) rate",npsacwg,local_cldliq_number_tend_riming_by_graupel,constructed,,,rates.cloud_liquid.riming_by_graupel.number
-proc_rates%npsacwgtot,rate,type:proc_rates_type,kg-1 s-1,"collection (riming) of cloud droplets by graupel, number; grid-mean (local rate times lcldm)",npsacwgtot,cldliq_number_tend_riming_by_graupel,constructed,,,process_rates.cloud_liquid.riming_by_graupel.number
-pgsacw,rate,global,kg kg-1 s-1,"conversion to graupel due to collection of droplets by snow, mass; local (in-cloud or in-precipitation) rate",pgsacw,local_graupel_mass_tend_from_snow_riming,constructed,,,rates.graupel.from_snow_riming.mass
-proc_rates%pgsacwtot,rate,type:proc_rates_type,kg kg-1 s-1,"conversion to graupel due to collection of droplets by snow, mass; grid-mean (local rate times lcldm)",pgsacwtot,graupel_mass_tend_from_snow_riming,constructed,,,process_rates.graupel.from_snow_riming.mass
-nscng,rate,global,kg-1 s-1,"conversion to graupel due to collection of droplets by snow, number; local (in-cloud or in-precipitation) rate",nscng,local_graupel_number_tend_from_snow_riming,constructed,,,rates.graupel.from_snow_riming.number
-proc_rates%nscngtot,rate,type:proc_rates_type,kg-1 s-1,"conversion to graupel due to collection of droplets by snow, number; grid-mean (local rate times lcldm)",nscngtot,graupel_number_tend_from_snow_riming,constructed,,,process_rates.graupel.from_snow_riming.number
-pgracs,rate,global,kg kg-1 s-1,"conversion to graupel due to collection of rain by snow, mass; local (in-cloud or in-precipitation) rate",pgracs,local_graupel_mass_tend_rain_snow_collection,constructed,,,rates.graupel.rain_snow_collection.mass
-proc_rates%pgracstot,rate,type:proc_rates_type,kg kg-1 s-1,"conversion to graupel due to collection of rain by snow, mass; grid-mean (local rate times precip_frac)",pgracstot,graupel_mass_tend_rain_snow_collection,constructed,,,process_rates.graupel.rain_snow_collection.mass
-ngracs,rate,global,kg-1 s-1,"conversion to graupel due to collection of rain by snow, number; local (in-cloud or in-precipitation) rate",ngracs,local_graupel_number_tend_rain_snow_collection,constructed,,,rates.graupel.rain_snow_collection.number
-proc_rates%ngracstot,rate,type:proc_rates_type,kg-1 s-1,"conversion to graupel due to collection of rain by snow, number; grid-mean (local rate times precip_frac)",ngracstot,graupel_number_tend_rain_snow_collection,constructed,,,process_rates.graupel.rain_snow_collection.number
-psacr,rate,global,kg kg-1 s-1,"conversion due to collection of snow by rain, mass; local (in-cloud or in-precipitation) rate",psacr,local_snow_mass_tend_collection_by_rain,constructed,,,rates.snow.collection_by_rain.mass
-proc_rates%psacrtot,rate,type:proc_rates_type,kg kg-1 s-1,"conversion due to collection of snow by rain, mass; grid-mean (local rate times precip_frac)",psacrtot,snow_mass_tend_collection_by_rain,constructed,,,process_rates.snow.collection_by_rain.mass
-prdg,rate,global,kg kg-1 s-1,"vapor deposition/sublimation of graupel, mass; local (in-cloud or in-precipitation) rate",prdg,local_graupel_mass_tend_deposition,constructed,,,rates.graupel.deposition.mass
-proc_rates%prdgtot,rate,type:proc_rates_type,kg kg-1 s-1,"vapor deposition/sublimation of graupel, mass; grid-mean (local rate times precip_frac)",prdgtot,graupel_mass_tend_deposition,constructed,,,process_rates.graupel.deposition.mass
-qmultg,rate,global,kg kg-1 s-1,"ice multiplication during accretion of droplets by graupel, mass; local (in-cloud or in-precipitation) rate",qmultg,local_cldice_mass_tend_splintering_by_graupel,constructed,,,rates.cloud_ice.splintering_by_graupel.mass
-proc_rates%qmultgtot,rate,type:proc_rates_type,kg kg-1 s-1,"ice multiplication during accretion of droplets by graupel, mass; grid-mean (local rate times lcldm)",qmultgtot,cldice_mass_tend_splintering_by_graupel,constructed,,,process_rates.cloud_ice.splintering_by_graupel.mass
-nmultg,rate,global,kg-1 s-1,"ice multiplication during accretion of droplets by graupel, number; local (in-cloud or in-precipitation) rate",nmultg,local_cldice_number_tend_splintering_by_graupel,constructed,,,rates.cloud_ice.splintering_by_graupel.number
-proc_rates%nmultgtot,rate,type:proc_rates_type,kg-1 s-1,"ice multiplication during accretion of droplets by graupel, number; grid-mean (local rate times lcldm)",nmultgtot,cldice_number_tend_splintering_by_graupel,constructed,,,process_rates.cloud_ice.splintering_by_graupel.number
-qmultrg,rate,global,kg kg-1 s-1,"ice multiplication during accretion of rain by graupel, mass; local (in-cloud or in-precipitation) rate",qmultrg,local_cldice_mass_tend_splintering_rain_graupel,constructed,,,rates.cloud_ice.splintering_rain_graupel.mass
-proc_rates%qmultrgtot,rate,type:proc_rates_type,kg kg-1 s-1,"ice multiplication during accretion of rain by graupel, mass; grid-mean (local rate times precip_frac)",qmultrgtot,cldice_mass_tend_splintering_rain_graupel,constructed,,,process_rates.cloud_ice.splintering_rain_graupel.mass
-nmultrg,rate,global,kg-1 s-1,"ice multiplication during accretion of rain by graupel, number; local (in-cloud or in-precipitation) rate",nmultrg,local_cldice_number_tend_splintering_rain_graupel,constructed,,,rates.cloud_ice.splintering_rain_graupel.number
-proc_rates%nmultrgtot,rate,type:proc_rates_type,kg-1 s-1,"ice multiplication during accretion of rain by graupel, number; grid-mean (local rate times precip_frac)",nmultrgtot,cldice_number_tend_splintering_rain_graupel,constructed,,,process_rates.cloud_ice.splintering_rain_graupel.number
-proc_rates%melttot,rate,type:proc_rates_type,kg kg-1 s-1,"melting of cloud ice, mass",melttot,cldice_mass_tend_melting,constructed,,,process_rates.cloud_ice.melting.mass
-proc_rates%nmelttot,rate,type:proc_rates_type,kg-1 s-1,"melting of cloud ice, number",nmelttot,cldice_number_tend_melting,constructed,,,process_rates.cloud_ice.melting.number
-proc_rates%meltstot,rate,type:proc_rates_type,kg kg-1 s-1,"melting of snow, mass",meltstot,snow_mass_tend_melting,constructed,,,process_rates.snow.melting.mass
-proc_rates%nmeltstot,rate,type:proc_rates_type,kg-1 s-1,"melting of snow, number",nmeltstot,snow_number_tend_melting,constructed,,,process_rates.snow.melting.number
-proc_rates%meltgtot,rate,type:proc_rates_type,kg kg-1 s-1,"melting of graupel, mass",meltgtot,graupel_mass_tend_melting,constructed,,,process_rates.graupel.melting.mass
-proc_rates%nmeltgtot,rate,type:proc_rates_type,kg-1 s-1,"melting of graupel, number",nmeltgtot,graupel_number_tend_melting,constructed,,,process_rates.graupel.melting.number
-proc_rates%homotot,rate,type:proc_rates_type,kg kg-1 s-1,"homogeneous freezing of cloud liquid, mass",homotot,cldliq_mass_tend_homogeneous_freezing,constructed,,,process_rates.cloud_liquid.homogeneous_freezing.mass
-proc_rates%nhomotot,rate,type:proc_rates_type,kg-1 s-1,"homogeneous freezing of cloud liquid, number",nhomotot,cldliq_number_tend_homogeneous_freezing,constructed,,,process_rates.cloud_liquid.homogeneous_freezing.number
-proc_rates%qcrestot,rate,type:proc_rates_type,kg kg-1 s-1,residual condensation to cloud liquid that keeps RH below 100 %,qcrestot,cldliq_mass_tend_residual_condensation,constructed,,,process_rates.cloud_liquid.residual_condensation.mass
-proc_rates%qirestot,rate,type:proc_rates_type,kg kg-1 s-1,residual deposition to cloud ice that keeps RH below 100 %,qirestot,cldice_mass_tend_residual_deposition,constructed,,,process_rates.cloud_ice.residual_deposition.mass
-proc_rates%qvres,rate,type:proc_rates_type,kg kg-1 s-1,"residual condensation term that keeps RH below 100 %, vapor sink",qvres,vapor_mass_tend_residual_condensation,constructed,,,process_rates.vapor.residual_condensation.mass
-proc_rates%meltsdttot,diagnostic,type:proc_rates_type,W kg-1,latent heating rate from melting of snow and graupel,meltsdttot,air_heating_rate_snow_melting,constructed,,,process_rates.heating.snow_melting
-proc_rates%frzrdttot,diagnostic,type:proc_rates_type,W kg-1,latent heating rate from homogeneous freezing of rain,frzrdttot,air_heating_rate_rain_freezing,constructed,,,process_rates.heating.rain_freezing
-proc_rates%prodsnow,rate,type:proc_rates_type,kg kg-1 s-1,"production of snow, mass",prodsnow,snow_mass_tend_production,constructed,,,process_rates.snow.production.mass
-proc_rates%evapsnow,rate,type:proc_rates_type,kg kg-1 s-1,"sublimation of snow and graupel, mass",evapsnow,snow_mass_tend_sublimation,constructed,,,process_rates.snow.sublimation.mass
-proc_rates%qcsevap,rate,type:proc_rates_type,kg kg-1 s-1,evaporation of cloud liquid falling into clear air,qcsevap,cldliq_mass_tend_sedimentation_evaporation,constructed,,,process_rates.cloud_liquid.sedimentation_evaporation.mass
-proc_rates%qisevap,rate,type:proc_rates_type,kg kg-1 s-1,sublimation of cloud ice falling into clear air,qisevap,cldice_mass_tend_sedimentation_sublimation,constructed,,,process_rates.cloud_ice.sedimentation_sublimation.mass
-proc_rates%cmeitot,rate,type:proc_rates_type,kg kg-1 s-1,grid-mean cloud ice deposition minus sublimation,cmeitot,cldice_mass_tend_net_deposition,constructed,,,process_rates.cloud_ice.net_deposition.mass
-proc_rates%vtrmc,diagnostic,type:proc_rates_type,m s-1,mass-weighted cloud liquid fall speed,vtrmc,cldliq_mass_weighted_fall_speed,constructed,,,process_rates.cloud_liquid.fall_speed.mass
-proc_rates%vtrmi,diagnostic,type:proc_rates_type,m s-1,mass-weighted cloud ice fall speed,vtrmi,cldice_mass_weighted_fall_speed,constructed,,,process_rates.cloud_ice.fall_speed.mass
-proc_rates%umr,diagnostic,type:proc_rates_type,m s-1,mass-weighted rain fall speed,umr,rain_mass_weighted_fall_speed,constructed,,,process_rates.rain.fall_speed.mass
-proc_rates%ums,diagnostic,type:proc_rates_type,m s-1,mass-weighted snow fall speed,ums,snow_mass_weighted_fall_speed,constructed,,,process_rates.snow.fall_speed.mass
-proc_rates%umg,diagnostic,type:proc_rates_type,m s-1,mass-weighted graupel/hail fall speed,umg,graupel_mass_weighted_fall_speed,constructed,,,process_rates.graupel.fall_speed.mass
-proc_rates%pgam_out,diagnostic,type:proc_rates_type,1,cloud droplet size distribution shape parameter (mu) for output,pgam_out,cldliq_size_dist_shape_output,constructed,,,process_rates.cloud_liquid.size_distribution.shape
-proc_rates%lamc_out,diagnostic,type:proc_rates_type,m-1,cloud droplet size distribution slope parameter (lambda) for output,lamc_out,cldliq_size_dist_slope_output,constructed,,,process_rates.cloud_liquid.size_distribution.slope
-proc_rates%lamr_out,diagnostic,type:proc_rates_type,m-1,rain size distribution slope parameter (lambda) for output,lamr_out,rain_size_dist_slope_output,constructed,,,process_rates.rain.size_distribution.slope
-proc_rates%n0r_out,diagnostic,type:proc_rates_type,m-4,rain size distribution intercept parameter (N0) for output,n0r_out,rain_size_dist_intercept_output,constructed,,,process_rates.rain.size_distribution.intercept
-proc_rates%qcsedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of cloud liquid, mass",qcsedten,cldliq_mass_tend_sedimentation,constructed,,,process_rates.cloud_liquid.sedimentation.mass
-proc_rates%ncsedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of cloud liquid, number",ncsedten,cldliq_number_tend_sedimentation,constructed,,,process_rates.cloud_liquid.sedimentation.number
-proc_rates%qisedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of cloud ice, mass",qisedten,cldice_mass_tend_sedimentation,constructed,,,process_rates.cloud_ice.sedimentation.mass
-proc_rates%nisedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of cloud ice, number",nisedten,cldice_number_tend_sedimentation,constructed,,,process_rates.cloud_ice.sedimentation.number
-proc_rates%qrsedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of rain, mass",qrsedten,rain_mass_tend_sedimentation,constructed,,,process_rates.rain.sedimentation.mass
-proc_rates%nrsedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of rain, number",nrsedten,rain_number_tend_sedimentation,constructed,,,process_rates.rain.sedimentation.number
-proc_rates%qssedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of snow, mass",qssedten,snow_mass_tend_sedimentation,constructed,,,process_rates.snow.sedimentation.mass
-proc_rates%nssedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of snow, number",nssedten,snow_number_tend_sedimentation,constructed,,,process_rates.snow.sedimentation.number
-proc_rates%qgsedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of graupel/hail, mass",qgsedten,graupel_mass_tend_sedimentation,constructed,,,process_rates.graupel.sedimentation.mass
-proc_rates%ngsedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of graupel/hail, number",ngsedten,graupel_number_tend_sedimentation,constructed,,,process_rates.graupel.sedimentation.number
-proc_rates%qctend_KK2000,rate,type:proc_rates_type,kg kg-1 s-1,"cloud liquid mass tendency from autoconversion and accretion, Khairoutdinov and Kogan (2000)",qctend_KK2000,cldliq_mass_tend_autoconv_accretion_KK2000,constructed,,,process_rates.cloud_liquid.warm_rain_kk2000.mass
-proc_rates%nctend_KK2000,rate,type:proc_rates_type,kg-1 s-1,"cloud liquid number tendency from autoconversion and accretion, Khairoutdinov and Kogan (2000)",nctend_KK2000,cldliq_number_tend_autoconv_accretion_KK2000,constructed,,,process_rates.cloud_liquid.warm_rain_kk2000.number
-proc_rates%qrtend_KK2000,rate,type:proc_rates_type,kg kg-1 s-1,"rain mass tendency from autoconversion and accretion, Khairoutdinov and Kogan (2000)",qrtend_KK2000,rain_mass_tend_autoconv_accretion_KK2000,constructed,,,process_rates.rain.warm_rain_kk2000.mass
-proc_rates%nrtend_KK2000,rate,type:proc_rates_type,kg-1 s-1,"rain number tendency from autoconversion and accretion, Khairoutdinov and Kogan (2000)",nrtend_KK2000,rain_number_tend_autoconv_accretion_KK2000,constructed,,,process_rates.rain.warm_rain_kk2000.number
-proc_rates%qctend_SB2001,rate,type:proc_rates_type,kg kg-1 s-1,"cloud liquid mass tendency from autoconversion and accretion, Seifert and Beheng (2001)",qctend_SB2001,cldliq_mass_tend_autoconv_accretion_SB2001,constructed,,,process_rates.cloud_liquid.warm_rain_sb2001.mass
-proc_rates%nctend_SB2001,rate,type:proc_rates_type,kg-1 s-1,"cloud liquid number tendency from autoconversion and accretion, Seifert and Beheng (2001)",nctend_SB2001,cldliq_number_tend_autoconv_accretion_SB2001,constructed,,,process_rates.cloud_liquid.warm_rain_sb2001.number
-proc_rates%qrtend_SB2001,rate,type:proc_rates_type,kg kg-1 s-1,"rain mass tendency from autoconversion and accretion, Seifert and Beheng (2001)",qrtend_SB2001,rain_mass_tend_autoconv_accretion_SB2001,constructed,,,process_rates.rain.warm_rain_sb2001.mass
-proc_rates%nrtend_SB2001,rate,type:proc_rates_type,kg-1 s-1,"rain number tendency from autoconversion and accretion, Seifert and Beheng (2001)",nrtend_SB2001,rain_number_tend_autoconv_accretion_SB2001,constructed,,,process_rates.rain.warm_rain_sb2001.number
-proc_rates%qctend_TAU,rate,type:proc_rates_type,kg kg-1 s-1,"cloud liquid mass tendency from autoconversion and accretion, the TAU bin code or its emulator",qctend_TAU,cldliq_mass_tend_autoconv_accretion_TAU,constructed,,,process_rates.cloud_liquid.warm_rain_tau.mass
-proc_rates%nctend_TAU,rate,type:proc_rates_type,kg-1 s-1,"cloud liquid number tendency from autoconversion and accretion, the TAU bin code or its emulator",nctend_TAU,cldliq_number_tend_autoconv_accretion_TAU,constructed,,,process_rates.cloud_liquid.warm_rain_tau.number
-proc_rates%qrtend_TAU,rate,type:proc_rates_type,kg kg-1 s-1,"rain mass tendency from autoconversion and accretion, the TAU bin code or its emulator",qrtend_TAU,rain_mass_tend_autoconv_accretion_TAU,constructed,,,process_rates.rain.warm_rain_tau.mass
-proc_rates%nrtend_TAU,rate,type:proc_rates_type,kg-1 s-1,"rain number tendency from autoconversion and accretion, the TAU bin code or its emulator",nrtend_TAU,rain_number_tend_autoconv_accretion_TAU,constructed,,,process_rates.rain.warm_rain_tau.number
-minstsm,state,global,kg kg-1,"instantaneous melting of snow, mass change in one time step",minstsm,snow_mass_change_instant_melting,constructed,,,rates.snow.instant_melting.mass
-ninstsm,state,global,kg-1,"instantaneous melting of snow, number change in one time step",ninstsm,snow_number_change_instant_melting,constructed,,,rates.snow.instant_melting.number
-minstgm,state,global,kg kg-1,"instantaneous melting of graupel, mass change in one time step",minstgm,graupel_mass_change_instant_melting,constructed,,,rates.graupel.instant_melting.mass
-ninstgm,state,global,kg-1,"instantaneous melting of graupel, number change in one time step",ninstgm,graupel_number_change_instant_melting,constructed,,,rates.graupel.instant_melting.number
-minstrf,state,global,kg kg-1,"instantaneous homogeneous freezing of rain, mass change in one time step",minstrf,rain_mass_change_instant_freezing,constructed,,,rates.rain.instant_freezing.mass
-ninstrf,state,global,kg-1,"instantaneous homogeneous freezing of rain, number change in one time step",ninstrf,rain_number_change_instant_freezing,constructed,,,rates.rain.instant_freezing.number
-qc,state,global,kg kg-1,"cloud liquid mass mixing ratio, grid mean",qc,cldliq_mass_mixing_ratio,constructed,,,state.cloud_liquid.q
-nc,state,global,kg-1,"cloud liquid number concentration, grid mean",nc,cldliq_number_conc,constructed,,,state.cloud_liquid.N
-qcic,state,global,kg kg-1,in-cloud cloud liquid mass mixing ratio,qcic,incloud_cldliq_mass_mixing_ratio,constructed,,,incloud.cloud_liquid.q
-ncic,state,global,kg-1,in-cloud cloud liquid number concentration,ncic,incloud_cldliq_number_conc,constructed,,,incloud.cloud_liquid.N
-lamc,size,global,m-1,cloud liquid size distribution slope parameter (lambda),lamc,cldliq_size_dist_slope,constructed,,,incloud.cloud_liquid.λ
-fc,sedimentation,global,Pa s-1,cloud liquid mass-weighted fall speed in pressure coordinates (g * rho * v),fc,cldliq_mass_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.cloud_liquid.q
-fnc,sedimentation,global,Pa s-1,cloud liquid number-weighted fall speed in pressure coordinates (g * rho * v),fnc,cldliq_number_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.cloud_liquid.N
-qi,state,global,kg kg-1,"cloud ice mass mixing ratio, grid mean",qi,cldice_mass_mixing_ratio,constructed,,,state.cloud_ice.q
-ni,state,global,kg-1,"cloud ice number concentration, grid mean",ni,cldice_number_conc,constructed,,,state.cloud_ice.N
-qiic,state,global,kg kg-1,in-cloud cloud ice mass mixing ratio,qiic,incloud_cldice_mass_mixing_ratio,constructed,,,incloud.cloud_ice.q
-niic,state,global,kg-1,in-cloud cloud ice number concentration,niic,incloud_cldice_number_conc,constructed,,,incloud.cloud_ice.N
-lami,size,global,m-1,cloud ice size distribution slope parameter (lambda),lami,cldice_size_dist_slope,constructed,,,incloud.cloud_ice.λ
-n0i,size,global,m-4,cloud ice size distribution intercept parameter (N0),n0i,cldice_size_dist_intercept,constructed,,,incloud.cloud_ice.N₀
-fi,sedimentation,global,Pa s-1,cloud ice mass-weighted fall speed in pressure coordinates (g * rho * v),fi,cldice_mass_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.cloud_ice.q
-fni,sedimentation,global,Pa s-1,cloud ice number-weighted fall speed in pressure coordinates (g * rho * v),fni,cldice_number_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.cloud_ice.N
-qr,state,global,kg kg-1,"rain mass mixing ratio, grid mean",qr,rain_mass_mixing_ratio,constructed,,,state.rain.q
-nr,state,global,kg-1,"rain number concentration, grid mean",nr,rain_number_conc,constructed,,,state.rain.N
-qric,state,global,kg kg-1,in-precipitation rain mass mixing ratio,qric,inprecip_rain_mass_mixing_ratio,constructed,,,incloud.rain.q
-nric,state,global,kg-1,in-precipitation rain number concentration,nric,inprecip_rain_number_conc,constructed,,,incloud.rain.N
-lamr,size,global,m-1,rain size distribution slope parameter (lambda),lamr,rain_size_dist_slope,constructed,,,incloud.rain.λ
-n0r,size,global,m-4,rain size distribution intercept parameter (N0),n0r,rain_size_dist_intercept,constructed,,,incloud.rain.N₀
-fr,sedimentation,global,Pa s-1,rain mass-weighted fall speed in pressure coordinates (g * rho * v),fr,rain_mass_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.rain.q
-fnr,sedimentation,global,Pa s-1,rain number-weighted fall speed in pressure coordinates (g * rho * v),fnr,rain_number_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.rain.N
-qs,state,global,kg kg-1,"snow mass mixing ratio, grid mean",qs,snow_mass_mixing_ratio,constructed,,,state.snow.q
-ns,state,global,kg-1,"snow number concentration, grid mean",ns,snow_number_conc,constructed,,,state.snow.N
-qsic,state,global,kg kg-1,in-precipitation snow mass mixing ratio,qsic,inprecip_snow_mass_mixing_ratio,constructed,,,incloud.snow.q
-nsic,state,global,kg-1,in-precipitation snow number concentration,nsic,inprecip_snow_number_conc,constructed,,,incloud.snow.N
-lams,size,global,m-1,snow size distribution slope parameter (lambda),lams,snow_size_dist_slope,constructed,,,incloud.snow.λ
-n0s,size,global,m-4,snow size distribution intercept parameter (N0),n0s,snow_size_dist_intercept,constructed,,,incloud.snow.N₀
-fs,sedimentation,global,Pa s-1,snow mass-weighted fall speed in pressure coordinates (g * rho * v),fs,snow_mass_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.snow.q
-fns,sedimentation,global,Pa s-1,snow number-weighted fall speed in pressure coordinates (g * rho * v),fns,snow_number_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.snow.N
-qg,state,global,kg kg-1,"graupel/hail mass mixing ratio, grid mean",qg,graupel_mass_mixing_ratio,constructed,,,state.graupel.q
-ng,state,global,kg-1,"graupel/hail number concentration, grid mean",ng,graupel_number_conc,constructed,,,state.graupel.N
-qgic,state,global,kg kg-1,in-precipitation graupel/hail mass mixing ratio,qgic,inprecip_graupel_mass_mixing_ratio,constructed,,,incloud.graupel.q
-ngic,state,global,kg-1,in-precipitation graupel/hail number concentration,ngic,inprecip_graupel_number_conc,constructed,,,incloud.graupel.N
-lamg,size,global,m-1,graupel/hail size distribution slope parameter (lambda),lamg,graupel_size_dist_slope,constructed,,,incloud.graupel.λ
-n0g,size,global,m-4,graupel/hail size distribution intercept parameter (N0),n0g,graupel_size_dist_intercept,constructed,,,incloud.graupel.N₀
-fg,sedimentation,global,Pa s-1,graupel/hail mass-weighted fall speed in pressure coordinates (g * rho * v),fg,graupel_mass_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.graupel.q
-fng,sedimentation,global,Pa s-1,graupel/hail number-weighted fall speed in pressure coordinates (g * rho * v),fng,graupel_number_pressure_fall_speed,constructed,,,scratch.pressure_fall_speed.graupel.N
-pgam,size,global,1,"cloud droplet size distribution shape (spectral width) parameter, mu",pgam,cldliq_size_dist_shape,constructed,,,incloud.cloud_liquid.μ
-unr,fallspeed,global,m s-1,number-weighted rain fall speed,unr,rain_number_weighted_fall_speed,constructed,,,incloud.rain.fall_speed_number
-umr,fallspeed,global,m s-1,mass-weighted rain fall speed,umr,rain_mass_weighted_fall_speed,constructed,,,process_rates.rain.fall_speed.mass
-uns,fallspeed,global,m s-1,number-weighted snow fall speed,uns,snow_number_weighted_fall_speed,constructed,,,incloud.snow.fall_speed_number
-ums,fallspeed,global,m s-1,mass-weighted snow fall speed,ums,snow_mass_weighted_fall_speed,constructed,,,process_rates.snow.fall_speed.mass
-ung,fallspeed,global,m s-1,number-weighted graupel/hail fall speed,ung,graupel_number_weighted_fall_speed,constructed,,,incloud.graupel.fall_speed_number
-umg,fallspeed,global,m s-1,mass-weighted graupel/hail fall speed,umg,graupel_mass_weighted_fall_speed,constructed,,,process_rates.graupel.fall_speed.mass
-arn,fallspeed,global,,density-corrected prefactor a of the rain fall speed power law v = a D^b (m^(1-b) s-1),arn,rain_fall_speed_prefactor,constructed,,,state.air.fall_speed_prefactor.rain
-asn,fallspeed,global,,density-corrected prefactor a of the snow fall speed power law v = a D^b (m^(1-b) s-1),asn,snow_fall_speed_prefactor,constructed,,,state.air.fall_speed_prefactor.snow
-agn,fallspeed,global,,density-corrected prefactor a of the graupel/hail fall speed power law v = a D^b (m^(1-b) s-1),agn,graupel_fall_speed_prefactor,constructed,,,state.air.fall_speed_prefactor.graupel
-acn,fallspeed,global,,density-corrected prefactor a of the cloud droplets fall speed power law v = a D^b (m^(1-b) s-1),acn,cldliq_fall_speed_prefactor,constructed,,,state.air.fall_speed_prefactor.cloud_liquid
-ain,fallspeed,global,,density-corrected prefactor a of the cloud ice fall speed power law v = a D^b (m^(1-b) s-1),ain,cldice_fall_speed_prefactor,constructed,,,state.air.fall_speed_prefactor.cloud_ice
-ajn,fallspeed,global,,density-corrected prefactor a of the small cloud ice fall speed power law v = a D^b (m^(1-b) s-1),ajn,small_cldice_fall_speed_prefactor,constructed,,,state.air.fall_speed_prefactor.small_cloud_ice
-rho,air,global,kg m-3,air density,rho,air_density,CCPP,air_density,,state.air.density
-mu,air,global,kg m-1 s-1,dynamic viscosity of air,mu,air_dynamic_viscosity,constructed,,,state.air.viscosity
-sc,air,global,1,Schmidt number,sc,schmidt_number,constructed,,,state.air.schmidt
-rhof,air,global,1,air density correction factor for fall speeds,rhof,fall_speed_air_density_correction,constructed,,,state.air.density_correction
-precip_frac,fraction,global,1,precipitation fraction assuming maximum overlap,precip_frac,precipitation_area_fraction,constructed,,,incloud.precipitation_fraction
-cldm,fraction,global,1,cloud fraction,cldm,cloud_area_fraction,CF,cloud_area_fraction,,incloud.cloud_fraction
-icldm,fraction,global,1,ice cloud fraction,icldm,ice_cloud_area_fraction,CF,ice_cloud_area_fraction,,incloud.ice_fraction
-lcldm,fraction,global,1,liquid cloud fraction,lcldm,liquid_cloud_area_fraction,CF,liquid_cloud_area_fraction,,incloud.liquid_fraction
-qsfm,fraction,global,1,subgrid cloud water saturation scaling factor,qsfm,subgrid_saturation_scaling_factor,constructed,,,incloud.saturation_scaling
-esl,saturation,global,Pa,saturation vapor pressure over liquid water,esl,saturation_vapor_pressure_over_liquid,constructed,,,state.air.vapor_pressure_liquid
-esi,saturation,global,Pa,saturation vapor pressure over ice,esi,saturation_vapor_pressure_over_ice,constructed,,,state.air.vapor_pressure_ice
-qvl,saturation,global,kg kg-1,saturation specific humidity over liquid water,qvl,saturation_specific_humidity_over_liquid,constructed,,,state.air.q_sat_liquid
-qvi,saturation,global,kg kg-1,saturation specific humidity over ice,qvi,saturation_specific_humidity_over_ice,constructed,,,state.air.q_sat_ice
-relhum,saturation,global,1,relative humidity with respect to liquid water,relhum,relative_humidity,CF,relative_humidity,,state.air.relative_humidity
+id,kind,scope,units,meaning,Fortran,Julia,standard_name,notes
+prc,rate,global,kg kg-1 s-1,"autoconversion of cloud liquid to rain, mass; local (in-cloud or in-precipitation) rate",prc,rates.cloud_liquid.autoconversion_to_rain.mass,,
+proc_rates%prctot,rate,type:proc_rates_type,kg kg-1 s-1,"autoconversion of cloud liquid to rain, mass; grid-mean (local rate times lcldm)",prctot,process_rates.cloud_liquid.autoconversion_to_rain.mass,,
+nprc,rate,global,kg-1 s-1,"autoconversion of cloud liquid to rain, rain number source; local (in-cloud or in-precipitation) rate",nprc,rates.rain.autoconversion_from_cloud_liquid.number,,
+proc_rates%nprctot,rate,type:proc_rates_type,kg-1 s-1,"autoconversion of cloud liquid to rain, rain number source; grid-mean (local rate times lcldm)",nprctot,process_rates.rain.autoconversion_from_cloud_liquid.number,,
+nprc1,rate,global,kg-1 s-1,"autoconversion of cloud liquid to rain, droplet number sink; local (in-cloud or in-precipitation) rate",nprc1,rates.cloud_liquid.autoconversion_to_rain.number,,
+pra,rate,global,kg kg-1 s-1,"accretion of cloud liquid by rain, mass; local (in-cloud or in-precipitation) rate",pra,rates.cloud_liquid.accretion_by_rain.mass,,
+proc_rates%pratot,rate,type:proc_rates_type,kg kg-1 s-1,"accretion of cloud liquid by rain, mass; grid-mean (local rate times lcldm)",pratot,process_rates.cloud_liquid.accretion_by_rain.mass,,
+npra,rate,global,kg-1 s-1,"accretion of cloud liquid by rain, number; local (in-cloud or in-precipitation) rate",npra,rates.cloud_liquid.accretion_by_rain.number,,
+proc_rates%npratot,rate,type:proc_rates_type,kg-1 s-1,"accretion of cloud liquid by rain, number; grid-mean (local rate times lcldm)",npratot,process_rates.cloud_liquid.accretion_by_rain.number,,
+nragg,rate,global,kg-1 s-1,"self-collection of rain, number; local (in-cloud or in-precipitation) rate",nragg,rates.rain.self_collection.number,,
+proc_rates%nraggtot,rate,type:proc_rates_type,kg-1 s-1,"self-collection of rain, number; grid-mean (local rate times precip_frac)",nraggtot,process_rates.rain.self_collection.number,,
+nsagg,rate,global,kg-1 s-1,"aggregation (self-collection) of snow, number; local (in-cloud or in-precipitation) rate",nsagg,rates.snow.aggregation.number,,
+psacws,rate,global,kg kg-1 s-1,"accretion (riming) of cloud liquid by snow, mass; local (in-cloud or in-precipitation) rate",psacws,rates.cloud_liquid.riming_by_snow.mass,,
+proc_rates%psacwstot,rate,type:proc_rates_type,kg kg-1 s-1,"accretion (riming) of cloud liquid by snow, mass; grid-mean (local rate times lcldm)",psacwstot,process_rates.cloud_liquid.riming_by_snow.mass,,
+npsacws,rate,global,kg-1 s-1,"accretion (riming) of cloud liquid by snow, number; local (in-cloud or in-precipitation) rate",npsacws,rates.cloud_liquid.riming_by_snow.number,,
+proc_rates%npsacwstot,rate,type:proc_rates_type,kg-1 s-1,"accretion (riming) of cloud liquid by snow, number; grid-mean (local rate times lcldm)",npsacwstot,process_rates.cloud_liquid.riming_by_snow.number,,
+pracs,rate,global,kg kg-1 s-1,"accretion of rain by snow, mass; local (in-cloud or in-precipitation) rate",pracs,rates.rain.accretion_by_snow.mass,,
+proc_rates%pracstot,rate,type:proc_rates_type,kg kg-1 s-1,"accretion of rain by snow, mass; grid-mean (local rate times precip_frac)",pracstot,process_rates.rain.accretion_by_snow.mass,,
+npracs,rate,global,kg-1 s-1,"accretion of rain by snow, number; local (in-cloud or in-precipitation) rate",npracs,rates.rain.accretion_by_snow.number,,
+proc_rates%npracstot,rate,type:proc_rates_type,kg-1 s-1,"accretion of rain by snow, number; grid-mean (local rate times precip_frac)",npracstot,process_rates.rain.accretion_by_snow.number,,
+mnuccc,rate,global,kg kg-1 s-1,"immersion freezing of cloud liquid, mass; local (in-cloud or in-precipitation) rate",mnuccc,rates.cloud_liquid.immersion_freezing.mass,,
+proc_rates%mnuccctot,rate,type:proc_rates_type,kg kg-1 s-1,"immersion freezing of cloud liquid, mass; grid-mean (local rate times lcldm)",mnuccctot,process_rates.cloud_liquid.immersion_freezing.mass,,
+nnuccc,rate,global,kg-1 s-1,"immersion freezing of cloud liquid, number; local (in-cloud or in-precipitation) rate",nnuccc,rates.cloud_liquid.immersion_freezing.number,,
+proc_rates%nnuccctot,rate,type:proc_rates_type,kg-1 s-1,"immersion freezing of cloud liquid, number; grid-mean (local rate times lcldm)",nnuccctot,process_rates.cloud_liquid.immersion_freezing.number,,
+mnucct,rate,global,kg kg-1 s-1,"contact freezing of cloud liquid, mass; local (in-cloud or in-precipitation) rate",mnucct,rates.cloud_liquid.contact_freezing.mass,,
+proc_rates%mnuccttot,rate,type:proc_rates_type,kg kg-1 s-1,"contact freezing of cloud liquid, mass; grid-mean (local rate times lcldm)",mnuccttot,process_rates.cloud_liquid.contact_freezing.mass,,
+nnucct,rate,global,kg-1 s-1,"contact freezing of cloud liquid, number; local (in-cloud or in-precipitation) rate",nnucct,rates.cloud_liquid.contact_freezing.number,,
+proc_rates%nnuccttot,rate,type:proc_rates_type,kg-1 s-1,"contact freezing of cloud liquid, number; grid-mean (local rate times lcldm)",nnuccttot,process_rates.cloud_liquid.contact_freezing.number,,
+mnudep,rate,global,kg kg-1 s-1,"deposition nucleation in mixed-phase cloud, mass; local (in-cloud or in-precipitation) rate",mnudep,rates.cloud_liquid.deposition_nucleation.mass,,
+proc_rates%mnudeptot,rate,type:proc_rates_type,kg kg-1 s-1,"deposition nucleation in mixed-phase cloud, mass; grid-mean (local rate times lcldm)",mnudeptot,process_rates.cloud_liquid.deposition_nucleation.mass,,
+nnudep,rate,global,kg-1 s-1,"deposition nucleation in mixed-phase cloud, number; local (in-cloud or in-precipitation) rate",nnudep,rates.cloud_liquid.deposition_nucleation.number,,
+proc_rates%nnudeptot,rate,type:proc_rates_type,kg-1 s-1,"deposition nucleation in mixed-phase cloud, number; grid-mean (local rate times lcldm)",nnudeptot,process_rates.cloud_liquid.deposition_nucleation.number,,
+mnuccd,rate,global,kg kg-1 s-1,"ice nucleation by deposition/condensation freezing, mass; local (in-cloud or in-precipitation) rate",mnuccd,rates.cloud_ice.nucleation_from_vapor.mass,,
+proc_rates%mnuccdtot,rate,type:proc_rates_type,kg kg-1 s-1,"ice nucleation by deposition/condensation freezing, mass; grid-mean (local rate times icldm)",mnuccdtot,process_rates.cloud_ice.nucleation_from_vapor.mass,,
+nnuccd,rate,global,kg-1 s-1,"ice nucleation by deposition/condensation freezing, number; local (in-cloud or in-precipitation) rate",nnuccd,rates.cloud_ice.nucleation_from_vapor.number,,
+proc_rates%nnuccdtot,rate,type:proc_rates_type,kg-1 s-1,"ice nucleation by deposition/condensation freezing, number; grid-mean (local rate times icldm)",nnuccdtot,process_rates.cloud_ice.nucleation_from_vapor.number,,
+msacwi,rate,global,kg kg-1 s-1,"rime splintering (Hallett-Mossop) during riming of snow, mass to cloud ice; local (in-cloud or in-precipitation) rate",msacwi,rates.cloud_ice.splintering_by_snow.mass,,
+proc_rates%msacwitot,rate,type:proc_rates_type,kg kg-1 s-1,"rime splintering (Hallett-Mossop) during riming of snow, mass to cloud ice; grid-mean (local rate times lcldm)",msacwitot,process_rates.cloud_ice.splintering_by_snow.mass,,
+nsacwi,rate,global,kg-1 s-1,"rime splintering (Hallett-Mossop) during riming of snow, number to cloud ice; local (in-cloud or in-precipitation) rate",nsacwi,rates.cloud_ice.splintering_by_snow.number,,
+proc_rates%nsacwitot,rate,type:proc_rates_type,kg-1 s-1,"rime splintering (Hallett-Mossop) during riming of snow, number to cloud ice; grid-mean (local rate times lcldm)",nsacwitot,process_rates.cloud_ice.splintering_by_snow.number,,
+mnuccr,rate,global,kg kg-1 s-1,"heterogeneous freezing of rain to snow, mass; local (in-cloud or in-precipitation) rate",mnuccr,rates.rain.freezing_to_snow.mass,,
+proc_rates%mnuccrtot,rate,type:proc_rates_type,kg kg-1 s-1,"heterogeneous freezing of rain to snow, mass; grid-mean (local rate times precip_frac)",mnuccrtot,process_rates.rain.freezing_to_snow.mass,,
+nnuccr,rate,global,kg-1 s-1,"heterogeneous freezing of rain to snow, number; local (in-cloud or in-precipitation) rate",nnuccr,rates.rain.freezing_to_snow.number,,
+proc_rates%nnuccrtot,rate,type:proc_rates_type,kg-1 s-1,"heterogeneous freezing of rain to snow, number; grid-mean (local rate times precip_frac)",nnuccrtot,process_rates.rain.freezing_to_snow.number,,
+mnuccri,rate,global,kg kg-1 s-1,"heterogeneous freezing of rain to cloud ice, mass; local (in-cloud or in-precipitation) rate",mnuccri,rates.rain.freezing_to_cloud_ice.mass,,
+proc_rates%mnuccritot,rate,type:proc_rates_type,kg kg-1 s-1,"heterogeneous freezing of rain to cloud ice, mass; grid-mean (local rate times precip_frac)",mnuccritot,process_rates.rain.freezing_to_cloud_ice.mass,,
+nnuccri,rate,global,kg-1 s-1,"heterogeneous freezing of rain to cloud ice, number; local (in-cloud or in-precipitation) rate",nnuccri,rates.rain.freezing_to_cloud_ice.number,,
+proc_rates%nnuccritot,rate,type:proc_rates_type,kg-1 s-1,"heterogeneous freezing of rain to cloud ice, number; grid-mean (local rate times precip_frac)",nnuccritot,process_rates.rain.freezing_to_cloud_ice.number,,
+prci,rate,global,kg kg-1 s-1,"autoconversion of cloud ice to snow, mass; local (in-cloud or in-precipitation) rate",prci,rates.cloud_ice.autoconversion_to_snow.mass,,
+proc_rates%prcitot,rate,type:proc_rates_type,kg kg-1 s-1,"autoconversion of cloud ice to snow, mass; grid-mean (local rate times icldm)",prcitot,process_rates.cloud_ice.autoconversion_to_snow.mass,,
+nprci,rate,global,kg-1 s-1,"autoconversion of cloud ice to snow, number; local (in-cloud or in-precipitation) rate",nprci,rates.cloud_ice.autoconversion_to_snow.number,,
+proc_rates%nprcitot,rate,type:proc_rates_type,kg-1 s-1,"autoconversion of cloud ice to snow, number; grid-mean (local rate times icldm)",nprcitot,process_rates.cloud_ice.autoconversion_to_snow.number,,
+prai,rate,global,kg kg-1 s-1,"accretion of cloud ice by snow, mass; local (in-cloud or in-precipitation) rate",prai,rates.cloud_ice.accretion_by_snow.mass,,
+proc_rates%praitot,rate,type:proc_rates_type,kg kg-1 s-1,"accretion of cloud ice by snow, mass; grid-mean (local rate times icldm)",praitot,process_rates.cloud_ice.accretion_by_snow.mass,,
+nprai,rate,global,kg-1 s-1,"accretion of cloud ice by snow, number; local (in-cloud or in-precipitation) rate",nprai,rates.cloud_ice.accretion_by_snow.number,,
+proc_rates%npraitot,rate,type:proc_rates_type,kg-1 s-1,"accretion of cloud ice by snow, number; grid-mean (local rate times icldm)",npraitot,process_rates.cloud_ice.accretion_by_snow.number,,
+pre,rate,global,kg kg-1 s-1,"evaporation of rain, mass; local (in-cloud or in-precipitation) rate",pre,rates.rain.evaporation.mass,,
+prds,rate,global,kg kg-1 s-1,"sublimation of snow, mass; local (in-cloud or in-precipitation) rate",prds,rates.snow.sublimation.mass,,
+vap_dep,rate,global,kg kg-1 s-1,"vapor deposition onto cloud ice, mass; local (in-cloud or in-precipitation) rate",vap_dep,rates.cloud_ice.deposition.mass,,
+ice_sublim,rate,global,kg kg-1 s-1,"sublimation of cloud ice, mass; local (in-cloud or in-precipitation) rate",ice_sublim,rates.cloud_ice.sublimation.mass,,
+vap_deps,rate,global,kg kg-1 s-1,"vapor deposition onto snow, mass; local (in-cloud or in-precipitation) rate",vap_deps,rates.snow.deposition.mass,,
+proc_rates%vapdepstot,rate,type:proc_rates_type,kg kg-1 s-1,"vapor deposition onto snow, mass; grid-mean (equal to the local rate)",vapdepstot,process_rates.snow.deposition.mass,,
+nsubi,rate,global,kg-1 s-1,"sublimation of cloud ice, number; local (in-cloud or in-precipitation) rate",nsubi,rates.cloud_ice.sublimation.number,,
+nsubc,rate,global,kg-1 s-1,"evaporation of cloud droplets, number; local (in-cloud or in-precipitation) rate",nsubc,rates.cloud_liquid.evaporation.number,,
+nsubs,rate,global,kg-1 s-1,"sublimation of snow, number; local (in-cloud or in-precipitation) rate",nsubs,rates.snow.sublimation.number,,
+nsubr,rate,global,kg-1 s-1,"evaporation of rain, number; local (in-cloud or in-precipitation) rate",nsubr,rates.rain.evaporation.number,,
+berg,rate,global,kg kg-1 s-1,"Wegener-Bergeron-Findeisen transfer of cloud liquid to cloud ice, mass; local (in-cloud or in-precipitation) rate",berg,rates.cloud_liquid.bergeron_to_cloud_ice.mass,,
+proc_rates%bergtot,rate,type:proc_rates_type,kg kg-1 s-1,"Wegener-Bergeron-Findeisen transfer of cloud liquid to cloud ice, mass; grid-mean (equal to the local rate)",bergtot,process_rates.cloud_liquid.bergeron_to_cloud_ice.mass,,
+bergs,rate,global,kg kg-1 s-1,"Wegener-Bergeron-Findeisen transfer of cloud liquid to snow, mass; local (in-cloud or in-precipitation) rate",bergs,rates.cloud_liquid.bergeron_to_snow.mass,,
+proc_rates%bergstot,rate,type:proc_rates_type,kg kg-1 s-1,"Wegener-Bergeron-Findeisen transfer of cloud liquid to snow, mass; grid-mean (local rate times lcldm)",bergstot,process_rates.cloud_liquid.bergeron_to_snow.mass,,
+pracg,rate,global,kg kg-1 s-1,"collection of rain by graupel, mass; local (in-cloud or in-precipitation) rate",pracg,rates.rain.accretion_by_graupel.mass,,
+proc_rates%pracgtot,rate,type:proc_rates_type,kg kg-1 s-1,"collection of rain by graupel, mass; grid-mean (local rate times precip_frac)",pracgtot,process_rates.rain.accretion_by_graupel.mass,,
+npracg,rate,global,kg-1 s-1,"collection of rain by graupel, number; local (in-cloud or in-precipitation) rate",npracg,rates.rain.accretion_by_graupel.number,,
+proc_rates%npracgtot,rate,type:proc_rates_type,kg-1 s-1,"collection of rain by graupel, number; grid-mean (local rate times precip_frac)",npracgtot,process_rates.rain.accretion_by_graupel.number,,
+psacwg,rate,global,kg kg-1 s-1,"collection (riming) of cloud droplets by graupel, mass; local (in-cloud or in-precipitation) rate",psacwg,rates.cloud_liquid.riming_by_graupel.mass,,
+proc_rates%psacwgtot,rate,type:proc_rates_type,kg kg-1 s-1,"collection (riming) of cloud droplets by graupel, mass; grid-mean (local rate times lcldm)",psacwgtot,process_rates.cloud_liquid.riming_by_graupel.mass,,
+npsacwg,rate,global,kg-1 s-1,"collection (riming) of cloud droplets by graupel, number; local (in-cloud or in-precipitation) rate",npsacwg,rates.cloud_liquid.riming_by_graupel.number,,
+proc_rates%npsacwgtot,rate,type:proc_rates_type,kg-1 s-1,"collection (riming) of cloud droplets by graupel, number; grid-mean (local rate times lcldm)",npsacwgtot,process_rates.cloud_liquid.riming_by_graupel.number,,
+pgsacw,rate,global,kg kg-1 s-1,"conversion to graupel due to collection of droplets by snow, mass; local (in-cloud or in-precipitation) rate",pgsacw,rates.graupel.from_snow_riming.mass,,
+proc_rates%pgsacwtot,rate,type:proc_rates_type,kg kg-1 s-1,"conversion to graupel due to collection of droplets by snow, mass; grid-mean (local rate times lcldm)",pgsacwtot,process_rates.graupel.from_snow_riming.mass,,
+nscng,rate,global,kg-1 s-1,"conversion to graupel due to collection of droplets by snow, number; local (in-cloud or in-precipitation) rate",nscng,rates.graupel.from_snow_riming.number,,
+proc_rates%nscngtot,rate,type:proc_rates_type,kg-1 s-1,"conversion to graupel due to collection of droplets by snow, number; grid-mean (local rate times lcldm)",nscngtot,process_rates.graupel.from_snow_riming.number,,
+pgracs,rate,global,kg kg-1 s-1,"conversion to graupel due to collection of rain by snow, mass; local (in-cloud or in-precipitation) rate",pgracs,rates.graupel.rain_snow_collection.mass,,
+proc_rates%pgracstot,rate,type:proc_rates_type,kg kg-1 s-1,"conversion to graupel due to collection of rain by snow, mass; grid-mean (local rate times precip_frac)",pgracstot,process_rates.graupel.rain_snow_collection.mass,,
+ngracs,rate,global,kg-1 s-1,"conversion to graupel due to collection of rain by snow, number; local (in-cloud or in-precipitation) rate",ngracs,rates.graupel.rain_snow_collection.number,,
+proc_rates%ngracstot,rate,type:proc_rates_type,kg-1 s-1,"conversion to graupel due to collection of rain by snow, number; grid-mean (local rate times precip_frac)",ngracstot,process_rates.graupel.rain_snow_collection.number,,
+psacr,rate,global,kg kg-1 s-1,"conversion due to collection of snow by rain, mass; local (in-cloud or in-precipitation) rate",psacr,rates.snow.collection_by_rain.mass,,
+proc_rates%psacrtot,rate,type:proc_rates_type,kg kg-1 s-1,"conversion due to collection of snow by rain, mass; grid-mean (local rate times precip_frac)",psacrtot,process_rates.snow.collection_by_rain.mass,,
+prdg,rate,global,kg kg-1 s-1,"vapor deposition/sublimation of graupel, mass; local (in-cloud or in-precipitation) rate",prdg,rates.graupel.deposition.mass,,
+proc_rates%prdgtot,rate,type:proc_rates_type,kg kg-1 s-1,"vapor deposition/sublimation of graupel, mass; grid-mean (local rate times precip_frac)",prdgtot,process_rates.graupel.deposition.mass,,
+qmultg,rate,global,kg kg-1 s-1,"ice multiplication during accretion of droplets by graupel, mass; local (in-cloud or in-precipitation) rate",qmultg,rates.cloud_ice.splintering_by_graupel.mass,,
+proc_rates%qmultgtot,rate,type:proc_rates_type,kg kg-1 s-1,"ice multiplication during accretion of droplets by graupel, mass; grid-mean (local rate times lcldm)",qmultgtot,process_rates.cloud_ice.splintering_by_graupel.mass,,
+nmultg,rate,global,kg-1 s-1,"ice multiplication during accretion of droplets by graupel, number; local (in-cloud or in-precipitation) rate",nmultg,rates.cloud_ice.splintering_by_graupel.number,,
+proc_rates%nmultgtot,rate,type:proc_rates_type,kg-1 s-1,"ice multiplication during accretion of droplets by graupel, number; grid-mean (local rate times lcldm)",nmultgtot,process_rates.cloud_ice.splintering_by_graupel.number,,
+qmultrg,rate,global,kg kg-1 s-1,"ice multiplication during accretion of rain by graupel, mass; local (in-cloud or in-precipitation) rate",qmultrg,rates.cloud_ice.splintering_rain_graupel.mass,,
+proc_rates%qmultrgtot,rate,type:proc_rates_type,kg kg-1 s-1,"ice multiplication during accretion of rain by graupel, mass; grid-mean (local rate times precip_frac)",qmultrgtot,process_rates.cloud_ice.splintering_rain_graupel.mass,,
+nmultrg,rate,global,kg-1 s-1,"ice multiplication during accretion of rain by graupel, number; local (in-cloud or in-precipitation) rate",nmultrg,rates.cloud_ice.splintering_rain_graupel.number,,
+proc_rates%nmultrgtot,rate,type:proc_rates_type,kg-1 s-1,"ice multiplication during accretion of rain by graupel, number; grid-mean (local rate times precip_frac)",nmultrgtot,process_rates.cloud_ice.splintering_rain_graupel.number,,
+proc_rates%melttot,rate,type:proc_rates_type,kg kg-1 s-1,"melting of cloud ice, mass",melttot,process_rates.cloud_ice.melting.mass,,
+proc_rates%nmelttot,rate,type:proc_rates_type,kg-1 s-1,"melting of cloud ice, number",nmelttot,process_rates.cloud_ice.melting.number,,
+proc_rates%meltstot,rate,type:proc_rates_type,kg kg-1 s-1,"melting of snow, mass",meltstot,process_rates.snow.melting.mass,,
+proc_rates%nmeltstot,rate,type:proc_rates_type,kg-1 s-1,"melting of snow, number",nmeltstot,process_rates.snow.melting.number,,
+proc_rates%meltgtot,rate,type:proc_rates_type,kg kg-1 s-1,"melting of graupel, mass",meltgtot,process_rates.graupel.melting.mass,,
+proc_rates%nmeltgtot,rate,type:proc_rates_type,kg-1 s-1,"melting of graupel, number",nmeltgtot,process_rates.graupel.melting.number,,
+proc_rates%homotot,rate,type:proc_rates_type,kg kg-1 s-1,"homogeneous freezing of cloud liquid, mass",homotot,process_rates.cloud_liquid.homogeneous_freezing.mass,,
+proc_rates%nhomotot,rate,type:proc_rates_type,kg-1 s-1,"homogeneous freezing of cloud liquid, number",nhomotot,process_rates.cloud_liquid.homogeneous_freezing.number,,
+proc_rates%qcrestot,rate,type:proc_rates_type,kg kg-1 s-1,residual condensation to cloud liquid that keeps RH below 100 %,qcrestot,process_rates.cloud_liquid.residual_condensation.mass,,
+proc_rates%qirestot,rate,type:proc_rates_type,kg kg-1 s-1,residual deposition to cloud ice that keeps RH below 100 %,qirestot,process_rates.cloud_ice.residual_deposition.mass,,
+proc_rates%qvres,rate,type:proc_rates_type,kg kg-1 s-1,"residual condensation term that keeps RH below 100 %, vapor sink",qvres,process_rates.vapor.residual_condensation.mass,,
+proc_rates%meltsdttot,diagnostic,type:proc_rates_type,W kg-1,latent heating rate from melting of snow and graupel,meltsdttot,process_rates.heating.snow_melting,,
+proc_rates%frzrdttot,diagnostic,type:proc_rates_type,W kg-1,latent heating rate from homogeneous freezing of rain,frzrdttot,process_rates.heating.rain_freezing,,
+proc_rates%prodsnow,rate,type:proc_rates_type,kg kg-1 s-1,"production of snow, mass",prodsnow,process_rates.snow.production.mass,,
+proc_rates%evapsnow,rate,type:proc_rates_type,kg kg-1 s-1,"sublimation of snow and graupel, mass",evapsnow,process_rates.snow.sublimation.mass,,
+proc_rates%qcsevap,rate,type:proc_rates_type,kg kg-1 s-1,evaporation of cloud liquid falling into clear air,qcsevap,process_rates.cloud_liquid.sedimentation_evaporation.mass,,
+proc_rates%qisevap,rate,type:proc_rates_type,kg kg-1 s-1,sublimation of cloud ice falling into clear air,qisevap,process_rates.cloud_ice.sedimentation_sublimation.mass,,
+proc_rates%cmeitot,rate,type:proc_rates_type,kg kg-1 s-1,grid-mean cloud ice deposition minus sublimation,cmeitot,process_rates.cloud_ice.net_deposition.mass,,
+proc_rates%vtrmc,diagnostic,type:proc_rates_type,m s-1,mass-weighted cloud liquid fall speed,vtrmc,process_rates.cloud_liquid.fall_speed.mass,,
+proc_rates%vtrmi,diagnostic,type:proc_rates_type,m s-1,mass-weighted cloud ice fall speed,vtrmi,process_rates.cloud_ice.fall_speed.mass,,
+proc_rates%umr,diagnostic,type:proc_rates_type,m s-1,mass-weighted rain fall speed,umr,process_rates.rain.fall_speed.mass,,
+proc_rates%ums,diagnostic,type:proc_rates_type,m s-1,mass-weighted snow fall speed,ums,process_rates.snow.fall_speed.mass,,
+proc_rates%umg,diagnostic,type:proc_rates_type,m s-1,mass-weighted graupel/hail fall speed,umg,process_rates.graupel.fall_speed.mass,,
+proc_rates%pgam_out,diagnostic,type:proc_rates_type,1,cloud droplet size distribution shape parameter (mu) for output,pgam_out,process_rates.cloud_liquid.size_distribution.shape,,
+proc_rates%lamc_out,diagnostic,type:proc_rates_type,m-1,cloud droplet size distribution slope parameter (lambda) for output,lamc_out,process_rates.cloud_liquid.size_distribution.slope,,
+proc_rates%lamr_out,diagnostic,type:proc_rates_type,m-1,rain size distribution slope parameter (lambda) for output,lamr_out,process_rates.rain.size_distribution.slope,,
+proc_rates%n0r_out,diagnostic,type:proc_rates_type,m-4,rain size distribution intercept parameter (N0) for output,n0r_out,process_rates.rain.size_distribution.intercept,,
+proc_rates%qcsedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of cloud liquid, mass",qcsedten,process_rates.cloud_liquid.sedimentation.mass,,
+proc_rates%ncsedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of cloud liquid, number",ncsedten,process_rates.cloud_liquid.sedimentation.number,,
+proc_rates%qisedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of cloud ice, mass",qisedten,process_rates.cloud_ice.sedimentation.mass,,
+proc_rates%nisedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of cloud ice, number",nisedten,process_rates.cloud_ice.sedimentation.number,,
+proc_rates%qrsedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of rain, mass",qrsedten,process_rates.rain.sedimentation.mass,,
+proc_rates%nrsedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of rain, number",nrsedten,process_rates.rain.sedimentation.number,,
+proc_rates%qssedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of snow, mass",qssedten,process_rates.snow.sedimentation.mass,,
+proc_rates%nssedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of snow, number",nssedten,process_rates.snow.sedimentation.number,,
+proc_rates%qgsedten,rate,type:proc_rates_type,kg kg-1 s-1,"sedimentation of graupel/hail, mass",qgsedten,process_rates.graupel.sedimentation.mass,,
+proc_rates%ngsedten,rate,type:proc_rates_type,kg-1 s-1,"sedimentation of graupel/hail, number",ngsedten,process_rates.graupel.sedimentation.number,,
+proc_rates%qctend_KK2000,rate,type:proc_rates_type,kg kg-1 s-1,"cloud liquid mass tendency from autoconversion and accretion, Khairoutdinov and Kogan (2000)",qctend_KK2000,process_rates.cloud_liquid.warm_rain_kk2000.mass,,
+proc_rates%nctend_KK2000,rate,type:proc_rates_type,kg-1 s-1,"cloud liquid number tendency from autoconversion and accretion, Khairoutdinov and Kogan (2000)",nctend_KK2000,process_rates.cloud_liquid.warm_rain_kk2000.number,,
+proc_rates%qrtend_KK2000,rate,type:proc_rates_type,kg kg-1 s-1,"rain mass tendency from autoconversion and accretion, Khairoutdinov and Kogan (2000)",qrtend_KK2000,process_rates.rain.warm_rain_kk2000.mass,,
+proc_rates%nrtend_KK2000,rate,type:proc_rates_type,kg-1 s-1,"rain number tendency from autoconversion and accretion, Khairoutdinov and Kogan (2000)",nrtend_KK2000,process_rates.rain.warm_rain_kk2000.number,,
+proc_rates%qctend_SB2001,rate,type:proc_rates_type,kg kg-1 s-1,"cloud liquid mass tendency from autoconversion and accretion, Seifert and Beheng (2001)",qctend_SB2001,process_rates.cloud_liquid.warm_rain_sb2001.mass,,
+proc_rates%nctend_SB2001,rate,type:proc_rates_type,kg-1 s-1,"cloud liquid number tendency from autoconversion and accretion, Seifert and Beheng (2001)",nctend_SB2001,process_rates.cloud_liquid.warm_rain_sb2001.number,,
+proc_rates%qrtend_SB2001,rate,type:proc_rates_type,kg kg-1 s-1,"rain mass tendency from autoconversion and accretion, Seifert and Beheng (2001)",qrtend_SB2001,process_rates.rain.warm_rain_sb2001.mass,,
+proc_rates%nrtend_SB2001,rate,type:proc_rates_type,kg-1 s-1,"rain number tendency from autoconversion and accretion, Seifert and Beheng (2001)",nrtend_SB2001,process_rates.rain.warm_rain_sb2001.number,,
+proc_rates%qctend_TAU,rate,type:proc_rates_type,kg kg-1 s-1,"cloud liquid mass tendency from autoconversion and accretion, the TAU bin code or its emulator",qctend_TAU,process_rates.cloud_liquid.warm_rain_tau.mass,,
+proc_rates%nctend_TAU,rate,type:proc_rates_type,kg-1 s-1,"cloud liquid number tendency from autoconversion and accretion, the TAU bin code or its emulator",nctend_TAU,process_rates.cloud_liquid.warm_rain_tau.number,,
+proc_rates%qrtend_TAU,rate,type:proc_rates_type,kg kg-1 s-1,"rain mass tendency from autoconversion and accretion, the TAU bin code or its emulator",qrtend_TAU,process_rates.rain.warm_rain_tau.mass,,
+proc_rates%nrtend_TAU,rate,type:proc_rates_type,kg-1 s-1,"rain number tendency from autoconversion and accretion, the TAU bin code or its emulator",nrtend_TAU,process_rates.rain.warm_rain_tau.number,,
+minstsm,state,global,kg kg-1,"instantaneous melting of snow, mass change in one time step",minstsm,rates.snow.instant_melting.mass,,
+ninstsm,state,global,kg-1,"instantaneous melting of snow, number change in one time step",ninstsm,rates.snow.instant_melting.number,,
+minstgm,state,global,kg kg-1,"instantaneous melting of graupel, mass change in one time step",minstgm,rates.graupel.instant_melting.mass,,
+ninstgm,state,global,kg-1,"instantaneous melting of graupel, number change in one time step",ninstgm,rates.graupel.instant_melting.number,,
+minstrf,state,global,kg kg-1,"instantaneous homogeneous freezing of rain, mass change in one time step",minstrf,rates.rain.instant_freezing.mass,,
+ninstrf,state,global,kg-1,"instantaneous homogeneous freezing of rain, number change in one time step",ninstrf,rates.rain.instant_freezing.number,,
+qc,state,global,kg kg-1,"cloud liquid mass mixing ratio, grid mean",qc,state.cloud_liquid.q,,
+nc,state,global,kg-1,"cloud liquid number concentration, grid mean",nc,state.cloud_liquid.N,,
+qcic,state,global,kg kg-1,in-cloud cloud liquid mass mixing ratio,qcic,incloud.cloud_liquid.q,,
+ncic,state,global,kg-1,in-cloud cloud liquid number concentration,ncic,incloud.cloud_liquid.N,,
+lamc,size,global,m-1,cloud liquid size distribution slope parameter (lambda),lamc,incloud.cloud_liquid.λ,,
+fc,sedimentation,global,Pa s-1,cloud liquid mass-weighted fall speed in pressure coordinates (g * rho * v),fc,scratch.pressure_fall_speed.cloud_liquid.q,,
+fnc,sedimentation,global,Pa s-1,cloud liquid number-weighted fall speed in pressure coordinates (g * rho * v),fnc,scratch.pressure_fall_speed.cloud_liquid.N,,
+qi,state,global,kg kg-1,"cloud ice mass mixing ratio, grid mean",qi,state.cloud_ice.q,,
+ni,state,global,kg-1,"cloud ice number concentration, grid mean",ni,state.cloud_ice.N,,
+qiic,state,global,kg kg-1,in-cloud cloud ice mass mixing ratio,qiic,incloud.cloud_ice.q,,
+niic,state,global,kg-1,in-cloud cloud ice number concentration,niic,incloud.cloud_ice.N,,
+lami,size,global,m-1,cloud ice size distribution slope parameter (lambda),lami,incloud.cloud_ice.λ,,
+n0i,size,global,m-4,cloud ice size distribution intercept parameter (N0),n0i,incloud.cloud_ice.N₀,,
+fi,sedimentation,global,Pa s-1,cloud ice mass-weighted fall speed in pressure coordinates (g * rho * v),fi,scratch.pressure_fall_speed.cloud_ice.q,,
+fni,sedimentation,global,Pa s-1,cloud ice number-weighted fall speed in pressure coordinates (g * rho * v),fni,scratch.pressure_fall_speed.cloud_ice.N,,
+qr,state,global,kg kg-1,"rain mass mixing ratio, grid mean",qr,state.rain.q,,
+nr,state,global,kg-1,"rain number concentration, grid mean",nr,state.rain.N,,
+qric,state,global,kg kg-1,in-precipitation rain mass mixing ratio,qric,incloud.rain.q,,
+nric,state,global,kg-1,in-precipitation rain number concentration,nric,incloud.rain.N,,
+lamr,size,global,m-1,rain size distribution slope parameter (lambda),lamr,incloud.rain.λ,,
+n0r,size,global,m-4,rain size distribution intercept parameter (N0),n0r,incloud.rain.N₀,,
+fr,sedimentation,global,Pa s-1,rain mass-weighted fall speed in pressure coordinates (g * rho * v),fr,scratch.pressure_fall_speed.rain.q,,
+fnr,sedimentation,global,Pa s-1,rain number-weighted fall speed in pressure coordinates (g * rho * v),fnr,scratch.pressure_fall_speed.rain.N,,
+qs,state,global,kg kg-1,"snow mass mixing ratio, grid mean",qs,state.snow.q,,
+ns,state,global,kg-1,"snow number concentration, grid mean",ns,state.snow.N,,
+qsic,state,global,kg kg-1,in-precipitation snow mass mixing ratio,qsic,incloud.snow.q,,
+nsic,state,global,kg-1,in-precipitation snow number concentration,nsic,incloud.snow.N,,
+lams,size,global,m-1,snow size distribution slope parameter (lambda),lams,incloud.snow.λ,,
+n0s,size,global,m-4,snow size distribution intercept parameter (N0),n0s,incloud.snow.N₀,,
+fs,sedimentation,global,Pa s-1,snow mass-weighted fall speed in pressure coordinates (g * rho * v),fs,scratch.pressure_fall_speed.snow.q,,
+fns,sedimentation,global,Pa s-1,snow number-weighted fall speed in pressure coordinates (g * rho * v),fns,scratch.pressure_fall_speed.snow.N,,
+qg,state,global,kg kg-1,"graupel/hail mass mixing ratio, grid mean",qg,state.graupel.q,,
+ng,state,global,kg-1,"graupel/hail number concentration, grid mean",ng,state.graupel.N,,
+qgic,state,global,kg kg-1,in-precipitation graupel/hail mass mixing ratio,qgic,incloud.graupel.q,,
+ngic,state,global,kg-1,in-precipitation graupel/hail number concentration,ngic,incloud.graupel.N,,
+lamg,size,global,m-1,graupel/hail size distribution slope parameter (lambda),lamg,incloud.graupel.λ,,
+n0g,size,global,m-4,graupel/hail size distribution intercept parameter (N0),n0g,incloud.graupel.N₀,,
+fg,sedimentation,global,Pa s-1,graupel/hail mass-weighted fall speed in pressure coordinates (g * rho * v),fg,scratch.pressure_fall_speed.graupel.q,,
+fng,sedimentation,global,Pa s-1,graupel/hail number-weighted fall speed in pressure coordinates (g * rho * v),fng,scratch.pressure_fall_speed.graupel.N,,
+pgam,size,global,1,"cloud droplet size distribution shape (spectral width) parameter, mu",pgam,incloud.cloud_liquid.μ,,
+unr,fallspeed,global,m s-1,number-weighted rain fall speed,unr,incloud.rain.fall_speed_number,,
+umr,fallspeed,global,m s-1,mass-weighted rain fall speed,umr,process_rates.rain.fall_speed.mass,,
+uns,fallspeed,global,m s-1,number-weighted snow fall speed,uns,incloud.snow.fall_speed_number,,
+ums,fallspeed,global,m s-1,mass-weighted snow fall speed,ums,process_rates.snow.fall_speed.mass,,
+ung,fallspeed,global,m s-1,number-weighted graupel/hail fall speed,ung,incloud.graupel.fall_speed_number,,
+umg,fallspeed,global,m s-1,mass-weighted graupel/hail fall speed,umg,process_rates.graupel.fall_speed.mass,,
+arn,fallspeed,global,,density-corrected prefactor a of the rain fall speed power law v = a D^b (m^(1-b) s-1),arn,state.air.fall_speed_prefactor.rain,,
+asn,fallspeed,global,,density-corrected prefactor a of the snow fall speed power law v = a D^b (m^(1-b) s-1),asn,state.air.fall_speed_prefactor.snow,,
+agn,fallspeed,global,,density-corrected prefactor a of the graupel/hail fall speed power law v = a D^b (m^(1-b) s-1),agn,state.air.fall_speed_prefactor.graupel,,
+acn,fallspeed,global,,density-corrected prefactor a of the cloud droplets fall speed power law v = a D^b (m^(1-b) s-1),acn,state.air.fall_speed_prefactor.cloud_liquid,,
+ain,fallspeed,global,,density-corrected prefactor a of the cloud ice fall speed power law v = a D^b (m^(1-b) s-1),ain,state.air.fall_speed_prefactor.cloud_ice,,
+ajn,fallspeed,global,,density-corrected prefactor a of the small cloud ice fall speed power law v = a D^b (m^(1-b) s-1),ajn,state.air.fall_speed_prefactor.small_cloud_ice,,
+rho,air,global,kg m-3,air density,rho,state.air.density,air_density,
+mu,air,global,kg m-1 s-1,dynamic viscosity of air,mu,state.air.viscosity,,
+sc,air,global,1,Schmidt number,sc,state.air.schmidt,,
+rhof,air,global,1,air density correction factor for fall speeds,rhof,state.air.density_correction,,
+precip_frac,fraction,global,1,precipitation fraction assuming maximum overlap,precip_frac,incloud.precipitation_fraction,,
+cldm,fraction,global,1,cloud fraction,cldm,incloud.cloud_fraction,cloud_area_fraction,
+icldm,fraction,global,1,ice cloud fraction,icldm,incloud.ice_fraction,ice_cloud_area_fraction,
+lcldm,fraction,global,1,liquid cloud fraction,lcldm,incloud.liquid_fraction,liquid_cloud_area_fraction,
+qsfm,fraction,global,1,subgrid cloud water saturation scaling factor,qsfm,incloud.saturation_scaling,,
+esl,saturation,global,Pa,saturation vapor pressure over liquid water,esl,state.air.vapor_pressure_liquid,,
+esi,saturation,global,Pa,saturation vapor pressure over ice,esi,state.air.vapor_pressure_ice,,
+qvl,saturation,global,kg kg-1,saturation specific humidity over liquid water,qvl,state.air.q_sat_liquid,,
+qvi,saturation,global,kg kg-1,saturation specific humidity over ice,qvi,state.air.q_sat_ice,,
+relhum,saturation,global,1,relative humidity with respect to liquid water,relhum,state.air.relative_humidity,relative_humidity,
+proc_rates%qc_in_TAU,diagnostic,type:proc_rates_type,kg kg-1,TAU: input total cloud liquid mass,qc_in_TAU,process_rates.cloud_liquid.warm_rain_tau.mass_before,,
+proc_rates%nc_in_TAU,diagnostic,type:proc_rates_type,kg-1,TAU: input total cloud liquid number,nc_in_TAU,process_rates.cloud_liquid.warm_rain_tau.number_before,,
+proc_rates%qr_in_TAU,diagnostic,type:proc_rates_type,kg kg-1,TAU: input total rain mass,qr_in_TAU,process_rates.rain.warm_rain_tau.mass_before,,
+proc_rates%nr_in_TAU,diagnostic,type:proc_rates_type,kg-1,TAU: input total cloud rain number,nr_in_TAU,process_rates.rain.warm_rain_tau.number_before,,
+proc_rates%qc_out_TAU,diagnostic,type:proc_rates_type,kg kg-1,TAU: output total cloud liquid mass,qc_out_TAU,process_rates.cloud_liquid.warm_rain_tau.mass_after,,
+proc_rates%nc_out_TAU,diagnostic,type:proc_rates_type,kg-1,TAU: output total cloud liquid number,nc_out_TAU,process_rates.cloud_liquid.warm_rain_tau.number_after,,
+proc_rates%qr_out_TAU,diagnostic,type:proc_rates_type,kg kg-1,TAU: output total rain mass,qr_out_TAU,process_rates.rain.warm_rain_tau.mass_after,,
+proc_rates%nr_out_TAU,diagnostic,type:proc_rates_type,kg-1,TAU: output total cloud rain number,nr_out_TAU,process_rates.rain.warm_rain_tau.number_after,,
+proc_rates%scale_qc,diagnostic,type:proc_rates_type,1,TAU scaling factor for liquid mass to ensure conservation,scale_qc,process_rates.cloud_liquid.warm_rain_tau.mass_scale,,
+proc_rates%scale_nc,diagnostic,type:proc_rates_type,1,TAU scaling factor for liquid number to ensure conservation,scale_nc,process_rates.cloud_liquid.warm_rain_tau.number_scale,,
+proc_rates%scale_qr,diagnostic,type:proc_rates_type,1,TAU scaling factor for rain mass to ensure conservation,scale_qr,process_rates.rain.warm_rain_tau.mass_scale,,
+proc_rates%scale_nr,diagnostic,type:proc_rates_type,1,TAU scaling factor for rain_number to ensure conservation,scale_nr,process_rates.rain.warm_rain_tau.number_scale,,
+proc_rates%gmnnn_lmnnn_TAU,diagnostic,type:proc_rates_type,,TAU sum of mass gain and loss from bin code,gmnnn_lmnnn_TAU,process_rates.liquid.warm_rain_tau.net_bin_gain,,
+tlat,tendency,argument:micro_pumas_tend,W kg-1,latent heating rate,tlat,tendencies.heating,,
+qvlat,tendency,argument:micro_pumas_tend,kg kg-1 s-1,microphysical tendency of water vapor,qvlat,tendencies.vapor,,
+qctend,tendency,argument:micro_pumas_tend,kg kg-1 s-1,microphysical tendency qc,qctend,tendencies.cloud_liquid.q,,
+nctend,tendency,argument:micro_pumas_tend,kg-1 s-1,microphysical tendency nc,nctend,tendencies.cloud_liquid.N,,
+qitend,tendency,argument:micro_pumas_tend,kg kg-1 s-1,microphysical tendency qi,qitend,tendencies.cloud_ice.q,,
+nitend,tendency,argument:micro_pumas_tend,kg-1 s-1,microphysical tendency ni,nitend,tendencies.cloud_ice.N,,
+qrtend,tendency,argument:micro_pumas_tend,kg kg-1 s-1,microphysical tendency qr,qrtend,tendencies.rain.q,,
+nrtend,tendency,argument:micro_pumas_tend,kg-1 s-1,microphysical tendency nr,nrtend,tendencies.rain.N,,
+qstend,tendency,argument:micro_pumas_tend,kg kg-1 s-1,microphysical tendency qs,qstend,tendencies.snow.q,,
+nstend,tendency,argument:micro_pumas_tend,kg-1 s-1,microphysical tendency ns,nstend,tendencies.snow.N,,
+qgtend,tendency,argument:micro_pumas_tend,kg kg-1 s-1,microphysical tendency qg,qgtend,tendencies.graupel.q,,
+ngtend,tendency,argument:micro_pumas_tend,kg-1 s-1,microphysical tendency ng,ngtend,tendencies.graupel.N,,
+qcsinksum_rate1ord,diagnostic,argument:micro_pumas_tend,s-1,"first-order sink rate of cloud liquid, for the host's sedimentation",qcsinksum_rate1ord,diagnostics.cloud_liquid.first_order_sink_rate,,
+qcrat,diagnostic,argument:micro_pumas_tend,1,"limiter for qc process rates (1 = no limit, 0 = no qc)",qcrat,diagnostics.cloud_liquid.limiter_ratio,,
+ncal,diagnostic,argument:micro_pumas_tend,m-3,output number conc of CCN,ncal,diagnostics.cloud_liquid.activation,,
+ncai,diagnostic,argument:micro_pumas_tend,m-3,output number conc of ice nuclei available,ncai,diagnostics.cloud_ice.available_nuclei,,
+nevapr,diagnostic,argument:micro_pumas_tend,kg kg-1 s-1,evaporation rate of rain + snow,nevapr,diagnostics.precipitation.evaporation,,
+prer_evap,diagnostic,argument:micro_pumas_tend,kg kg-1 s-1,evaporation rate of rain,prer_evap,diagnostics.rain.evaporation,,
+am_evp_st,diagnostic,argument:micro_pumas_tend,1,stratiform evaporation area,am_evp_st,diagnostics.precipitation.evaporation_area,,
+prain,diagnostic,argument:micro_pumas_tend,kg kg-1 s-1,production of rain + snow,prain,diagnostics.precipitation.production,,
+cmeout,diagnostic,argument:micro_pumas_tend,kg kg-1 s-1,Rate of cond-evap of ice,cmeout,diagnostics.vapor.net_condensation,,
+effc,diagnostic,argument:micro_pumas_tend,um,droplet effective radius,effc,diagnostics.effective_radius.cloud_liquid,,
+effc_fn,diagnostic,argument:micro_pumas_tend,um,"droplet effective radius, assuming nc = 1.e8 kg-1",effc_fn,diagnostics.effective_radius.cloud_liquid_fixed_number,,
+effi,diagnostic,argument:micro_pumas_tend,um,cloud ice effective radius,effi,diagnostics.effective_radius.cloud_ice,,
+reff_rain,diagnostic,argument:micro_pumas_tend,um,rain effective radius,reff_rain,diagnostics.effective_radius.rain,,
+reff_snow,diagnostic,argument:micro_pumas_tend,um,snow effective radius,reff_snow,diagnostics.effective_radius.snow,,
+reff_grau,diagnostic,argument:micro_pumas_tend,um,graupel effective radius,reff_grau,diagnostics.effective_radius.graupel,,
+rercld,diagnostic,argument:micro_pumas_tend,m,effective radius of rain and cloud liquid together,rercld,diagnostics.effective_radius.rain_and_cloud,,
+deffi,diagnostic,argument:micro_pumas_tend,um,ice effective diameter for optics (radiation),deffi,diagnostics.effective_diameter.cloud_ice,,
+sadice,diagnostic,argument:micro_pumas_tend,cm2 cm-3,cloud ice surface area density,sadice,diagnostics.surface_area_density.cloud_ice,,
+sadsnow,diagnostic,argument:micro_pumas_tend,cm2 cm-3,cloud snow surface area density,sadsnow,diagnostics.surface_area_density.snow,,
+pgamrad,diagnostic,argument:micro_pumas_tend,1,ice gamma parameter for optics (radiation),pgamrad,diagnostics.radiation.droplet_shape,,
+lamcrad,diagnostic,argument:micro_pumas_tend,m-1,slope of droplet distribution for optics (radiation),lamcrad,diagnostics.radiation.droplet_slope,,
+qrout,diagnostic,argument:micro_pumas_tend,kg kg-1,grid-box average rain mixing ratio,qrout,diagnostics.rain.q,,
+nrout,diagnostic,argument:micro_pumas_tend,m-3,rain number concentration,nrout,diagnostics.rain.N_per_volume,,
+qsout,diagnostic,argument:micro_pumas_tend,kg kg-1,snow mixing ratio,qsout,diagnostics.snow.q,,
+nsout,diagnostic,argument:micro_pumas_tend,m-3,snow number concentration,nsout,diagnostics.snow.N_per_volume,,
+qgout,diagnostic,argument:micro_pumas_tend,kg kg-1,graupel/hail mixing ratio,qgout,diagnostics.graupel.q,,
+ngout,diagnostic,argument:micro_pumas_tend,m-3,graupel/hail number concentration,ngout,diagnostics.graupel.N_per_volume,,
+qrout2,diagnostic,argument:micro_pumas_tend,kg kg-1,copy of qrout as used to compute drout2,qrout2,diagnostics.rain.q_weighted,,
+nrout2,diagnostic,argument:micro_pumas_tend,m-3,copy of nrout as used to compute drout2,nrout2,diagnostics.rain.N_weighted,,
+qsout2,diagnostic,argument:micro_pumas_tend,kg kg-1,copy of qsout as used to compute dsout2,qsout2,diagnostics.snow.q_weighted,,
+nsout2,diagnostic,argument:micro_pumas_tend,m-3,copy of nsout as used to compute dsout2,nsout2,diagnostics.snow.N_weighted,,
+qgout2,diagnostic,argument:micro_pumas_tend,kg kg-1,copy of qgout as used to compute dgout2,qgout2,diagnostics.graupel.q_weighted,,
+ngout2,diagnostic,argument:micro_pumas_tend,m-3,copy of ngout as used to compute dgout2,ngout2,diagnostics.graupel.N_weighted,,
+drout2,diagnostic,argument:micro_pumas_tend,m,mean rain particle diameter,drout2,diagnostics.rain.mean_diameter,,
+dsout2,diagnostic,argument:micro_pumas_tend,m,mean snow particle diameter,dsout2,diagnostics.snow.mean_diameter,,
+dgout2,diagnostic,argument:micro_pumas_tend,m,mean graupel/hail particle diameter,dgout2,diagnostics.graupel.mean_diameter,,
+dsout,diagnostic,argument:micro_pumas_tend,m,snow diameter,dsout,diagnostics.snow.radiation_diameter,,
+dgout,diagnostic,argument:micro_pumas_tend,m,graupel/hail diameter,dgout,diagnostics.graupel.radiation_diameter,,
+freqr,diagnostic,argument:micro_pumas_tend,1,fractional occurrence of rain,freqr,diagnostics.rain.frequency,,
+freqs,diagnostic,argument:micro_pumas_tend,1,fractional occurrence of snow,freqs,diagnostics.snow.frequency,,
+freqg,diagnostic,argument:micro_pumas_tend,1,fractional occurrence of graupel,freqg,diagnostics.graupel.frequency,,
+refl,diagnostic,argument:micro_pumas_tend,dBZ,"analytic radar reflectivity (94GHZ, cloud radar)",refl,diagnostics.radar.reflectivity_dbz,,
+arefl,diagnostic,argument:micro_pumas_tend,dBZ,"average reflectivity, zero outside the valid range",arefl,diagnostics.radar.reflectivity_dbz_weighted,,
+areflz,diagnostic,argument:micro_pumas_tend,mm6 m-3,average reflectivity in z.,areflz,diagnostics.radar.reflectivity_z_weighted,,
+frefl,diagnostic,argument:micro_pumas_tend,1,fractional occurrence of radar reflectivity,frefl,diagnostics.radar.reflectivity_frequency,,
+csrfl,diagnostic,argument:micro_pumas_tend,dBZ,cloudsat reflectivity,csrfl,diagnostics.radar.cloudsat_dbz,,
+acsrfl,diagnostic,argument:micro_pumas_tend,dBZ,cloudsat average,acsrfl,diagnostics.radar.cloudsat_dbz_weighted,,
+fcsrfl,diagnostic,argument:micro_pumas_tend,1,cloudsat fractional occurrence of radar reflectivity,fcsrfl,diagnostics.radar.cloudsat_frequency,,
+refl10cm,diagnostic,argument:micro_pumas_tend,dBZ,10cm (rain) analytic radar reflectivity,refl10cm,diagnostics.radar.reflectivity_10cm_dbz,,
+reflz10cm,diagnostic,argument:micro_pumas_tend,mm6 m-3,10cm (rain) analytic radar reflectivity,reflz10cm,diagnostics.radar.reflectivity_10cm_z,,
+nfice,diagnostic,argument:micro_pumas_tend,1,fraction of frozen water to total condensed water,nfice,diagnostics.ice_mass_fraction,,
+lflx,flux,argument:micro_pumas_tend,kg m-2 s-1,grid-box average liquid condensate flux,lflx,diagnostics.flux.cloud_liquid,,
+iflx,flux,argument:micro_pumas_tend,kg m-2 s-1,grid-box average ice condensate flux,iflx,diagnostics.flux.cloud_ice,,
+rflx,flux,argument:micro_pumas_tend,kg m-2 s-1,grid-box average rain flux,rflx,diagnostics.flux.rain,,
+sflx,flux,argument:micro_pumas_tend,kg m-2 s-1,grid-box average snow flux,sflx,diagnostics.flux.snow,,
+gflx,flux,argument:micro_pumas_tend,kg m-2 s-1,grid-box average graupel/hail flux,gflx,diagnostics.flux.graupel,,
+prect,diagnostic,argument:micro_pumas_tend,m s-1,surface precip rate,prect,diagnostics.surface.total,,
+preci,diagnostic,argument:micro_pumas_tend,m s-1,cloud ice/snow precip rate,preci,diagnostics.surface.ice,,
+namelist:rhmini,setting,namelist,,Smallest relative humidity for ice cloud fraction > 0,rhmini,settings.minimum_rh_for_ice_cloud,,
+namelist:rhmini_const,setting,namelist,,Smallest relative humidity for ice cloud fraction > 0,rhmini_const,settings.minimum_rh_for_ice_cloud,,
+namelist:micro_mg_dcs,setting,namelist,m,Cloud ice to snow autoconversion diameter,micro_mg_dcs,settings.ice_to_snow_size,,
+namelist:micro_mg_do_hail,setting,namelist,,Prognostic hail instead of graupel,micro_mg_do_hail,settings.do_hail,,
+namelist:micro_mg_do_graupel,setting,namelist,,Prognostic graupel,micro_mg_do_graupel,settings.do_graupel,,
+namelist:microp_uniform,setting,namelist,,Sub-columns are uniform,microp_uniform,settings.uniform_subcolumns,,
+namelist:do_cldice,setting,namelist,,Cloud ice is prognostic,do_cldice,settings.prognostic_cloud_ice,,
+namelist:use_hetfrz_classnuc,setting,namelist,,Classical-nucleation heterogeneous freezing from the host,use_hetfrz_classnuc,settings.host_heterogeneous_freezing,,
+namelist:micro_mg_precip_frac_method,setting,namelist,,Precipitation fraction: `:in_cloud` or `:max_overlap`,micro_mg_precip_frac_method,settings.precipitation_fraction_method,,
+namelist:micro_mg_berg_eff_factor,setting,namelist,,Bergeron efficiency factor,micro_mg_berg_eff_factor,settings.bergeron_efficiency,,
+namelist:micro_mg_accre_enhan_fact,setting,namelist,,Accretion enhancement factor,micro_mg_accre_enhan_fact,settings.accretion_enhancement,,
+namelist:micro_mg_autocon_fact,setting,namelist,,Autoconversion prefactor,micro_mg_autocon_fact,settings.autoconversion_prefactor,,
+namelist:micro_mg_autocon_nd_exp,setting,namelist,,Autoconversion exponent of droplet number,micro_mg_autocon_nd_exp,settings.autoconversion_number_exponent,,
+namelist:micro_mg_autocon_lwp_exp,setting,namelist,,Autoconversion exponent of liquid water,micro_mg_autocon_lwp_exp,settings.autoconversion_water_exponent,,
+namelist:micro_mg_homog_size,setting,namelist,m,Diameter of homogeneously frozen ice,micro_mg_homog_size,settings.homogeneous_freezing_size,,
+namelist:micro_mg_vtrmi_factor,setting,namelist,,Factor on the cloud ice fall speed,micro_mg_vtrmi_factor,settings.ice_fall_speed_factor,,
+namelist:micro_mg_vtrms_factor,setting,namelist,,Factor on the snow fall speed,micro_mg_vtrms_factor,settings.snow_fall_speed_factor,,
+namelist:micro_mg_effi_factor,setting,namelist,,Factor on the ice effective radius,micro_mg_effi_factor,settings.ice_effective_radius_factor,,
+namelist:micro_mg_iaccr_factor,setting,namelist,,Factor on accretion of cloud ice by snow,micro_mg_iaccr_factor,settings.ice_accretion_factor,,
+namelist:micro_mg_max_nicons,setting,namelist,m-3,Largest ice number concentration,micro_mg_max_nicons,settings.maximum_ice_number,,
+namelist:allow_sed_supersat,setting,namelist,,Remove supersaturation after sedimentation (`remove_supersat` in PUMAS). CAM passes its namelist variable `allow_sed_supersat` here unchanged: see FINDINGS.md,allow_sed_supersat,settings.remove_supersaturation,,
+namelist:micro_pumas_warm_rain,setting,namelist,,"Warm rain scheme: `:kk2000`, `:sb2001` or `:tau`",micro_pumas_warm_rain,settings.warm_rain,,
+namelist:micro_pumas_kernel_file,setting,namelist,,"TAU collection kernel file, for `warm_rain = :tau`",micro_pumas_kernel_file,settings.tau_kernel_file,,
+namelist:micro_mg_evap_sed_off,setting,namelist,,No evaporation of sedimenting condensate by cloud fraction,micro_mg_evap_sed_off,settings.no_sedimentation_evaporation,,
+namelist:micro_mg_icenuc_rh_off,setting,namelist,,Ice nucleation without the humidity condition,micro_mg_icenuc_rh_off,settings.ice_nucleation_without_rh,,
+namelist:micro_mg_icenuc_use_meyers,setting,namelist,,Meyers et al. (1992) ice nucleation,micro_mg_icenuc_use_meyers,settings.meyers_ice_nucleation,,
+namelist:micro_mg_evap_scl_ifs,setting,namelist,,Scale evaporation by 0.3 as in IFS,micro_mg_evap_scl_ifs,settings.ifs_evaporation_scaling,,
+namelist:micro_mg_evap_rhthrsh_ifs,setting,namelist,,Evaporation humidity threshold as in IFS,micro_mg_evap_rhthrsh_ifs,settings.ifs_evaporation_threshold,,
+namelist:micro_mg_rainfreeze_ifs,setting,namelist,,Rain freezes at 0 °C as in IFS,micro_mg_rainfreeze_ifs,settings.ifs_rain_freezing,,
+namelist:micro_mg_ifs_sed,setting,namelist,,Snow falls at 1 m s⁻¹ as in IFS,micro_mg_ifs_sed,settings.ifs_snow_fall_speed,,
+namelist:micro_mg_precip_fall_corr,setting,namelist,,Rain fall speed stays non-zero below rain,micro_mg_precip_fall_corr,settings.precipitation_fall_correction,,
+namelist:micro_mg_accre_sees_auto,setting,namelist,,Accretion sees the rain made by autoconversion,micro_mg_accre_sees_auto,settings.accretion_sees_autoconversion,,
+namelist:micro_mg_implicit_fall,setting,namelist,,Implicit sedimentation,micro_mg_implicit_fall,settings.implicit_sedimentation,,
+namelist:micro_mg_nccons,setting,namelist,,Hold droplet number constant,micro_mg_nccons,settings.constant_droplet_number,,
+namelist:micro_mg_nicons,setting,namelist,,Hold ice number constant,micro_mg_nicons,settings.constant_ice_number,,
+namelist:micro_mg_ncnst,setting,namelist,m-3,Droplet number when held constant,micro_mg_ncnst,settings.droplet_number,,
+namelist:micro_mg_ninst,setting,namelist,m-3,Ice number when held constant,micro_mg_ninst,settings.ice_number,,
+namelist:micro_mg_ngcons,setting,namelist,,Hold graupel number constant,micro_mg_ngcons,settings.constant_graupel_number,,
+namelist:micro_mg_ngnst,setting,namelist,m-3,Graupel number when held constant,micro_mg_ngnst,settings.graupel_number,,
+namelist:naai_het_also_in_mpc,setting,namelist,,Nucleation from `naai` also above -40 °C,naai_het_also_in_mpc,settings.nucleation_in_mixed_phase,,
+namelist:enable_nimax,setting,namelist,,Cap the ice number at `maximum_ice_number`,enable_nimax,settings.cap_ice_number,,
+namelist:detrainment_ramp_liq,setting,namelist,,Removed supersaturation is liquid from -35 to -5 °C,detrainment_ramp_liq,settings.supersaturation_to_liquid,,
+namelist:onoff_contact_freezing,setting,namelist,,"Bigg contact freezing, used without host freezing",onoff_contact_freezing,settings.droplet_contact_freezing,,
+namelist:onoff_sip,setting,namelist,,Hallett-Mossop splinters from snow riming,onoff_sip,settings.rime_splintering,,
+namelist:rain_freeze,setting,namelist,,Bigg freezing of rain,rain_freeze,settings.rain_freezing,,
+namelist:auto_liq_factor,setting,namelist,,"Factor on liquid autoconversion, kk2000 and sb2001",auto_liq_factor,settings.autoconversion_factor,,
+namelist:riming_factor,setting,namelist,,"Factor on riming of droplets by snow, before splintering",riming_factor,settings.riming_factor,,
+namelist:micro_mg_ice_berg_ice_factor,setting,namelist,,Factor on Bergeron deposition onto cloud ice,micro_mg_ice_berg_ice_factor,settings.bergeron_ice_factor,,
+namelist:micro_mg_ice_berg_snow_factor,setting,namelist,,Factor on Bergeron deposition onto snow,micro_mg_ice_berg_snow_factor,settings.bergeron_snow_factor,,
+namelist:factor_hm,setting,namelist,,Factor on the Hallett-Mossop splinter number,factor_hm,settings.splinter_number_factor,,

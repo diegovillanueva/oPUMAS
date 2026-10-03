@@ -1,5 +1,5 @@
 # 🔤🗺️ Field paths of the time-step containers, keyed by the PUMAS name. The paths follow
-#    the CF-CCPP names of translation/dictionary.csv: species first (the one named first
+#    the CF/CCPP vocabulary; translation/dictionary.csv lists each pair: species first (the one named first
 #    in the dictionary), then process, then mass or number. allocate() builds the nested
 #    NamedTuples from these tables, and the tests use them to find golden variables.
 

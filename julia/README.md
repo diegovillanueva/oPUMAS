@@ -21,7 +21,7 @@ julia/tools/julia.sh -e 'using Pkg; Pkg.instantiate(); Pkg.test()'
 
 - 📦 `src/`: the package (`oPUMAS.jl` includes everything; `libm.jl` first). Foundations (constants, saturation, hydrometeors, parameters, namelist, size distributions) at the top, one file per process family in `src/processes/`: `warm_rain`, `aggregation` (ice and snow), `riming` (snow collecting droplets and rain), `freezing`, `deposition` (vapor growth, Bergeron, evaporation), `graupel`, `effective_radius`.
 - 🪜 The time step: `names.jl` (PUMAS name → container path tables, `output_paths()`), `workspace.jl` (`ColumnInputs`, `read_inputs`, `allocate`), `stages/s01_…s15_*.jl` (one file per stage of `micro_pumas_tend`; each binds its fields to readable locals with the PUMAS name in a comment, `qc_autoconversion = rates.cloud_liquid.autoconversion_to_rain.mass  # prc`; constants and densities in `stages/common.jl`) `step.jl` (`microphysics_step!`) and `time_loop.jl` (`time_loop!`, `advance_state!`).
-- 🧪 `test/`: tests against the golden files from `tests/column/`. `processes.jl` replays captured Fortran calls; one `test_<topic>.jl` per topic (`test_ice_processes.jl` covers every ice, snow, graupel and vapor process; `test_step.jl` runs the full step against every `golden_<label>.nc`; `test_time_loop.jl` runs the 3-day loop (432 steps) against `golden_loop.nc`; `test_physics.jl` checks water and energy budgets, negative mixing ratios and a clear dry column without the Fortran).
+- 🧪 `test/`: tests against the golden files from `tests/column/`. `processes.jl` replays captured Fortran calls; one `test_<topic>.jl` per topic (`test_ice_processes.jl` covers every ice, snow, graupel and vapor process; `test_step.jl` runs the full step against every `golden_<label>.nc`; `test_time_loop.jl` runs the 3-day loop (432 steps) against `golden_loop.nc`; `test_names.jl` keeps `translation/dictionary.csv` in sync; `test_physics.jl` checks water and energy budgets, negative mixing ratios and a clear dry column without the Fortran).
 - 📋 `TWINS.csv`: Julia function, Fortran file and routine, upstream commit translated.
 - 🔣 `SYMBOLS.md`: every short symbol used inside functions, every stage local with its container path and PUMAS name.
 - 🐛 `FINDINGS.md`: oddities of the Fortran met while translating.
@@ -63,7 +63,7 @@ source ~/conda; python3 julia/tools/plot_column_loop.py tests/column/data/loop/c
 
 🪞 Mirror of the Fortran checklist in [`../code_analysis/PUMAS_stage_map.md`](../code_analysis/PUMAS_stage_map.md); do the Fortran first, then the twin.
 
-1. 🔤 Add the rate's names to `translation/dictionary.csv` on `main_cam_interface` (PUMAS name, CF-CCPP name, `Julia` path such as `rates.rain.accretion_by_snow.mass`).
+1. 🔤 Add the rate's row to `translation/dictionary.csv` (`Fortran` name, `Julia` path such as `rates.rain.accretion_by_snow.mass`, units, meaning); `Pkg.test()` fails until dictionary and `src/names.jl` agree.
 2. 🧮 Write the rate as a scalar function in `src/processes/<family>.jl` with a `Fortran twin:` line in its docstring, export it, and add a row to `TWINS.csv`.
 3. 🗂️ Add its path to `LOCAL_RATE_PATHS` in `src/names.jl` (and to `PROCESS_RATE_PATHS` if it goes to history); `allocate` builds the field.
 4. 📞 Call it in stage 5, 6 or 7 behind its `Settings` switch, off by default, binding a local with the PUMAS name in a comment.
