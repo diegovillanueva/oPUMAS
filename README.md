@@ -9,6 +9,7 @@
 - 🤖📋 Agent rules: [`AGENTS.md`](AGENTS.md)
 - 🧪♻️ Compile check, bit-for-bit test and switch matrix: [`tests/README.md`](tests/README.md); column driver and golden data: [`tests/column/README.md`](tests/column/README.md)
 - 🤝📂 Handoffs of all topics: [`handoffs/`](handoffs/)
+- 🐛🧊 [Experimental lambda-bound correction](handoffs/lambda.2070fbd.md): one-line upstream typo fix with executed utility-source fixtures, an explicit narrow missing-CESM-suite exception, and production promotion still held.
 - 🟣📖 Readable Julia twin (in progress): [`julia/README.md`](julia/README.md); plan in [`handoffs/julia.plan.md`](handoffs/julia.plan.md)
 - 🧊🔌 Run oPUMAS inside CESM 2.1.5 CAM (`micro_mg_version = 3`): [`interface/cesm215/README.md`](interface/cesm215/README.md)
 
