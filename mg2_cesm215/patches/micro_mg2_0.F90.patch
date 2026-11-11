@@ -1,0 +1,89 @@
+diff --git a/src/physics/cam/micro_mg2_0.F90 b/src/physics/cam/micro_mg2_0.F90
+index bfa717ac..fe87fb94 100644
+--- a/src/physics/cam/micro_mg2_0.F90
++++ b/src/physics/cam/micro_mg2_0.F90
+@@ -133,6 +133,10 @@ use micro_mg_utils, only: &
+      mi0, &
+      rising_factorial
+ 
++use micro_dv_nml, only: micro_mg_ice_berg_ice_factor, micro_mg_ice_berg_snow_factor, &
++                        naai_het_also_in_mpc, detrainment_ramp_liq, enable_nimax, &
++                        auto_liq_factor, riming_factor
++
+ implicit none
+ private
+ save
+@@ -1115,7 +1119,9 @@ subroutine micro_mg_tend ( &
+ 
+   if (do_cldice) then
+      where (naai > 0._r8 .and. t < icenuct .and. &
+-          relhum*esl/esi > 1.05_r8)
++          relhum*esl/esi > 1.05_r8 .and. &
++          ( naai_het_also_in_mpc .or. t < 233.15_r8 ))
++        ! if naai_het_also_in_mpc is false, proceed only at cirrus temperatures
+ 
+         !if NAAI > 0. then set numice = naai (as before)
+         !note: this is gridbox averaged
+@@ -1339,6 +1345,11 @@ subroutine micro_mg_tend ( &
+             qric(:,k),rho(:,k),relvar(:,k),prc(:,k),nprc(:,k),nprc1(:,k), mgncol)     
+      endif	  
+ 
++     ! Scale liquid autoconversion rate and number by tuning factor
++     prc(:,k)   = prc(:,k)   * auto_liq_factor
++     nprc(:,k)  = nprc(:,k)  * auto_liq_factor
++     nprc1(:,k) = nprc1(:,k) * auto_liq_factor
++
+      !.......................................................................
+      ! Autoconversion of cloud ice to snow
+      ! similar to Ferrier (1994)
+@@ -1486,6 +1497,10 @@ subroutine micro_mg_tend ( &
+           qcic(1:mgncol,k), ncic(:,k), qsic(:,k), pgam(:,k), lamc(:,k), lams(:,k), n0s(:,k), &
+           psacws(:,k), npsacws(:,k), mgncol)
+ 
++     ! Scale riming rate (and number) by tuning factor before H-M so splinter production is also scaled
++     psacws(:,k)  = psacws(:,k)  * riming_factor
++     npsacws(:,k) = npsacws(:,k) * riming_factor
++
+      if (do_cldice) then
+         call secondary_ice_production(t(:,k), psacws(:,k), msacwi(:,k), nsacwi(:,k), mgncol)
+      else
+@@ -1528,7 +1543,7 @@ subroutine micro_mg_tend ( &
+           qvl(:,k), qvi(:,k), asn(:,k), qcic(1:mgncol,k), qsic(:,k), lams(:,k), n0s(:,k), &
+           bergs(:,k), mgncol)
+ 
+-     bergs(:,k)=bergs(:,k)*micro_mg_berg_eff_factor
++     bergs(:,k)=bergs(:,k)*micro_mg_berg_eff_factor*micro_mg_ice_berg_snow_factor
+ 
+      !+++PMC 12/3/12 - NEW VAPOR DEP/SUBLIMATION GOES HERE!!!
+      if (do_cldice) then
+@@ -1538,6 +1553,7 @@ subroutine micro_mg_tend ( &
+              berg(:,k), vap_dep(:,k), ice_sublim(:,k), mgncol)
+ 
+         berg(:,k)=berg(:,k)*micro_mg_berg_eff_factor
++        berg(:,k)=berg(:,k)*micro_mg_berg_eff_factor*micro_mg_ice_berg_ice_factor
+ 
+         where (ice_sublim(:,k) < 0._r8 .and. qi(:,k) > qsmall .and. icldm(:,k) > mincld)
+            nsubi(:,k) = sublim_factor*ice_sublim(:,k) / qi(:,k) * ni(:,k) / icldm(:,k)
+@@ -1971,7 +1987,8 @@ subroutine micro_mg_tend ( &
+         ! note that currently mtime = deltat
+         !================================================================
+ 
+-        if (do_cldice .and. nitend(i,k).gt.0._r8.and.ni(i,k)+nitend(i,k)*deltat.gt.nimax(i,k)) then
++        ! enable_nimax = .false. switches off the ice number limiter
++        if (enable_nimax .and. do_cldice .and. nitend(i,k).gt.0._r8.and.ni(i,k)+nitend(i,k)*deltat.gt.nimax(i,k)) then
+            nitend(i,k)=max(0._r8,(nimax(i,k)-ni(i,k))/deltat)
+         end if
+ 
+@@ -2710,7 +2727,11 @@ subroutine micro_mg_tend ( &
+               else if (ttmp < 238.15_r8) then
+                  dum1=1.0_r8
+               else
+-                 dum1=(268.15_r8-ttmp)/30._r8
++                 if ( detrainment_ramp_liq ) then
++                    dum1=0.0_r8   ! liquid only between 238.15 and 268.15 K
++                 else
++                    dum1=(268.15_r8-ttmp)/30._r8
++                 end if
+               end if
+ 
+               dum = (qtmp-qvn)/(1._r8+(xxls*dum1+xxlv*(1._r8-dum1))**2 &

@@ -1,0 +1,46 @@
+diff --git a/src/physics/cam/micro_mg_utils.F90 b/src/physics/cam/micro_mg_utils.F90
+index fee464c0..77e8ebb2 100644
+--- a/src/physics/cam/micro_mg_utils.F90
++++ b/src/physics/cam/micro_mg_utils.F90
+@@ -35,6 +35,8 @@ module micro_mg_utils
+ !
+ !--------------------------------------------------------------------------
+ 
++use micro_dv_nml, only: onoff_contact_freezing, onoff_sip, rain_freeze, factor_HM
++
+ #ifndef HAVE_GAMMA_INTRINSICS
+ use shr_spfn_mod, only: gamma => shr_spfn_gamma
+ #endif
+@@ -1006,7 +1008,7 @@ subroutine contact_freezing (microp_uniform, t, p, rndst, nacon, &
+ 
+   do i = 1,mgncol
+ 
+-     if (qcic(i) >= qsmall .and. t(i) < 269.15_r8) then
++     if (qcic(i) >= qsmall .and. t(i) < 269.15_r8 .and. onoff_contact_freezing) then
+ 
+         if (.not. microp_uniform) then
+            dum = var_coef(relvar(i), 4._r8/3._r8)
+@@ -1168,10 +1170,10 @@ subroutine secondary_ice_production(t, psacws, msacwi, nsacwi, mgncol)
+   integer :: i
+ 
+   do i=1,mgncol
+-     if((t(i) < 270.16_r8) .and. (t(i) >= 268.16_r8)) then
+-        nsacwi(i) = 3.5e8_r8*(270.16_r8-t(i))/2.0_r8*psacws(i)
+-     else if((t(i) < 268.16_r8) .and. (t(i) >= 265.16_r8)) then
+-        nsacwi(i) = 3.5e8_r8*(t(i)-265.16_r8)/3.0_r8*psacws(i)
++     if((t(i) < 270.16_r8) .and. (t(i) >= 268.16_r8) .and. onoff_sip ) then
++        nsacwi(i) = 3.5e8_r8*(270.16_r8-t(i))/2.0_r8*psacws(i)*factor_HM
++     else if((t(i) < 268.16_r8) .and. (t(i) >= 265.16_r8) .and. onoff_sip ) then
++        nsacwi(i) = 3.5e8_r8*(t(i)-265.16_r8)/3.0_r8*psacws(i)*factor_HM
+      else
+         nsacwi(i) = 0.0_r8
+      endif
+@@ -1271,7 +1273,7 @@ subroutine heterogeneous_rain_freezing(t, qric, nric, lamr, mnuccr, nnuccr, mgnc
+ 
+   do i=1,mgncol
+ 
+-     if (t(i) < 269.15_r8 .and. qric(i) >= qsmall) then
++     if (t(i) < 269.15_r8 .and. qric(i) >= qsmall .and. rain_freeze) then
+         nnuccr(i) = pi*nric(i)*bimm* &
+              (exp(aimm*(tmelt - t(i)))-1._r8)/lamr(i)**3
+ 
